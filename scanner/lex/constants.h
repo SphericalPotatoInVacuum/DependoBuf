@@ -1,5 +1,7 @@
 enum Token {
     // Single-character tokens
+    NIL, 
+
     LEFT_PAREN,
     RIGHT_PAREN,
     LEFT_BRACE,
@@ -26,7 +28,7 @@ enum Token {
 
     // Literals
     LC_IDENTIFIER,
-    UC_INDENTIFIER,
+    UC_IDENTIFIER,
     STRING,
     NUMBER,
     FLOAT,
