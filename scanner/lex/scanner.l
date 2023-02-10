@@ -2,6 +2,12 @@
 #include "constants.h"
 %}
 
+lc_letter [a-z]
+uc_letter [A-Z]
+letter    [a-zA-Z]
+digit     [0-9]
+ident_char [a-zA-Z0-9]
+
 %%
     /* Keywords */
 "message" return MESSAGE;
@@ -15,11 +21,11 @@
 "return"  return RETURN;
 
     /* Literals */
-\"[^\r\n]*\"      return STRING;
-[a-z][a-zA-Z0-9]* return LC_IDENTIFIER;
-[A-Z][a-zA-Z0-9]* return UC_IDENTIFIER;
-[0-9]*            return NUMBER;
-[0-9]+"."[0-9]+   return FLOAT;
+\"[^\r\n]*\"             return STRING;
+{lc_letter}{ident_char}* return LC_IDENTIFIER;
+{uc_letter}{ident_char}* return UC_IDENTIFIER;
+{digit}*                 return NUMBER;
+{digit}+"."{digit}+      return FLOAT;
 
     /* One or two character tokens */
 "!=" return BANG_EQUAL;
@@ -30,7 +36,7 @@
 "<"  return LESS;
 "="  return EQUAL;
 ">"  return GREATER;
-"!"  return  BANG;
+"!"  return BANG;
 
     /* Single-character tokens */
 "("  return LEFT_PAREN;
@@ -43,8 +49,14 @@
 "."  return DOT;
 "-"  return MINUS;
 "+"  return PLUS;
-"\\" return SLASH;
+"/"  return SLASH;
 "*"  return STAR;
+
+[ \t] /* spaces */
+\n   yylineno++;
+
+.    printf("Unrecognized token: %s\n", yytext);
+
 %%
 
 int yywrap(void) {
