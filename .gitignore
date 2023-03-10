@@ -1,0 +1,8 @@
+# lex-generated files
+*lex.yy.c
+
+# yacc-generated files
+*y.tab.c
+*y.tab.h
+
+*.o
