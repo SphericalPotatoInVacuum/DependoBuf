@@ -14,7 +14,7 @@
 %token COMMA DOT COLON
 %token<floatNum> FLOAT_LITERAL
 %token<intNum> INT_LITERAL
-%token<str> STRING_LIETRAL
+%token<str> STRING_LITERAL
 
 %right COLON
 %left BANG_EQUAL GREATER_EQUAL LESS_EQUAL LESS EQUAL GREATER
@@ -140,7 +140,7 @@ bool_literal
   ;
 float_literal : FLOAT_LITERAL ;
 int_literal : INT_LITERAL ;
-string_literal : STRING_LIETRAL ;
+string_literal : STRING_LITERAL ;
 
 constructed_value : constructor_identifier LEFT_BRACE field_initialization RIGHT_BRACE ;
 field_initialization
