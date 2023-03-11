@@ -1,2 +1,2 @@
-message SimpleDependencies (i Int), (s String), (b Bool) {
+message SimpleDependencies (i Int) (s String) (b Bool) {
 }
