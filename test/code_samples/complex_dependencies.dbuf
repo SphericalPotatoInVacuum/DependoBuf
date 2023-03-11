@@ -1,0 +1,2 @@
+message ComplexDependencies (n Nat), (v Vec n) {
+}
