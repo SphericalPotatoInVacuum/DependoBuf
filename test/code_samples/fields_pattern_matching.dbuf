@@ -1,4 +1,4 @@
-message FieldsPatternMatching (n Nat), (m Nat) {
+message FieldsPatternMatching (n Nat) (m Nat) {
     Succ {numberm : prev}, Zero => enum {
         Constructor1,
         Constructor2 {
