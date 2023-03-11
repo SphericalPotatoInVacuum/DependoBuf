@@ -1,0 +1,24 @@
+message FieldsPatternMatching (n Nat), (m Nat) {
+    Succ {numberm : prev}, Zero => enum {
+        Constructor1,
+        Constructor2 {
+            numbern
+            field
+        }
+    }
+    Succ {numbern : prev}, Succ {numberm : prev} {
+        Constructor3 {
+            numbern,
+            numberm
+        }
+    }
+    Zero, Succ {numberm : prev} {
+        Constructor4 {
+            numberm
+        }
+    }
+    *, * => enum {
+        Constructor5
+        Constructor6
+    }
+}
