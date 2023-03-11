@@ -1,4 +1,4 @@
-message FieldsDependOnDependenciesBool (n Int), (m Int), (b1 Bool), (b2 Bool){ 
+message FieldsDependOnDependenciesBool (n Int) (m Int) (b1 Bool) (b2 Bool){ 
     v1 Field (n < m)
     v2 Field (n > m)
     v3 Field (n <= m)
