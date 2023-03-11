@@ -1,0 +1,16 @@
+message MultipleDependenciesPatternMatching (n Nat) (m Nat) {
+    Zero, Succ => enum {
+        Constructor1
+        Constructor2
+    }
+    Zero, * => enum {
+        Constructor3
+    }
+    Succ, Zero => enum {
+        Constructor4
+        Constructor5
+    }
+    * => enum {
+        Constructor6
+    }
+}

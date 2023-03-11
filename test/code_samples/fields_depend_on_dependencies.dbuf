@@ -1,0 +1,3 @@
+message FieldsDependOnDependencies (n Nat), (b Bool) {
+    v Vec n b
+}
