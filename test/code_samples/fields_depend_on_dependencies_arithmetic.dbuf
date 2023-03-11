@@ -1,0 +1,7 @@
+message FieldsDependOnDependenciesArithmetic (n Int), (m Int) {
+    f1 Field1 (n + m)
+    f2 Field2 (n - m)
+    f3 Field3 (n * m)
+    f4 Field4 (n / m)
+    f5 Field5 (-n) 
+}

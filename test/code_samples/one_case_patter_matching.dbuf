@@ -1,0 +1,6 @@
+message OneCasePatternMatching {
+    * => enum {
+        Constructo1
+        Constructo2
+    }
+}
