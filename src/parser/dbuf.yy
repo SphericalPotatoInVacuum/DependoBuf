@@ -1,20 +1,57 @@
-%union {
-    int intNum;
-    float floatNum;
-    char *str;
+%skeleton "lalr1.cc"
+%require  "3.4"
+%debug 
+%defines 
+%define api.namespace {dbuf}
+%define api.parser.class {Parser}
+
+%code requires{
+  namespace dbuf {
+    class Driver;
+    class Lexer;
+  }
+
+// The following definitions is missing when %locations isn't used
+# ifndef YY_NULLPTR
+#  if defined __cplusplus && 201103L <= __cplusplus
+#   define YY_NULLPTR nullptr
+#  else
+#   define YY_NULLPTR 0
+#  endif
+# endif
+
 }
 
-%token<str> LC_IDENTIFIER UC_IDENTIFIER
+%parse-param { Lexer &scanner }
+%parse-param { Driver &driver }
+
+%code {
+  #include <iostream>
+  #include <cstdlib>
+  #include <fstream>
+  #include <stdio.h>
+
+  #include <parser/driver.hpp>
+
+#undef yylex
+#define yylex scanner.yylex
+}
+
+%define api.value.type variant
+%define parse.assert
+
+%token END 0 "end of file"
 %token NL
+%token <std::string> LC_IDENTIFIER UC_IDENTIFIER
 %token MESSAGE ENUM IMPL SERVICE RPC RETURNS
 %token FALSE TRUE
 %token PLUS MINUS STAR SLASH
 %token BANG_EQUAL GREATER_EQUAL LESS_EQUAL AND OR LESS EQUAL GREATER BANG
 %token LEFT_PAREN RIGHT_PAREN LEFT_BRACE RIGHT_BRACE
 %token COMMA DOT COLON
-%token<floatNum> FLOAT_LITERAL
-%token<intNum> INT_LITERAL
-%token<str> STRING_LITERAL
+%token <double> FLOAT_LITERAL
+%token <long long> INT_LITERAL
+%token <std::string> STRING_LITERAL
 
 %right COLON
 %left BANG_EQUAL GREATER_EQUAL LESS_EQUAL LESS EQUAL GREATER
@@ -23,10 +60,13 @@
 %right BANG
 
 %start schema
+
+%locations
+
 %%
 
 schema
-  : %empty
+  : END
   | message_definition schema
   | service_definition schema
   ;
@@ -36,28 +76,25 @@ message_definition
   | independent_message
   ;
 
-independent_message
-  : MESSAGE type_identifier independent_message_body NL ;
+independent_message : MESSAGE type_identifier independent_message_body ;
 independent_message_body
-  : fields_block
-  | constructors_block
+  : constructors_block
+  | fields_block
   ;
 
-dependent_message
-  : MESSAGE type_identifier type_dependencies dependent_message_body NL;
+dependent_message 
+  : MESSAGE type_identifier type_dependencies dependent_message_body ;
 type_dependencies
   : type_dependency
   | type_dependencies type_dependency
   ;
 type_dependency : LEFT_PAREN var_identifier type_expr RIGHT_PAREN ;
 
-dependent_message_body
-  : LEFT_BRACE NL dependent_blocks RIGHT_BRACE NL
-  ;
+dependent_message_body : LEFT_BRACE NL dependent_blocks RIGHT_BRACE NL ;
 dependent_blocks
   : %empty
-  | pattern_matching IMPL constructors_block
-  | pattern_matching IMPL fields_block
+  | pattern_matching IMPL constructors_block dependent_blocks
+  | pattern_matching IMPL fields_block dependent_blocks
   ;
 pattern_matching
   : pattern_match
@@ -77,14 +114,11 @@ field_binding
   ;
 
 constructors_block
-  : ENUM LEFT_BRACE NL
-    constructor_declarations
-    RIGHT_BRACE NL
-  ;
+  : ENUM LEFT_BRACE NL constructor_declarations RIGHT_BRACE NL ;
 constructor_declarations
   : %empty
-  | constructor_identifier fields_block
-  | constructors_block NL
+  | constructor_identifier fields_block constructor_declarations
+  | constructor_identifier NL constructor_declarations
   ;
 fields_block : LEFT_BRACE NL field_declarations RIGHT_BRACE NL ;
 field_declarations
@@ -96,7 +130,7 @@ type_expr : type_identifier | type_expr type_param ;
 type_param : primary ;
 
 expression
-  : expression PLUS
+  : expression PLUS expression
   | expression MINUS expression
   | expression STAR expression
   | expression SLASH expression
@@ -149,7 +183,7 @@ field_initialization
   | field_identifier EQUAL expression
   ;
 
-type_identifier : UC_IDENTIFIER ;
+type_identifier : UC_IDENTIFIER;
 constructor_identifier : UC_IDENTIFIER ;
 service_identifier : UC_IDENTIFIER ;
 var_identifier : LC_IDENTIFIER ;
@@ -174,3 +208,8 @@ arguments
 argument : var_identifier type_expr ;
 
 %%
+
+void dbuf::Parser::error(const location_type &l, const std::string &err_message)
+{
+   std::cerr << "Error: " << err_message << " at " << l << "\n";
+}
