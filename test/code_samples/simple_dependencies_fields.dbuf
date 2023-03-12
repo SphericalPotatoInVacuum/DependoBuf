@@ -1,0 +1,5 @@
+message SimpleDependenciesField {
+    i Int
+    v1d Vec i
+    v2d Vec v1d
+}

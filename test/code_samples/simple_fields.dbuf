@@ -1,0 +1,5 @@
+message SimpleFields {
+    i Int
+    b Bool
+    s String
+}

@@ -1,0 +1,7 @@
+message SimpleConstructors (n Nat) {
+    * => enum {
+        Constructor1
+        Constructor2
+        Constructor3
+    }
+}
