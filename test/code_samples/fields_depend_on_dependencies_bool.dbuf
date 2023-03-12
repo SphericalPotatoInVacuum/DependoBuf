@@ -1,11 +1,13 @@
-message FieldsDependOnDependenciesBool (n Int) (m Int) (b1 Bool) (b2 Bool){ 
-    v1 Field (n < m)
-    v2 Field (n > m)
-    v3 Field (n <= m)
-    v4 Field (n >= m)
-    v5 Field (n = m)
-    v6 Field (n != m)
-    v7 Field (b1 || b2)
-    v8 Field (b1 && b2)
-    v9 Field (!b1)
+message FieldsDependOnDependenciesBool (n Int) (m Int) (b1 Bool) (b2 Bool) {
+    * => { 
+        v1 Field (n < m)
+        v2 Field (n > m)
+        v3 Field (n <= m)
+        v4 Field (n >= m)
+        v5 Field (n = m)
+        v6 Field (n != m)
+        v7 Field (b1 || b2)
+        v8 Field (b1 && b2)
+        v9 Field (!b1)
+    }
 }

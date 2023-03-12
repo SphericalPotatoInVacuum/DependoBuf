@@ -1,15 +1,13 @@
-message ConstructorsWithFields {
-    * => enum {
-        Constructor 1  {
-            f1 Field1
-        }
-        Constructor 2,  {
-            f2  Field2
-            f3  Field3
-        }
-        Constructor 3  {
-            f4  Field4
-            f5  Field5
-        } 
+message ConstructorsWithFields enum {
+    Constructor1  {
+        f1 Field1
     }
+    Constructor2  {
+        f2  Field2
+        f3  Field3
+    }
+    Constructor3  {
+        f4  Field4
+        f5  Field5
+    } 
 }
