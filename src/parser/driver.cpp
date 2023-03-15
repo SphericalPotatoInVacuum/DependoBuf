@@ -25,17 +25,7 @@ void dbuf::Driver::parse(const char *const filename) {
   return;
 }
 
-void dbuf::Driver::parse(std::istream &stream) {
-  if (!stream.good() && stream.eof()) {
-    return;
-  }
-  // else
-  parse_helper(stream);
-  return;
-}
-
 void dbuf::Driver::parse_helper(std::istream &stream) {
-
   delete (lexer);
   try {
     lexer = new dbuf::Lexer(&stream);
@@ -48,7 +38,7 @@ void dbuf::Driver::parse_helper(std::istream &stream) {
   delete (parser);
   try {
     parser = new dbuf::Parser((*lexer) /* scanner */, (*this) /* driver */);
-    parser->set_debug_level(1000);
+    parser->set_debug_level(0);
   } catch (std::bad_alloc &ba) {
     std::cerr << "Failed to allocate parser: (" << ba.what()
               << "), exiting!!\n";
