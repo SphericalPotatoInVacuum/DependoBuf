@@ -6,7 +6,7 @@
 #include <parser/lexer.hpp>
 
 #undef YY_DECL
-#define YY_DECL int dbuf::Lexer::yylex(dbuf::Parser::semantic_type *const lval, dbuf::Parser::location_type *location)
+#define YY_DECL int dbuf::Lexer::yylex(dbuf::Parser::semantic_type *const lval, dbuf::Parser::location_type *loc)
 
 using token = dbuf::Parser::token;
 
