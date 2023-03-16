@@ -6,3 +6,6 @@
 *y.tab.h
 
 *.o
+
+# cmake
+build
