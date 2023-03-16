@@ -11,6 +11,15 @@ dbuf::Driver::~Driver() {
   parser = nullptr;
 }
 
+void dbuf::Driver::parse( std::istream &stream ) {
+   if( ! stream.good()  && stream.eof() ) {
+       return;
+   }
+   //else
+   parse_helper( stream ); 
+   return;
+}
+
 void dbuf::Driver::parse(const char *const filename) {
   /**
    * Remember, if you want to have checks in release mode
