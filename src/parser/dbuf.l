@@ -10,7 +10,7 @@
 
 using token = dbuf::Parser::token;
 
-#define yyterminate() return token::END;
+#define yyterminate() return token::TOK_END;
 #define YY_USER_ACTION loc->step(); loc->columns(yyleng);
 %}
 
@@ -33,66 +33,66 @@ ident_char [a-zA-Z0-9]
 
     /* Keywords */
 "message" {
-  return token::MESSAGE;
+  return token::TOK_MESSAGE;
 }
-"service" {return token::SERVICE;}
-"false"   {return token::FALSE;}
-"rpc"     {return token::RPC;}
-"true"    {return token::TRUE;}
-"enum"    {return token::ENUM;}
-"=>"      {return token::IMPL;}
-"returns" {return token::RETURNS;}
+"service" {return token::TOK_SERVICE;}
+"false"   {return token::TOK_FALSE;}
+"rpc"     {return token::TOK_RPC;}
+"true"    {return token::TOK_TRUE;}
+"enum"    {return token::TOK_ENUM;}
+"=>"      {return token::TOK_IMPL;}
+"returns" {return token::TOK_RETURNS;}
 
     /* Literals */
 \"[^\r\n]*\" {
   yylval->build<std::string>(yytext);
-  return token::STRING_LITERAL;
+  return token::TOK_STRING_LITERAL;
 }
 {lc_letter}{ident_char}* {
   yylval->build<std::string>(yytext);
-  return token::LC_IDENTIFIER;
+  return token::TOK_LC_IDENTIFIER;
 }
 {uc_letter}{ident_char}* {
   yylval->build<std::string>(yytext);
-  return token::UC_IDENTIFIER;
+  return token::TOK_UC_IDENTIFIER;
 }
 {digit}+ {
   yylval->build<long long>(atol(yytext));
-  return token::INT_LITERAL;
+  return token::TOK_INT_LITERAL;
 }
 {digit}+"."{digit}+ {
   yylval->build<double>(atof(yytext));
-  return token::FLOAT_LITERAL;
+  return token::TOK_FLOAT_LITERAL;
 }
 
     /* One or two character tokens */
-"!=" return token::BANG_EQUAL;
-">=" return token::GREATER_EQUAL;
-"<=" return token::LESS_EQUAL;
-"&&" return token::AND;
-"||" return token::OR;
-"<"  return token::LESS;
-"="  return token::EQUAL;
-">"  return token::GREATER;
-"!"  return token::BANG;
+"!=" return token::TOK_BANG_EQUAL;
+">=" return token::TOK_GREATER_EQUAL;
+"<=" return token::TOK_LESS_EQUAL;
+"&&" return token::TOK_AND;
+"||" return token::TOK_OR;
+"<"  return token::TOK_LESS;
+"="  return token::TOK_EQUAL;
+">"  return token::TOK_GREATER;
+"!"  return token::TOK_BANG;
 
     /* Single-character tokens */
-"("  {return token::LEFT_PAREN;}
-")"  {return token::RIGHT_PAREN;}
-"{"  {return token::LEFT_BRACE;}
-"}"  {return token::RIGHT_BRACE;}
-","  {return token::COMMA;}
-"."  {return token::DOT;}
-"-"  {return token::MINUS;}
-"+"  {return token::PLUS;}
-"/"  {return token::SLASH;}
-"*"  {return token::STAR;}
-":"  {return token::COLON;}
+"("  {return token::TOK_LEFT_PAREN;}
+")"  {return token::TOK_RIGHT_PAREN;}
+"{"  {return token::TOK_LEFT_BRACE;}
+"}"  {return token::TOK_RIGHT_BRACE;}
+","  {return token::TOK_COMMA;}
+"."  {return token::TOK_DOT;}
+"-"  {return token::TOK_MINUS;}
+"+"  {return token::TOK_PLUS;}
+"/"  {return token::TOK_SLASH;}
+"*"  {return token::TOK_STAR;}
+":"  {return token::TOK_COLON;}
 
 [ \t] /* spaces */
 "\n" {
   loc->lines();
-  return token::NL;
+  return token::TOK_NL;
 }
 
 . printf("Unrecognized token: %s\n", yytext);
