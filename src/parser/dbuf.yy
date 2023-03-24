@@ -1,7 +1,12 @@
 %skeleton "lalr1.cc"
 %require  "3.4"
-%debug 
+%header
+
 %defines 
+
+%define api.token.raw
+%define api.value.type variant
+
 %define api.namespace {dbuf}
 %define api.parser.class {Parser}
 
@@ -25,6 +30,12 @@
 %parse-param { Lexer &scanner }
 %parse-param { Driver &driver }
 
+%locations
+
+%define parse.trace 
+%define parse.error detailed
+%define parse.lac full
+
 %code {
   #include <iostream>
   #include <cstdlib>
@@ -37,31 +48,52 @@
 #define yylex scanner.yylex
 }
 
-%define api.value.type variant
-%define parse.assert
+%define api.token.prefix {TOK_}
 
 %token END 0 "end of file"
 %token NL
 %token <std::string> LC_IDENTIFIER UC_IDENTIFIER
 %token MESSAGE ENUM IMPL SERVICE RPC RETURNS
 %token FALSE TRUE
-%token PLUS MINUS STAR SLASH
-%token BANG_EQUAL GREATER_EQUAL LESS_EQUAL AND OR LESS EQUAL GREATER BANG
-%token LEFT_PAREN RIGHT_PAREN LEFT_BRACE RIGHT_BRACE
-%token COMMA DOT COLON
+%token
+  PLUS "+"
+  MINUS "-"
+  STAR "*"
+  SLASH "/"
+;
+%token
+  BANG_EQUAL "!="
+  GREATER_EQUAL ">="
+  LESS_EQUAL "<="
+  AND "&&"
+  OR "||"
+  LESS "<"
+  EQUAL "="
+  GREATER ">"
+  BANG "!"
+;
+%token
+  LEFT_PAREN "("
+  RIGHT_PAREN ")"
+  LEFT_BRACE "{"
+  RIGHT_BRACE "}"
+;
+%token
+  COMMA ","
+  DOT "."
+  COLON ":"
+;
 %token <double> FLOAT_LITERAL
 %token <long long> INT_LITERAL
 %token <std::string> STRING_LITERAL
 
-%right COLON
-%left BANG_EQUAL GREATER_EQUAL LESS_EQUAL LESS EQUAL GREATER
-%left OR MINUS PLUS
-%left AND STAR SLASH
-%right BANG
+%right ":"
+%left "!=" ">=" "<=" "<" "=" ">"
+%left "||" "-" "+"
+%left "&&" "*" "/"
+%right "!"
 
 %start schema
-
-%locations
 
 %%
 
@@ -88,9 +120,9 @@ type_dependencies
   : type_dependency
   | type_dependencies type_dependency
   ;
-type_dependency : LEFT_PAREN var_identifier type_expr RIGHT_PAREN ;
+type_dependency : "(" var_identifier type_expr ")" ;
 
-dependent_message_body : LEFT_BRACE NL dependent_blocks RIGHT_BRACE NL ;
+dependent_message_body : "{" NL dependent_blocks "}" NL ;
 dependent_blocks
   : %empty
   | pattern_matching IMPL constructors_block dependent_blocks
@@ -98,29 +130,29 @@ dependent_blocks
   ;
 pattern_matching
   : pattern_match
-  | pattern_match COMMA pattern_matching
+  | pattern_match "," pattern_matching
   ;
 pattern_match
   : STAR
   | value
   | constructor_identifier
-  | constructor_identifier LEFT_BRACE field_binding RIGHT_BRACE
+  | constructor_identifier "{" field_binding "}"
   ;
 field_binding
   : field_identifier
-  | field_identifier COMMA field_binding
-  | field_identifier COLON var_identifier
-  | field_identifier COLON var_identifier COMMA field_binding
+  | field_identifier "," field_binding
+  | field_identifier ":" var_identifier
+  | field_identifier ":" var_identifier "," field_binding
   ;
 
 constructors_block
-  : ENUM LEFT_BRACE NL constructor_declarations RIGHT_BRACE NL ;
+  : ENUM "{" NL constructor_declarations "}" NL ;
 constructor_declarations
   : %empty
   | constructor_identifier fields_block constructor_declarations
   | constructor_identifier NL constructor_declarations
   ;
-fields_block : LEFT_BRACE NL field_declarations RIGHT_BRACE NL ;
+fields_block : "{" NL field_declarations "}" NL ;
 field_declarations
   : %empty
   | field_identifier type_expr NL field_declarations
@@ -151,11 +183,11 @@ primary
   : value
   | var_identifier
   | field_access
-  | LEFT_PAREN expression RIGHT_PAREN
+  | "(" expression ")"
   ;
 field_access
-  : var_identifier DOT field_identifier
-  | field_access DOT field_identifier
+  : var_identifier "." field_identifier
+  | field_access "." field_identifier
   ;
 value
   : literal_value
@@ -176,10 +208,10 @@ float_literal : FLOAT_LITERAL ;
 int_literal : INT_LITERAL ;
 string_literal : STRING_LITERAL ;
 
-constructed_value : constructor_identifier LEFT_BRACE field_initialization RIGHT_BRACE ;
+constructed_value : constructor_identifier "{" field_initialization "}" ;
 field_initialization
   : %empty
-  | field_identifier EQUAL expression COMMA field_initialization
+  | field_identifier EQUAL expression "," field_initialization
   | field_identifier EQUAL expression
   ;
 
@@ -194,15 +226,15 @@ service_definition
   : SERVICE service_identifier rpc_block
   ;
 rpc_block
-  : LEFT_BRACE NL rpc_declarations RIGHT_BRACE NL ;
+  : "{" NL rpc_declarations "}" NL ;
 rpc_declarations
   : %empty
-  | RPC rpc_identifier LEFT_PAREN arguments RIGHT_PAREN
-    RETURNS LEFT_PAREN type_expr RIGHT_PAREN NL
+  | RPC rpc_identifier "(" arguments ")"
+    RETURNS "(" type_expr ")" NL
   ;
 arguments
   : %empty
-  | argument COMMA arguments
+  | argument "," arguments
   | argument
   ;
 argument : var_identifier type_expr ;
