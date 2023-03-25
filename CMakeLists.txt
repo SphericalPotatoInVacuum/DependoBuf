@@ -35,6 +35,9 @@ target_include_directories(dbuf PRIVATE "${SRC_DIR}")
 
 enable_testing()
 
-add_executable(parserTest "${TEST_DIR}/parser_test.cpp" "${SRC_DIR}/parser/driver.cpp" "${BISON_PARSER_OUTPUTS}" "${FLEX_LEXER_OUTPUTS}")
-target_include_directories(parserTest PRIVATE "${SRC_DIR}")
-target_link_libraries(parserTest PRIVATE GTest::GTest pthread)
+add_executable(debufTests "${TEST_DIR}/parser_test.cpp" "${SRC_DIR}/parser/driver.cpp" "${BISON_PARSER_OUTPUTS}" "${FLEX_LEXER_OUTPUTS}")
+target_include_directories(debufTests PRIVATE "${SRC_DIR}")
+target_link_libraries(debufTests PRIVATE GTest::GTest pthread)
+
+include(GoogleTest)
+gtest_discover_tests(debufTests)
