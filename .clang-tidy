@@ -1,3 +1,5 @@
+# Source: github.com/googleapis/google-cloud-cpp/blob/main/.clang-tidy
+
 ---
 # Configure clang-tidy for this project.
 
@@ -80,7 +82,7 @@ Checks: >
 # Turn all the warnings from the checks above into errors.
 WarningsAsErrors: "*"
 
-HeaderFilterRegex: "(google/cloud/|generator/).*\\.h$"
+HeaderFilterRegex: "(src|test).*\\.h$"
 
 CheckOptions:
   - { key: readability-identifier-naming.NamespaceCase,          value: lower_case }
@@ -103,6 +105,6 @@ CheckOptions:
   - { key: readability-identifier-naming.MemberConstantPrefix,     value: k         }
   - { key: readability-identifier-naming.StaticConstantCase,       value: CamelCase }
   - { key: readability-identifier-naming.StaticConstantPrefix,     value: k         }
-  - { key: readability-implicit-bool-conversion.AllowIntegerConditions,  value: 1   }
-  - { key: readability-implicit-bool-conversion.AllowPointerConditions,  value: 1   }
+  - { key: readability-implicit-bool-conversion.AllowIntegerConditions,  value: 0   }
+  - { key: readability-implicit-bool-conversion.AllowPointerConditions,  value: 0   }
   - { key: readability-function-cognitive-complexity.IgnoreMacros,  value: 1   }

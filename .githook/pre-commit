@@ -4,7 +4,7 @@
 CLANG_FORMAT_FILES=$(git diff --name-only --cached | grep -E "\.(cpp|cxx|h|hpp)$")
 if [ ! -z "$CLANG_FORMAT_FILES" ]; then
   echo "Running clang-format on modified C++ files..."
-  clang-format -style=Google -i $CLANG_FORMAT_FILES
+  clang-format -style='file:.clang-format' -i $CLANG_FORMAT_FILES
   git add $CLANG_FORMAT_FILES
 fi
 
