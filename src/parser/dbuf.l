@@ -6,9 +6,9 @@
 #include <parser/lexer.hpp>
 
 #undef YY_DECL
-#define YY_DECL int dbuf::Lexer::yylex(dbuf::Parser::semantic_type *const lval, dbuf::Parser::location_type *loc)
+#define YY_DECL int dbuf::parser::Lexer::yylex(dbuf::parser::Parser::semantic_type *const lval, dbuf::parser::Parser::location_type *loc)
 
-using token = dbuf::Parser::token;
+using token = dbuf::parser::Parser::token;
 
 #define yyterminate() return token::TOK_END;
 #define YY_USER_ACTION loc->step(); loc->columns(yyleng);
@@ -16,7 +16,7 @@ using token = dbuf::Parser::token;
 
 %option debug
 %option nodefault
-%option yyclass="dbuf::Lexer"
+%option yyclass="dbuf::parser::Lexer"
 %option noyywrap
 %option c++
 

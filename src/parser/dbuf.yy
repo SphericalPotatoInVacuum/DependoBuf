@@ -7,11 +7,11 @@
 %define api.token.raw
 %define api.value.type variant
 
-%define api.namespace {dbuf}
+%define api.namespace {dbuf::parser}
 %define api.parser.class {Parser}
 
 %code requires{
-  namespace dbuf {
+  namespace dbuf::parser {
     class Driver;
     class Lexer;
   }
@@ -235,7 +235,7 @@ argument : var_identifier type_expr ;
 
 %%
 
-void dbuf::Parser::error(const location_type &l, const std::string &err_message)
+void dbuf::parser::Parser::error(const location_type &l, const std::string &err_message)
 {
    std::cerr << "Error: " << err_message << " at " << l << "\n";
 }

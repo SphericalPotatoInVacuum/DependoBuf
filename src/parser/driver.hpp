@@ -1,13 +1,14 @@
 #pragma once
 
+#include "dbuf.tab.hpp"
+#include "lexer.hpp"
+
 #include <cstddef>
 #include <istream>
 #include <string>
 
-#include "dbuf.tab.hpp"
-#include "lexer.hpp"
-
 namespace dbuf {
+namespace parser {
 
 class Driver {
 public:
@@ -30,7 +31,8 @@ private:
   void parse_helper(std::istream &stream);
 
   Parser *parser = nullptr;
-  Lexer *lexer = nullptr;
+  Lexer *lexer   = nullptr;
 };
 
+} // namespace parser
 } // namespace dbuf
