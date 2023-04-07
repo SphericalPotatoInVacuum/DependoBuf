@@ -1,407 +1,272 @@
+#include "expression.h"
+
 #include <memory>
 #include <string>
 #include <vector>
 
-class Expression {
-public:
-  virtual ~Expression() {}
-  virtual std::shared_ptr<Primary> Evaluate() = 0;
-};
+namespace dbuf {
+namespace parser {
 
-class BinaryExpression : public Expression {
-public:
-  BinaryExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : left_(left), right_(right) {}
+Expression::~Expression() {}
 
-protected:
-  std::shared_ptr<Expression> left_;
-  std::shared_ptr<Expression> right_;
-};
+BinaryExpression::BinaryExpression(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : left_(left), right_(right) {}
 
-class PlusExpression : public BinaryExpression {
-public:
-  PlusExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
+PlusExpression::PlusExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
 
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+std::shared_ptr<Primary> PlusExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-    return left->operator+(right);
-  }
-};
+  return left->operator+(right);
+}
 
-class MinusExpression : public BinaryExpression {
-public:
-  MinusExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+MinusExpression::MinusExpression(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
 
-    return left->operator-(right);
-  }
-};
+std::shared_ptr<Primary> MinusExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class StarExpression : public BinaryExpression {
-public:
-  StarExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+  return left->operator-(right);
+}
 
-    return left->operator*(right);
-  }
-};
+StarExpression::StarExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
+std::shared_ptr<Primary> StarExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class SlashExpression : public BinaryExpression {
-public:
-  SlashExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+  return left->operator*(right);
+}
 
-    return left->operator/(right);
-  }
-};
+SlashExpression::SlashExpression(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
+std::shared_ptr<Primary> SlashExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class BangEqualExpression : public BinaryExpression {
-public:
-  BangEqualExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+  return left->operator/(right);
+}
 
-    return left->operator!=(right);
-  }
-};
+BangEqualExpression::BangEqualExpression(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
+std::shared_ptr<Primary> BangEqualExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class GreaterEqualExpression : public BinaryExpression {
-public:
-  GreaterEqualExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+  return left->operator!=(right);
+}
 
-    return left->operator>=(right);
-  }
-};
+GreaterEqualExpression::GreaterEqualExpression(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
+std::shared_ptr<Primary> GreaterEqualExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class LessEqualExpression : public BinaryExpression {
-public:
-  LessEqualExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+  return left->operator>=(right);
+}
 
-    return left->operator<=(right);
-  }
-};
+LessEqualExpression::LessEqualExpression(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
+std::shared_ptr<Primary> LessEqualExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class AndExpression : public BinaryExpression {
-public:
-  AndExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+  return left->operator<=(right);
+}
 
-    return left->operator&&(right);
-  }
-};
+AndExpression::AndExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
+std::shared_ptr<Primary> AndExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class OrExpression : public BinaryExpression {
-public:
-  OrExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+  return left->operator&&(right);
+}
 
-    return left->operator||(right);
-  }
-};
+OrExpression::OrExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
+std::shared_ptr<Primary> OrExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class LessExpression : public BinaryExpression {
-public:
-  LessExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+  return left->operator||(right);
+}
 
-    return left->operator<(right);
-  }
-};
+LessExpression::LessExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
+std::shared_ptr<Primary> LessExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class EqualExpression : public BinaryExpression {
-public:
-  EqualExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+  return left->operator<(right);
+}
 
-    return left->operator==(right);
-  }
-};
+EqualExpression::EqualExpression(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
+std::shared_ptr<Primary> EqualExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class GreaterExpression : public BinaryExpression {
-public:
-  GreaterExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
-      : BinaryExpression(left, right) {}
-  std::shared_ptr<Primary> Evaluate() override {
-    std::shared_ptr<Primary> left  = left_->Evaluate();
-    std::shared_ptr<Primary> right = right_->Evaluate();
+  return left->operator==(right);
+}
 
-    return left->operator>(right);
-  }
-};
+GreaterExpression::GreaterExpression(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right)
+    : BinaryExpression(left, right) {}
+std::shared_ptr<Primary> GreaterExpression::Evaluate() {
+  std::shared_ptr<Primary> left  = left_->Evaluate();
+  std::shared_ptr<Primary> right = right_->Evaluate();
 
-class TypeExpression : public Expression {
-public:
-  TypeExpression(TypeExpression type_expression) : type_(t) {}
+  return left->operator>(right);
+}
 
-private:
-  TypeExpression type_expression_;
-};
+UnaryExpression::UnaryExpression(std::shared_ptr<Expression> expression)
+    : expression_(expression) {}
 
-class UnaryExpression : public Expression {
-public:
-  UnaryExpression(std::shared_ptr<Expression> expression) : expression(expression) {}
+UnaryMinusExpression::UnaryMinusExpression(std::shared_ptr<Expression> expression)
+    : UnaryExpression(expression) {}
+std::shared_ptr<Primary> UnaryMinusExpression::Evaluate() {
+  return (expression_->Evaluate())->operator+();
+}
 
-protected:
-  std::shared_ptr<Primary> expression;
-};
+UnaryBangExpression::UnaryBangExpression(std::unique_ptr<Expression> expression)
+    : UnaryExpression(std::move(expression)) {}
+std::shared_ptr<Primary> UnaryBangExpression::Evaluate() {
+  return (expression_->Evaluate())->operator!();
+}
 
-class MinusExpression : public UnaryExpression {
-public:
-  MinusExpression(std::shared_ptr<Expression> expression) : UnaryExpression(expression) {}
-  std::shared_ptr<Primary> Evaluate() { return (expression->Evaluate())->operator+(); }
-};
+Primary::~Primary() {}
 
-class BangExpression : public UnaryExpression {
-public:
-  BangExpression(std::unique_ptr<Expression> expression) : expression_(std::move(expression)) {}
-  std::shared_ptr<Primary> Evaluate() override { return (expression->Evaluate())->operator!(); }
+Value::~Value() {}
 
-private:
-  std::unique_ptr<Expression> expression_;
-};
+BoolLiteral::BoolLiteral(bool value) : value_(value) {}
 
-class Primary {
-public:
-  virtual ~Primary() {}
+BoolLiteral::operator bool() const { return value_; }
 
-  // Boolean operators
-  virtual std::shared_ptr<Primary> operator!() const = 0; // Logical NOT operator
-  virtual std::shared_ptr<Primary>
-  operator&&(const std::shared_ptr<Primary> other) const = 0; // Logical AND operator
-  virtual std::shared_ptr<Primary>
-  operator||(const std::shared_ptr<Primary> other) const = 0; // Logical OR operator
+// Boolean operators
+std::shared_ptr<Primary> BoolLiteral::operator!() const {
+  return std::make_shared<Primary>(!value_);
+} // Logical NOT operator
+std::shared_ptr<Primary> BoolLiteral::operator&&(const std::shared_ptr<Primary> other) const {
+  bool other_value = *std::static_pointer_cast<bool>(other);
+  return std::make_shared<Primary>(value_ && other_value);
+} // Logical AND operator
+std::shared_ptr<Primary> BoolLiteral::operator||(const std::shared_ptr<Primary> other) const {
+  bool other_value = *std::static_pointer_cast<bool>(other);
+  return std::make_shared<Primary>(value_ || other_value);
+} // Logical OR operator
 
-  // Comparison operators
-  virtual std::shared_ptr<Primary> operator==(const std::shared_ptr<Primary> other) const = 0;
-  virtual std::shared_ptr<Primary> operator!=(const std::shared_ptr<Primary> other) const = 0;
-  virtual std::shared_ptr<Primary> operator<(const std::shared_ptr<Primary> other) const  = 0;
-  virtual std::shared_ptr<Primary> operator<=(const std::shared_ptr<Primary> other) const = 0;
-  virtual std::shared_ptr<Primary> operator>(const std::shared_ptr<Primary> other) const  = 0;
-  virtual std::shared_ptr<Primary> operator>=(const std::shared_ptr<Primary> other) const = 0;
+// Comparison operators
+std::shared_ptr<Primary> BoolLiteral::operator==(const std::shared_ptr<Primary> other) const {
+  bool other_value = *std::static_pointer_cast<bool>(other);
+  return std::make_shared<Primary>(value_ == other_value);
+}
+std::shared_ptr<Primary> BoolLiteral::operator!=(const std::shared_ptr<Primary> other) const {
+  bool other_value = *std::static_pointer_cast<bool>(other);
+  return std::make_shared<Primary>(value_ != other_value);
+}
+std::shared_ptr<Primary> BoolLiteral::operator<(const std::shared_ptr<Primary> other) const {
+  bool other_value = *std::static_pointer_cast<bool>(other);
+  return std::make_shared<Primary>(value_ < other_value);
+}
+std::shared_ptr<Primary> BoolLiteral::operator<=(const std::shared_ptr<Primary> other) const {
+  bool other_value = *std::static_pointer_cast<bool>(other);
+  return std::make_shared<Primary>(value_ <= other_value);
+}
+std::shared_ptr<Primary> BoolLiteral::operator>(const std::shared_ptr<Primary> other) const {
+  bool other_value = *std::static_pointer_cast<bool>(other);
+  return std::make_shared<Primary>(value_ > other_value);
+}
+std::shared_ptr<Primary> BoolLiteral::operator>=(const std::shared_ptr<Primary> other) const {
+  bool other_value = *std::static_pointer_cast<bool>(other);
+  return std::make_shared<Primary>(value_ >= other_value);
+}
 
-  // Arithmetic operators
-  virtual std::shared_ptr<Primary>
-  operator+(const std::shared_ptr<Primary> other) const = 0; // Addition operator
-  virtual std::shared_ptr<Primary>
-  operator-(const std::shared_ptr<Primary> other) const = 0; // Subtraction operator
-  virtual std::shared_ptr<Primary>
-  operator*(const std::shared_ptr<Primary> other) const = 0; // Multiplication operator
-  virtual std::shared_ptr<Primary>
-  operator/(const std::shared_ptr<Primary> other) const = 0; // Division operator
+FloatLiteral::FloatLiteral(float value) : value_(value) {}
 
-  // Unary arithmetic operators
-  virtual std::shared_ptr<Primary> operator+() const = 0; // Unary plus operator
-  virtual std::shared_ptr<Primary> operator-() const = 0; // Unary minus operator
+FloatLiteral::operator float() const { return value_; }
 
-  virtual std::shared_ptr<Primary> Evaluate() const = 0;
-};
+// Unary arithmetic operators
+std::shared_ptr<Primary> FloatLiteral::operator+() const {
+  return std::make_shared<Primary>(+value_);
+} // Unary plus operator
+std::shared_ptr<Primary> FloatLiteral::operator-() const {
+  return std::make_shared<Primary>(-value_);
+} // Unary minus operator
 
-// Value class definition
-class Value : public Primary {
-public:
-  virtual operator bool() const        = 0;
-  virtual operator float() const       = 0;
-  virtual operator std::string() const = 0;
-  virtual operator int() const         = 0;
-  virtual ~Value() {}
-};
+// Arithmetic operators
+std::shared_ptr<Primary> FloatLiteral::operator+(const std::shared_ptr<Primary> other) const {
+  return std::make_shared<Primary>(value_ + *std::static_pointer_cast<float>(other));
+} // Addition operator
+std::shared_ptr<Primary> FloatLiteral::operator-(const std::shared_ptr<Primary> other) const {
+  return std::make_shared<Primary>(value_ - *std::static_pointer_cast<float>(other));
+} // Subtraction operator
+std::shared_ptr<Primary> FloatLiteral::operator*(const std::shared_ptr<Primary> other) const {
+  return std::make_shared<Primary>(value_ * *std::static_pointer_cast<float>(other));
+} // Multiplication operator
+std::shared_ptr<Primary> FloatLiteral::operator/(const std::shared_ptr<Primary> other) const {
+  return std::make_shared<Primary>(value_ / *std::static_pointer_cast<float>(other));
+} // Division operator
 
-// Literal value class definitions
-class BoolLiteral : public Value {
-public:
-  BoolLiteral(bool value) : value_(value) {}
+IntLiteral::IntLiteral(int value) : value_(value) {}
 
-  operator bool() const override { return value_; }
+IntLiteral::operator int() const { return value_; }
 
-  // Boolean operators
-  std::shared_ptr<Primary> operator!() const override {
-    return std::make_shared<Primary>(!value_);
-  } // Logical NOT operator
-  std::shared_ptr<Primary> operator&&(const std::shared_ptr<Primary> other) const override {
-    bool other_value = *std::static_pointer_cast<bool>(other);
-    return std::make_shared<Primary>(value_ && other_value);
-  } // Logical AND operator
-  std::shared_ptr<Primary> operator||(const std::shared_ptr<Primary> other) const override {
-    bool other_value = *std::static_pointer_cast<bool>(other);
-    return std::make_shared<Primary>(value_ || other_value);
-  } // Logical OR operator
+// Unary arithmetic operators
+std::shared_ptr<Primary> IntLiteral::operator+() const {
+  return std::make_shared<Primary>(+value_);
+} // Unary plus operator
+std::shared_ptr<Primary> IntLiteral::operator-() const {
+  return std::make_shared<Primary>(-value_);
+} // Unary minus operator
 
-  // Comparison operators
-  std::shared_ptr<Primary> operator==(const std::shared_ptr<Primary> other) const override {
-    bool other_value = *std::static_pointer_cast<bool>(other);
-    return std::make_shared<Primary>(value_ == other_value);
-  }
-  std::shared_ptr<Primary> operator!=(const std::shared_ptr<Primary> other) const override {
-    bool other_value = *std::static_pointer_cast<bool>(other);
-    return std::make_shared<Primary>(value_ != other_value);
-  }
-  std::shared_ptr<Primary> operator<(const std::shared_ptr<Primary> other) const override {
-    bool other_value = *std::static_pointer_cast<bool>(other);
-    return std::make_shared<Primary>(value_ < other_value);
-  }
-  std::shared_ptr<Primary> operator<=(const std::shared_ptr<Primary> other) const override {
-    bool other_value = *std::static_pointer_cast<bool>(other);
-    return std::make_shared<Primary>(value_ <= other_value);
-  }
-  std::shared_ptr<Primary> operator>(const std::shared_ptr<Primary> other) const override {
-    bool other_value = *std::static_pointer_cast<bool>(other);
-    return std::make_shared<Primary>(value_ > other_value);
-  }
-  std::shared_ptr<Primary> operator>=(const std::shared_ptr<Primary> other) const override {
-    bool other_value = *std::static_pointer_cast<bool>(other);
-    return std::make_shared<Primary>(value_ >= other_value);
-  }
+// Arithmetic operators
+std::shared_ptr<Primary> IntLiteral::operator+(const std::shared_ptr<Primary> other) const {
+  return std::make_shared<Primary>(value_ + *std::static_pointer_cast<int>(other));
+} // Addition operator
+std::shared_ptr<Primary> IntLiteral::operator-(const std::shared_ptr<Primary> other) const {
+  return std::make_shared<Primary>(value_ - *std::static_pointer_cast<int>(other));
+} // Subtraction operator
+std::shared_ptr<Primary> IntLiteral::operator*(const std::shared_ptr<Primary> other) const {
+  return std::make_shared<Primary>(value_ * *std::static_pointer_cast<int>(other));
+} // Multiplication operator
+std::shared_ptr<Primary> IntLiteral::operator/(const std::shared_ptr<Primary> other) const {
+  return std::make_shared<Primary>(value_ / *std::static_pointer_cast<int>(other));
+} // Division operator
 
-private:
-  bool value_;
-};
+StringLiteral::StringLiteral(std::string value) : value_(value) {}
 
-class FloatLiteral : public Value {
-public:
-  FloatLiteral(float value) : value_(value) {}
-
-  operator float() const override { return value_; }
-
-  // Unary arithmetic operators
-  std::shared_ptr<Primary> operator+() const override {
-    return std::make_shared<Primary>(+value_);
-  } // Unary plus operator
-  std::shared_ptr<Primary> operator-() const override {
-    return std::make_shared<Primary>(-value_);
-  } // Unary minus operator
-
-  // Arithmetic operators
-  std::shared_ptr<Primary> operator+(const std::shared_ptr<Primary> other) const override {
-    return std::make_shared<Primary>(value_ + *std::static_pointer_cast<float>(other));
-  } // Addition operator
-  std::shared_ptr<Primary> operator-(const std::shared_ptr<Primary> other) const override {
-    return std::make_shared<Primary>(value_ - *std::static_pointer_cast<float>(other));
-  } // Subtraction operator
-  std::shared_ptr<Primary> operator*(const std::shared_ptr<Primary> other) const override {
-    return std::make_shared<Primary>(value_ * *std::static_pointer_cast<float>(other));
-  } // Multiplication operator
-  std::shared_ptr<Primary> operator/(const std::shared_ptr<Primary> other) const override {
-    return std::make_shared<Primary>(value_ / *std::static_pointer_cast<float>(other));
-  } // Division operator
-
-private:
-  float value_;
-};
-
-class IntLiteral : public Value {
-public:
-  IntLiteral(int value) : value_(value) {}
-
-  operator int() const override { return value_; }
-
-  // Unary arithmetic operators
-  std::shared_ptr<Primary> operator+() const override {
-    return std::make_shared<Primary>(+value_);
-  } // Unary plus operator
-  std::shared_ptr<Primary> operator-() const override {
-    return std::make_shared<Primary>(-value_);
-  } // Unary minus operator
-
-  // Arithmetic operators
-  std::shared_ptr<Primary> operator+(const std::shared_ptr<Primary> other) const override {
-    return std::make_shared<Primary>(value_ + *std::static_pointer_cast<int>(other));
-  } // Addition operator
-  std::shared_ptr<Primary> operator-(const std::shared_ptr<Primary> other) const override {
-    return std::make_shared<Primary>(value_ - *std::static_pointer_cast<int>(other));
-  } // Subtraction operator
-  std::shared_ptr<Primary> operator*(const std::shared_ptr<Primary> other) const override {
-    return std::make_shared<Primary>(value_ * *std::static_pointer_cast<int>(other));
-  } // Multiplication operator
-  std::shared_ptr<Primary> operator/(const std::shared_ptr<Primary> other) const override {
-    return std::make_shared<Primary>(value_ / *std::static_pointer_cast<int>(other));
-  } // Division operator
-
-private:
-  int value_;
-};
-
-class StringLiteral : public Value {
-public:
-  StringLiteral(std::string value) : value_(value) {}
-
-  operator std::string() const override { return value_; }
-
-private:
-  std::string value_;
-};
+StringLiteral::operator std::string() const { return value_; }
 
 // Field initialization class definition
-class FieldInitialization {
-public:
-  FieldInitialization() {}
-  void AddField(std::string field_identifier, std::unique_ptr<Expression> expression) {
-    fields_.push_back(make_pair(field_identifier, std::move(expression)));
-  }
+FieldInitialization::FieldInitialization() {}
+void FieldInitialization::AddField(
+    std::string field_identifier, std::unique_ptr<Expression> expression) {
+  fields_.push_back(make_pair(field_identifier, std::move(expression)));
+}
 
-private:
-  std::vector<std::pair<std::string, std::unique_ptr<Expression>>> fields_;
-};
+ConstructedValue::ConstructedValue(
+    std::string constructor_identifier, std::unique_ptr<FieldInitialization> field_initialization)
+    : constructor_identifier_(constructor_identifier),
+      field_initialization_(std::move(field_initialization)) {}
 
-// Constructed value class definition
-class ConstructedValue : public Value {
-public:
-  ConstructedValue(
-      std::string constructor_identifier, std::unique_ptr<FieldInitialization> field_initialization)
-      : constructor_identifier_(constructor_identifier),
-        field_initialization_(std::move(field_initialization)) {}
+FieldAccess::FieldAccess(std::string &var_identifier, std::string &field_identifier)
+    : field_access_(nullptr), var_identifier_(var_identifier), field_identifier_(field_identifier) {
+}
 
-private:
-  std::string constructor_identifier_;
-  std::unique_ptr<FieldInitialization> field_initialization_;
-};
+FieldAccess::FieldAccess(std::unique_ptr<FieldAccess> field_access, std::string &field_identifier)
+    : field_access_(std::move(field_access)), var_identifier_(""),
+      field_identifier_(field_identifier) {}
 
-// Field access class definition
-class FieldAccess : public Primary {
-public:
-  FieldAccess(std::string &var_identifier, std::string &field_identifier)
-      : field_access_(nullptr), var_identifier_(var_identifier),
-        field_identifier_(field_identifier) {}
-
-  FieldAccess(std::unique_ptr<FieldAccess> field_access, std::string &field_identifier)
-      : field_access_(std::move(field_access)), var_identifier_(""),
-        field_identifier_(field_identifier) {}
-
-private:
-  std::unique_ptr<FieldAccess> field_access_;
-  std::string var_identifier_;
-  std::string field_identifier_;
-};
+} // namespace parser
+} // namespace dbuf
