@@ -135,14 +135,6 @@ pattern_matching
 pattern_match
   : STAR
   | value
-  | constructor_identifier
-  | constructor_identifier "{" field_binding "}"
-  ;
-field_binding
-  : field_identifier
-  | field_identifier "," field_binding
-  | field_identifier ":" var_identifier
-  | field_identifier ":" var_identifier "," field_binding
   ;
 
 constructors_block
@@ -208,11 +200,13 @@ float_literal : FLOAT_LITERAL ;
 int_literal : INT_LITERAL ;
 string_literal : STRING_LITERAL ;
 
-constructed_value : constructor_identifier "{" field_initialization "}" ;
+constructed_value
+  : constructor_identifier 
+  | constructor_identifier "{" field_initialization "}" ;
 field_initialization
   : %empty
-  | field_identifier EQUAL expression "," field_initialization
-  | field_identifier EQUAL expression
+  | field_identifier COLON expression "," field_initialization
+  | field_identifier COLON expression
   ;
 
 type_identifier : UC_IDENTIFIER;
