@@ -150,7 +150,7 @@ private:
 class FieldInitialization {
 public:
   FieldInitialization() = default;
-  void AddField(std::string field_identifier, std::unique_ptr<Expression> expression);
+  void AddField(const std::string& field_identifier, std::unique_ptr<Expression> expression);
 
 private:
   std::vector<std::pair<std::string, std::unique_ptr<Expression>>> fields_;
