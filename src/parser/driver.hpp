@@ -7,8 +7,7 @@
 #include <istream>
 #include <string>
 
-namespace dbuf {
-namespace parser {
+namespace dbuf::parser {
 
 class Driver {
 public:
@@ -20,7 +19,7 @@ public:
    * parse - parse from a file
    * @param filename - valid string with input file
    */
-  void parse(const char *const filename);
+  void parse(const char *filename);
   /**
    * parse - parse from a c++ input stream
    * @param is - std::istream&, valid input stream
@@ -30,9 +29,8 @@ public:
 private:
   void parse_helper(std::istream &stream);
 
-  Parser *parser = nullptr;
-  Lexer *lexer   = nullptr;
+  Parser *parser_ = nullptr;
+  Lexer *lexer_   = nullptr;
 };
 
-} // namespace parser
-} // namespace dbuf
+} // namespace dbuf::parser
