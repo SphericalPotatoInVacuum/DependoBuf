@@ -2,6 +2,7 @@
 
 #include "expression.h"
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -9,11 +10,9 @@
 namespace dbuf {
 namespace parser {
 
-class AST {
-public:
-  void AddMessage(std::unique_ptr<Message>);
-
-  std::unordered_map<std::string, std::unique_ptr<Message>> messages_;
+struct TypedVariable {
+  std::string name;
+  TypeExpression type_expression;
 };
 
 class Message {
@@ -25,12 +24,13 @@ public:
 public:
   std::string name_;
   std::unordered_map<std::string, std::unique_ptr<TypedVariable>> type_dependencies_;
-  std::vector<std::vector<Value>> inputs_;
+  std::vector<std::vector<std::unique_ptr<Value>>> inputs_;
 };
+class AST {
+public:
+  void AddMessage(std::unique_ptr<Message>);
 
-struct TypedVariable {
-  std::string name;
-  TypeExpression type_expression;
+  std::unordered_map<std::string, std::unique_ptr<Message>> messages_;
 };
 
 } // namespace parser
