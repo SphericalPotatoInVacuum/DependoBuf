@@ -1,15 +1,15 @@
 #include "../src/parser/driver.hpp"
 
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
 
-const std::string samples_path                = "../test/code_samples";
-const std::string correct_syntax_samples_path = samples_path + "/correct_syntax/";
-const std::filesystem::directory_iterator
-    correct_syntax_samples_iterator(correct_syntax_samples_path);
+const std::string kSamplesPath              = "../test/code_samples";
+const std::string kCorrectSyntaxSamplesPath = kSamplesPath + "/correct_syntax/";
+const std::filesystem::directory_iterator kCorrectSyntaxSamplesIterator(kCorrectSyntaxSamplesPath);
 
 class ParserTest : public ::testing::TestWithParam<std::filesystem::directory_entry> {
 protected:
@@ -37,12 +37,16 @@ protected:
 };
 dbuf::parser::Driver *ParserTest::driver_ = nullptr;
 
-TEST_P(ParserTest, WorksForCorrectSyntax) { EXPECT_NO_THROW(driver_->parse(input_file_)); }
+TEST_P(ParserTest, WorksForCorrectSyntax) {
+  try {
+    driver_->parse(input_file_);
+  } catch (std::exception &e) { FAIL() << "Parsing failed with exception: " << e.what(); }
+}
 
 INSTANTIATE_TEST_SUITE_P(
-    ParserTestCorrectSyntax, ParserTest,
-    ::testing::ValuesIn(
-        begin(correct_syntax_samples_iterator), end(correct_syntax_samples_iterator)));
+    ParserTestCorrectSyntax,
+    ParserTest,
+    ::testing::ValuesIn(begin(kCorrectSyntaxSamplesIterator), end(kCorrectSyntaxSamplesIterator)));
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);

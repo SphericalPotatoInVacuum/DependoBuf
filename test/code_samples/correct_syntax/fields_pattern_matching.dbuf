@@ -1,18 +1,18 @@
 message FieldsPatternMatching (n Nat) (m Nat) {
-    Succ {numberm : prev}, Zero => enum {
+    Succ {prev: numberm}, Zero{} => enum {
         Constructor1
         Constructor2 {
             numbern Type
             field   Type
         }
     }
-    Succ {numbern : prev}, Succ {numberm : prev} => enum {
+    Succ {prev : numbern}, Succ {prev : numberm} => enum {
         Constructor3 {
             numbern Type
             numberm Type
         }
     }
-    Zero, Succ {numberm : prev} => enum {
+    Zero{}, Succ {prev : numberm} => enum {
         Constructor4 {
             numberm Type
         }
