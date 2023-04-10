@@ -2,114 +2,64 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace dbuf::parser {
-
-class Primary {
-public:
-  virtual ~Primary() = default;
-};
 
 class Expression {
 public:
   virtual ~Expression() = default;
 };
 
-struct TypeExpression {
+struct TypeExpression : Expression {
+  explicit TypeExpression(std::string type)
+      : type_name(std::move(type)) {}
   std::string type_name;
-  std::vector<std::shared_ptr<Expression>> type_parameters;
+  std::vector<std::unique_ptr<Expression>> type_parameters;
+};
+
+enum class BinaryExpressionType {
+  kPlus,
+  kMinus,
+  kStar,
+  kSlash,
+  kBangEqual,
+  kLess,
+  kLessEqual,
+  kEqual,
+  kGreaterEqual,
+  kGreater,
+  kAnd,
+  kOr
 };
 
 class BinaryExpression : public Expression {
 public:
-  BinaryExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
+  BinaryExpression(
+      std::unique_ptr<Expression> left,
+      BinaryExpressionType type,
+      std::unique_ptr<Expression> right);
 
 protected:
-  std::shared_ptr<Expression> left_;
-  std::shared_ptr<Expression> right_;
+  std::unique_ptr<Expression> left_;
+  BinaryExpressionType type_;
+  std::unique_ptr<Expression> right_;
 };
 
-class PlusExpression : public BinaryExpression {
-public:
-  PlusExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class MinusExpression : public BinaryExpression {
-public:
-  MinusExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class StarExpression : public BinaryExpression {
-public:
-  StarExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class SlashExpression : public BinaryExpression {
-public:
-  SlashExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class BangEqualExpression : public BinaryExpression {
-public:
-  BangEqualExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class GreaterEqualExpression : public BinaryExpression {
-public:
-  GreaterEqualExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class LessEqualExpression : public BinaryExpression {
-public:
-  LessEqualExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class AndExpression : public BinaryExpression {
-public:
-  AndExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class OrExpression : public BinaryExpression {
-public:
-  OrExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class LessExpression : public BinaryExpression {
-public:
-  LessExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class EqualExpression : public BinaryExpression {
-public:
-  EqualExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
-
-class GreaterExpression : public BinaryExpression {
-public:
-  GreaterExpression(std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
-};
+enum class UnaryExpressionType { kMinus, kBang };
 
 class UnaryExpression : public Expression {
 public:
-  explicit UnaryExpression(std::shared_ptr<Expression> expression);
+  explicit UnaryExpression(UnaryExpressionType type, std::unique_ptr<Expression> expression);
 
 protected:
-  std::shared_ptr<Expression> expression_;
-};
-
-class UnaryMinusExpression : public UnaryExpression {
-public:
-  explicit UnaryMinusExpression(std::shared_ptr<Expression> expression);
-};
-
-class UnaryBangExpression : public UnaryExpression {
-public:
-  explicit UnaryBangExpression(std::shared_ptr<Expression> expression);
+  UnaryExpressionType type_;
+  std::unique_ptr<Expression> expression_;
 };
 
 // Value class definitions
-class Value : public Primary {
+class Value : public Expression {
 public:
   ~Value() override = default;
 };
@@ -149,8 +99,7 @@ private:
 // Field initialization class definition
 class FieldInitialization {
 public:
-  FieldInitialization() = default;
-  void AddField(const std::string& field_identifier, std::unique_ptr<Expression> expression);
+  void AddField(const std::string &field_identifier, std::unique_ptr<Expression> expression);
 
 private:
   std::vector<std::pair<std::string, std::unique_ptr<Expression>>> fields_;
@@ -169,16 +118,11 @@ private:
 };
 
 // Field access class definition
-class FieldAccess : public Primary {
-public:
-  FieldAccess(std::string &var_identifier, std::string &field_identifier);
-
-  FieldAccess(std::unique_ptr<FieldAccess> field_access, std::string &field_identifier);
-
-private:
-  std::unique_ptr<FieldAccess> field_access_;
-  std::string var_identifier_;
-  std::string field_identifier_;
+struct VarAccess : public Expression {
+  explicit VarAccess(std::string v)
+      : var_identifier(std::move(v)) {}
+  std::string var_identifier;
+  std::vector<std::string> field_identifiers;
 };
 
 } // namespace dbuf::parser

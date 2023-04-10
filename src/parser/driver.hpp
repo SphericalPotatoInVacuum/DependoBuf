@@ -26,11 +26,14 @@ public:
    */
   void parse(std::istream &iss);
 
+  void saveAst(AST);
+
 private:
   void parse_helper(std::istream &stream);
 
   Parser *parser_ = nullptr;
   Lexer *lexer_   = nullptr;
+  AST ast_;
 };
 
 } // namespace dbuf::parser

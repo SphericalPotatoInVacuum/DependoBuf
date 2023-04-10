@@ -17,11 +17,12 @@ AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakTemplateDeclarations: 'Yes'
 BinPackArguments: 'false'
+BinPackParameters: 'false'
 BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Attach
 BreakBeforeTernaryOperators: 'true'
-BreakConstructorInitializers: BeforeColon
-BreakInheritanceList: BeforeColon
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: BeforeComma
 ColumnLimit: '100'
 CompactNamespaces: 'false'
 Cpp11BracedListStyle: 'true'
