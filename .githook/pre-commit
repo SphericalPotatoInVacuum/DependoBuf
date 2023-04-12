@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run clang-format on all C++ files in the repository
-CLANG_FORMAT_FILES=$(git diff --name-only --cached | grep -E "\.(cpp|cxx|h|hpp)$")
+CLANG_FORMAT_FILES=$(git diff --name-only --cached | grep -E "\.(cpp|cxx|h|hpp|cc)$")
 if [ ! -z "$CLANG_FORMAT_FILES" ]; then
   echo "Running clang-format on modified C++ files..."
   clang-format -style='file:.clang-format' -i $CLANG_FORMAT_FILES
@@ -9,10 +9,10 @@ if [ ! -z "$CLANG_FORMAT_FILES" ]; then
 fi
 
 # Run clang-tidy on all C++ files in the repository
-CLANG_TIDY_FILES=$(git diff --name-only --cached | grep -E "\.(cpp|cxx|h|hpp)$")
+CLANG_TIDY_FILES=$(git diff --name-only --cached | grep -E "\.(cpp|cxx|h|hpp|cc)$")
 if [ ! -z "$CLANG_TIDY_FILES" ]; then
   echo "Running clang-tidy on modified C++ files..."
-  clang-tidy -config-file=.clang-tidy $CLANG_TIDY_FILES --
+  clang-tidy -config-file=.clang-tidy $CLANG_TIDY_FILES -p ./build
   if [ $? -ne 0 ]; then
     echo "clang-tidy found errors or warnings. Please fix before committing."
     exit 1

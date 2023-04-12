@@ -7,8 +7,7 @@
 
 namespace dbuf::parser {
 
-class Expression {
-public:
+struct Expression {
   virtual ~Expression() = default;
 };
 
@@ -19,7 +18,7 @@ struct TypeExpression : Expression {
   std::vector<std::unique_ptr<Expression>> type_parameters;
 };
 
-enum class BinaryExpressionType {
+enum struct BinaryExpressionType {
   kPlus,
   kMinus,
   kStar,
@@ -34,90 +33,73 @@ enum class BinaryExpressionType {
   kOr
 };
 
-class BinaryExpression : public Expression {
-public:
+struct BinaryExpression : public Expression {
   BinaryExpression(
       std::unique_ptr<Expression> left,
       BinaryExpressionType type,
       std::unique_ptr<Expression> right);
 
-protected:
   std::unique_ptr<Expression> left_;
   BinaryExpressionType type_;
   std::unique_ptr<Expression> right_;
 };
 
-enum class UnaryExpressionType { kMinus, kBang };
+enum struct UnaryExpressionType { kMinus, kBang };
 
-class UnaryExpression : public Expression {
-public:
+struct UnaryExpression : public Expression {
   explicit UnaryExpression(UnaryExpressionType type, std::unique_ptr<Expression> expression);
 
-protected:
   UnaryExpressionType type_;
   std::unique_ptr<Expression> expression_;
 };
 
-// Value class definitions
-class Value : public Expression {
-public:
+// Value struct definitions
+struct Value : public Expression {
   ~Value() override = default;
 };
 
-class BoolValue : public Value {
-public:
+struct BoolValue : public Value {
   explicit BoolValue(bool value);
 
-private:
   bool value_;
 };
 
-class FloatValue : public Value {
-public:
+struct FloatValue : public Value {
   explicit FloatValue(float value);
 
-private:
   float value_;
 };
 
-class IntValue : public Value {
-public:
+struct IntValue : public Value {
   explicit IntValue(int value);
 
-private:
   int value_;
 };
 
-class StringValue : public Value {
-public:
+struct StringValue : public Value {
   explicit StringValue(std::string value);
 
-private:
   std::string value_;
 };
 
-// Field initialization class definition
-class FieldInitialization {
-public:
+// Field initialization struct definition
+struct FieldInitialization {
   void AddField(const std::string &field_identifier, std::unique_ptr<Expression> expression);
 
-private:
   std::vector<std::pair<std::string, std::unique_ptr<Expression>>> fields_;
 };
 
-// Constructed value class definition
-class ConstructedValue : public Value {
-public:
+// Constructed value struct definition
+struct ConstructedValue : public Value {
   ConstructedValue(
       std::string constructor_identifier,
       std::unique_ptr<FieldInitialization> field_initialization);
 
-private:
   std::string constructor_identifier_;
   std::unique_ptr<FieldInitialization> field_initialization_;
 };
 
-// Field access class definition
+// Field access struct definition
 struct VarAccess : public Expression {
   explicit VarAccess(std::string v)
       : var_identifier(std::move(v)) {}
