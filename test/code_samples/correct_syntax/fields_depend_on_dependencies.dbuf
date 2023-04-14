@@ -1,5 +1,7 @@
-message FieldsDependOnDependencies (n Nat) (b Bool) {
+enum FieldsDependOnDependencies (n Nat) (b Bool) {
     * => {
-        v Vec n b
+        FieldsDependOnDependencies {
+            v Vec n b
+        }
     }
 }

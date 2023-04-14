@@ -1,5 +1,5 @@
-message OneCasePatternMatching (n Nat) {
-    * => enum {
+enum OneCasePatternMatching (n Nat) {
+    * => {
         Constructo1
         Constructo2
     }
