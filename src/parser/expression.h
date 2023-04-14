@@ -99,6 +99,8 @@ struct ConstructedValue : public Value {
   std::unique_ptr<FieldInitialization> field_initialization_;
 };
 
+struct StarValue {};
+
 // Field access struct definition
 struct VarAccess : public Expression {
   explicit VarAccess(std::string v)

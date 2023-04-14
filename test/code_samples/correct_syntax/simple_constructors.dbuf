@@ -1,5 +1,5 @@
-message SimpleConstructors (n Nat) {
-    * => enum {
+enum SimpleConstructors (n Nat) {
+    * => {
         Constructor1
         Constructor2
         Constructor3

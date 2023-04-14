@@ -1,8 +1,8 @@
-message OneDependencyPatternMatching (n Nat) {
-    Zero{} => enum {
-        Consttuctor1
+enum OneDependencyPatternMatching (n Nat) {
+    Zero{} => {
+        Constructor1
     }
-    Succ{} => enum {
+    Succ{} => {
         Constructor2
     }
 }

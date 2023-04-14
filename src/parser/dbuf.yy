@@ -19,15 +19,6 @@
     class Lexer;
   }
 
-// The following definitions is missing when %locations isn't used
-# ifndef YY_NULLPTR
-#  if defined __cplusplus && 201103L <= __cplusplus
-#   define YY_NULLPTR nullptr
-#  else
-#   define YY_NULLPTR 0
-#  endif
-# endif
-
 }
 
 %parse-param { Lexer &scanner }
@@ -107,8 +98,12 @@ schema : definitions { driver.saveAst(std::move($1)); }
 definitions
   : %empty { $$ = std::move(AST()); }
   | definitions message_definition {
-    $1.AddMessage(std::move($2));
     $$ = std::move($1);
+    $$.AddMessage(std::move($2));
+  }
+  | definitions enum_definition {
+    $$ = std::move($1);
+    $$.AddEnum(std::move($2));
   }
   | definitions service_definition {
     $$ = std::move($1);
@@ -117,31 +112,53 @@ definitions
 
 %nterm <std::unique_ptr<Message>> message_definition;
 message_definition
-  : dependent_message {
-    $$ = std::move($1);
+  : MESSAGE type_identifier type_dependencies fields_block {
+    $$ = std::make_unique<Message>(std::move($2));
+    for (auto &type_dependency : $3) {
+      $$->AddDependency(std::move(type_dependency));
+    }
+    for (auto &field : $4) {
+      $$->AddField(std::move(field));
+    }
   }
-  | independent_message {
-    $$ = std::move($1);
+  | MESSAGE type_identifier fields_block {
+    $$ = std::make_unique<Message>(std::move($2));
+    for (auto &field : $3) {
+      $$->AddField(std::move(field));
+    }
   }
   ;
 
-%nterm <std::unique_ptr<Message>> independent_message;
-independent_message
-  : MESSAGE type_identifier independent_message_body {
-    $$ = std::make_unique<Message>($2);
-  }
-  ;
-independent_message_body
-  : constructors_block
-  | fields_block
+%nterm <std::unique_ptr<Enum>> enum_definition;
+enum_definition
+  : dependent_enum { $$ = std::move($1); }
+  | independent_enum { $$ = std::move($1); }
   ;
 
-%nterm <std::unique_ptr<Message>> dependent_message;
-dependent_message
-  : MESSAGE type_identifier type_dependencies dependent_message_body {
-    $$ = std::make_unique<Message>($2);
+%nterm <std::unique_ptr<Enum>> dependent_enum;
+dependent_enum
+  : ENUM type_identifier type_dependencies dependent_enum_body {
+    $$ = std::move($4);
+    $$->name_ = $2;
+    for (auto &type_dependency : $3) {
+      $$->AddDependency(std::move(type_dependency));
+    }
   }
   ;
+
+%nterm <std::unique_ptr<Enum>> independent_enum;
+independent_enum
+  : ENUM type_identifier independent_enum_body {
+    $$ = std::make_unique<Enum>($2);
+  }
+  ;
+
+%nterm <std::unique_ptr<Enum>> independent_enum_body;
+independent_enum_body
+  : constructors_block {
+    $$ = std::make_unique<Enum>();
+    $$->AddOutput(std::move($1));
+  }
 
 %nterm <std::vector<std::unique_ptr<TypedVariable>>> type_dependencies;
 type_dependencies
@@ -150,8 +167,8 @@ type_dependencies
     $$.emplace_back(std::move($1));
   }
   | type_dependencies type_dependency {
-    $1.emplace_back(std::move($2));
     $$ = std::move($1);
+    $$.emplace_back(std::move($2));
   }
   ;
 
@@ -162,32 +179,77 @@ type_dependency
   }
   ;
 
-dependent_message_body : "{" NL dependent_blocks "}" NL ;
+%nterm <std::unique_ptr<Enum>> dependent_enum_body;
+dependent_enum_body : "{" NL dependent_blocks "}" NL { $$ = std::move($3); };
+
+%nterm <std::unique_ptr<Enum>> dependent_blocks;
 dependent_blocks
-  : %empty
-  | pattern_matching IMPL constructors_block dependent_blocks
-  | pattern_matching IMPL fields_block dependent_blocks
-  ;
-pattern_matching
-  : pattern_match
-  | pattern_matching "," pattern_match
-  ;
-pattern_match
-  : STAR
-  | value
+  : %empty {
+    $$ = std::make_unique<Enum>();
+  }
+  | dependent_blocks pattern_matching IMPL constructors_block {
+    $$ = std::move($1);
+    $$->AddInput(std::move($2));
+    $$->AddOutput(std::move($4));
+  }
   ;
 
-constructors_block
-  : ENUM "{" NL constructor_declarations "}" NL ;
-constructor_declarations
-  : %empty
-  | constructor_identifier fields_block constructor_declarations
-  | constructor_identifier NL constructor_declarations
+%nterm <std::vector<std::unique_ptr<std::variant<Value, StarValue>>>> pattern_matching;
+pattern_matching
+  : pattern_match {
+    $$ = std::vector<std::unique_ptr<std::variant<Value, StarValue>>>();
+    $$.emplace_back(std::move($1));
+  }
+  | pattern_matching "," pattern_match {
+    $$ = std::move($1);
+    $$.emplace_back(std::move($3));
+  }
   ;
-fields_block : "{" NL field_declarations "}" NL ;
+
+%nterm <std::unique_ptr<std::variant<Value, StarValue>>> pattern_match;
+pattern_match
+  : STAR {
+    $$ = std::make_unique<std::variant<Value, StarValue>>(StarValue{});
+  }
+  | value {
+    $$ = std::make_unique<std::variant<Value, StarValue>>(std::move(*$1));
+  }
+  ;
+
+%nterm <std::vector<std::unique_ptr<Constructor>>> constructors_block;
+constructors_block
+  : "{" NL constructor_declarations "}" NL { $$ = std::move($3); };
+
+%nterm <std::vector<std::unique_ptr<Constructor>>> constructor_declarations;
+constructor_declarations
+  : %empty {
+    $$ = std::vector<std::unique_ptr<Constructor>>();
+  }
+  | constructor_declarations constructor_identifier fields_block {
+    $$ = std::move($1);
+    $$.emplace_back(std::make_unique<Constructor>(std::move($2)));
+    for (auto &field : $3) {
+      $$.back()->AddField(std::move(field));
+    }
+  }
+  | constructor_declarations constructor_identifier NL {
+    $$ = std::move($1);
+    $$.emplace_back(std::make_unique<Constructor>(std::move($2)));
+  }
+  ;
+
+%nterm <std::vector<std::unique_ptr<TypedVariable>>> fields_block;
+fields_block : "{" NL field_declarations "}" NL { $$ = std::move($3); }; ;
+
+%nterm <std::vector<std::unique_ptr<TypedVariable>>> field_declarations;
 field_declarations
-  : %empty
-  | typed_variable NL field_declarations
+  : %empty {
+    $$ = std::vector<std::unique_ptr<TypedVariable>>();
+  }
+  | field_declarations typed_variable NL {
+    $$ = std::move($1);
+    $$.emplace_back(std::move($2));
+  }
   ;
 
 %nterm <std::unique_ptr<TypeExpression>> type_expr;
@@ -195,14 +257,11 @@ type_expr
   : type_identifier {
     $$ = std::make_unique<TypeExpression>($1);
   }
-  | type_expr type_param {
+  | type_expr primary {
     $1->type_parameters.push_back(std::move($2));
     $$ = std::move($1);
   }
   ;
-
-%nterm <std::unique_ptr<Expression>> type_param;
-type_param : primary { $$ = std::move($1); };
 
 %nterm <std::unique_ptr<Expression>> expression;
 expression
@@ -332,7 +391,7 @@ field_initialization
   var_identifier
   rpc_identifier
 ;
-type_identifier : UC_IDENTIFIER { $$ = $1; };
+type_identifier : UC_IDENTIFIER ;
 constructor_identifier : UC_IDENTIFIER ;
 service_identifier : UC_IDENTIFIER ;
 var_identifier : LC_IDENTIFIER ;
