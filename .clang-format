@@ -9,8 +9,8 @@ AllowAllArgumentsOnNextLine: 'false'
 AllowAllConstructorInitializersOnNextLine: 'false'
 AllowAllParametersOfDeclarationOnNextLine: 'false'
 AllowShortBlocksOnASingleLine: 'true'
-AllowShortCaseLabelsOnASingleLine: 'true'
-AllowShortFunctionsOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: 'false'
+AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: 'true'
 AlwaysBreakAfterDefinitionReturnType: None

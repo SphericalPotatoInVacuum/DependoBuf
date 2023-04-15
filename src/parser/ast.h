@@ -11,46 +11,36 @@
 namespace dbuf::parser {
 
 struct TypedVariable {
-  TypedVariable() = default;
-  TypedVariable(std::string name, TypeExpression type_expression);
-
   std::string name_;
   TypeExpression type_expression_;
 };
 
 struct Constructor {
-  Constructor() = default;
-  explicit Constructor(std::string name);
-
   void AddField(TypedVariable field);
 
   std::string name_;
   std::vector<TypedVariable> fields_ = {};
 };
 
-struct Message {
-  Message() = default;
-  explicit Message(std::string name);
-
+struct DependentType {
   void AddDependency(TypedVariable type_dependency_);
+
+  std::vector<TypedVariable> type_dependencies_;
+  std::unordered_map<std::string, std::vector<TypedVariable>::const_iterator> iterators_;
+};
+
+struct Message : public DependentType {
   void AddField(TypedVariable field);
 
   std::string name_;
-  std::unordered_map<std::string, TypedVariable> type_dependencies_;
   std::vector<TypedVariable> fields_ = {};
 };
 
-struct Enum {
-  Enum() = default;
-  explicit Enum(std::string name);
-
-  void AddDependency(TypedVariable type_dependency_);
-
+struct Enum : public DependentType {
   void AddInput(std::vector<std::unique_ptr<std::variant<Value, StarValue>>> input);
   void AddOutput(std::vector<Constructor> output);
 
   std::string name_;
-  std::unordered_map<std::string, TypedVariable> type_dependencies_;
   std::vector<std::vector<std::unique_ptr<std::variant<Value, StarValue>>>> inputs_;
   std::vector<std::vector<Constructor>> outputs_;
 };
