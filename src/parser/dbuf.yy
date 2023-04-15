@@ -73,11 +73,10 @@
   COLON ":"
 ;
 %token <double> FLOAT_LITERAL
-%token <long long> INT_LITERAL
+%token <int64_t> INT_LITERAL
 %token <std::string> STRING_LITERAL
 
 %right ":"
-%left "!=" ">=" "<=" "<" "=" ">"
 %left "||" "-" "+"
 %left "&&" "*" "/"
 %right "!"
@@ -112,13 +111,13 @@ message_definition
       $$.AddDependency(std::move(type_dependency));
     }
     for (auto &field : $4) {
-      $$.AddField(field);
+      $$.AddField(std::move(field));
     }
   }
   | MESSAGE type_identifier fields_block {
     $$ = Message{.name_=std::move($2)};
     for (auto &field : $3) {
-      $$.AddField(field);
+      $$.AddField(std::move(field));
     }
   }
   ;
@@ -158,18 +157,18 @@ independent_enum_body
 type_dependencies
   : type_dependency {
     $$ = std::vector<TypedVariable>();
-    $$.push_back($1);
+    $$.emplace_back(std::move($1));
   }
   | type_dependencies type_dependency {
-    $$ = $1;
-    $$.push_back($2);
+    $$ = std::move($1);
+    $$.emplace_back(std::move($2));
   }
   ;
 
 %nterm <TypedVariable> type_dependency;
 type_dependency
   : "(" typed_variable ")" {
-    $$ = $2;
+    $$ = std::move($2);
   }
   ;
 
@@ -182,9 +181,9 @@ dependent_blocks
     $$ = Enum();
   }
   | dependent_blocks pattern_matching IMPL constructors_block {
-    $$ = $1;
-    $$.AddInput($2);
-    $$.AddOutput($4);
+    $$ = std::move($1);
+    $$.AddInput(std::move($2));
+    $$.AddOutput(std::move($4));
   }
   ;
 
@@ -192,11 +191,11 @@ dependent_blocks
 pattern_matching
   : pattern_match {
     $$ = std::vector<std::variant<Value, StarValue>>();
-    $$.push_back($1);
+    $$.emplace_back(std::move($1));
   }
   | pattern_matching "," pattern_match {
-    $$ = $1;
-    $$.push_back($3);
+    $$ = std::move($1);
+    $$.emplace_back(std::move($3));
   }
   ;
 
@@ -206,13 +205,13 @@ pattern_match
     $$ = StarValue{};
   }
   | value {
-    $$ = $1;
+    $$ = std::move($1);
   }
   ;
 
 %nterm <std::vector<Constructor>> constructors_block;
 constructors_block
-  : "{" NL constructor_declarations "}" NL { $$ = $3; };
+  : "{" NL constructor_declarations "}" NL { $$ = std::move($3); };
 
 %nterm <std::vector<Constructor>> constructor_declarations;
 constructor_declarations
@@ -220,20 +219,20 @@ constructor_declarations
     $$ = std::vector<Constructor>();
   }
   | constructor_declarations constructor_identifier fields_block {
-    $$ = $1;
-    $$.push_back(Constructor{.name_= $2});
+    $$ = std::move($1);
+    $$.emplace_back(Constructor{.name_=std::move($2)});
     for (auto &field : $3) {
-      $$.back().AddField(field);
+      $$.back().AddField(std::move(field));
     }
   }
   | constructor_declarations constructor_identifier NL {
-    $$ = $1;
-    $$.push_back(Constructor{.name_=$2});
+    $$ = std::move($1);
+    $$.emplace_back(Constructor{.name_=std::move($2)});
   }
   ;
 
 %nterm <std::vector<TypedVariable>> fields_block;
-fields_block : "{" NL field_declarations "}" NL { $$ = $3; }; ;
+fields_block : "{" NL field_declarations "}" NL { $$ = std::move($3); }; ;
 
 %nterm <std::vector<TypedVariable>> field_declarations;
 field_declarations
@@ -241,8 +240,8 @@ field_declarations
     $$ = std::vector<TypedVariable>();
   }
   | field_declarations typed_variable NL {
-    $$ = $1;
-    $$.push_back($2);
+    $$ = std::move($1);
+    $$.emplace_back(std::move($2));
   }
   ;
 
@@ -252,55 +251,93 @@ type_expr
     $$ = TypeExpression{$1};
   }
   | type_expr primary {
-    $$ = $1;
-    $$.type_parameters_.push_back($2);
+    $$ = std::move($1);
+    $$.type_parameters_.emplace_back(std::move($2));
   }
   ;
 
-%nterm <Expression> expression;
+%nterm <std::unique_ptr<Expression>> expression;
 expression
   : expression PLUS expression {
-    $$ = BinaryExpression{$1, BinaryExpressionType::kPlus, $3};
+    Expression expr = BinaryExpression{
+      .left_=std::move($1),
+      .type_=BinaryExpressionType::kPlus,
+      .right_=std::move($3)
+    };
+    $$ = std::make_unique<Expression>(std::move(expr));
   }
   | expression MINUS expression {
-    $$ = BinaryExpression{$1, BinaryExpressionType::kMinus, $3};
+    Expression expr = BinaryExpression{
+      .left_=std::move($1),
+      .type_=BinaryExpressionType::kMinus,
+      .right_=std::move($3)
+    };
+    $$ = std::make_unique<Expression>(std::move(expr));
   }
   | expression STAR expression {
-    $$ = BinaryExpression{$1, BinaryExpressionType::kStar, $3};
+    Expression expr = BinaryExpression{
+      .left_=std::move($1),
+      .type_=BinaryExpressionType::kStar,
+      .right_=std::move($3)
+    };
+    $$ = std::make_unique<Expression>(std::move(expr));
   }
   | expression SLASH expression {
-    $$ = BinaryExpression{$1, BinaryExpressionType::kSlash, $3};
+    Expression expr = BinaryExpression{
+      .left_=std::move($1),
+      .type_=BinaryExpressionType::kSlash,
+      .right_=std::move($3)
+    };
+    $$ = std::make_unique<Expression>(std::move(expr));
   }
   | expression AND expression {
-    $$ = BinaryExpression{$1, BinaryExpressionType::kAnd, $3};
+    Expression expr = BinaryExpression{
+      .left_=std::move($1),
+      .type_=BinaryExpressionType::kAnd,
+      .right_=std::move($3)
+    };
+    $$ = std::make_unique<Expression>(std::move(expr));
   }
   | expression OR expression {
-    $$ = BinaryExpression{$1, BinaryExpressionType::kOr, $3};
+    Expression expr = BinaryExpression{
+      .left_=std::move($1),
+      .type_=BinaryExpressionType::kOr,
+      .right_=std::move($3)
+    };
+    $$ = std::make_unique<Expression>(std::move(expr));
   }
   | type_expr {
-    $$ = TypeExpression{$1};
+    $$ = std::make_unique<Expression>(std::move($1));
   }
   | MINUS expression {
-    $$ = UnaryExpression{UnaryExpressionType::kMinus, $2};
+    Expression expr = UnaryExpression{
+      .type_=UnaryExpressionType::kMinus,
+      .expression_=std::move($2)
+    };
+    $$ = std::make_unique<Expression>(std::move(expr));
   }
   | BANG expression {
-    $$ = UnaryExpression{UnaryExpressionType::kBang, $2};
+    Expression expr = UnaryExpression{
+      .type_=UnaryExpressionType::kBang,
+      .expression_=std::move($2)
+    };
+    $$ = std::make_unique<Expression>(std::move(expr));
   }
   | primary {
-    $$ = $1;
+    $$ = std::move($1);
   }
   ;
 
-%nterm <Expression> primary;
+%nterm <std::unique_ptr<Expression>> primary;
 primary
   : value {
-    $$ = $1;
+    $$ = std::make_unique<Expression>(std::move($1));
   }
   | var_access {
-    $$ = $1;
+    $$ = std::make_unique<Expression>(std::move($1));
   }
   | "(" expression ")" {
-    $$ = $2;
+    $$ = std::move($2);
   }
   ;
 
@@ -310,18 +347,18 @@ var_access
     $$ = VarAccess{$1};
   }
   | var_access "." var_identifier {
-    $1.field_identifiers.push_back($3);
     $$ = $1;
+    $$.field_identifiers.push_back($3);
   }
   ;
 
 %nterm <Value> value;
 value
-  : bool_literal { $$ = $1; }
-  | float_literal { $$ = $1; }
-  | int_literal { $$ = $1; }
-  | string_literal { $$ = $1; }
-  | constructed_value { $$ = $1; }
+  : bool_literal { $$ = std::move($1); }
+  | float_literal { $$ = std::move($1); }
+  | int_literal { $$ = std::move($1); }
+  | string_literal { $$ = std::move($1); }
+  | constructed_value { $$ = std::move($1); }
   ;
 
 %nterm <Value> bool_literal;
@@ -334,7 +371,7 @@ bool_literal
 float_literal : FLOAT_LITERAL { $$ = Value(ScalarValue<double>{$1}); } ;
 
 %nterm <Value> int_literal;
-int_literal : INT_LITERAL { $$ = Value(ScalarValue<long long>{$1}); };
+int_literal : INT_LITERAL { $$ = Value(ScalarValue<int64_t>{$1}); };
 
 %nterm <Value> string_literal;
 string_literal : STRING_LITERAL { $$ = Value(ScalarValue<std::string>{$1}); };
@@ -342,21 +379,21 @@ string_literal : STRING_LITERAL { $$ = Value(ScalarValue<std::string>{$1}); };
 %nterm <Value> constructed_value;
 constructed_value
   : constructor_identifier "{" field_initialization "}" {
-    $$ = Value(ConstructedValue{$1, $3});
+    $$ = ConstructedValue{std::move($1), std::move($3)};
   }
   ;
 %nterm <FieldInitialization> field_initialization;
 field_initialization
   : %empty {
-    $$ = FieldInitialization();
+    $$ = FieldInitialization{};
   }
   | var_identifier COLON expression {
-    $$ = FieldInitialization();
-    $$.AddField($1, $3);
+    $$ = FieldInitialization{};
+    $$.AddField(std::move($1), std::move($3));
   }
   | field_initialization "," var_identifier COLON expression {
-    $$ = $1;
-    $$.AddField($3, $5);
+    $$ = std::move($1);
+    $$.AddField(std::move($3), std::move($5));
   }
   ;
 
@@ -392,7 +429,7 @@ arguments
 %nterm <TypedVariable> typed_variable;
 typed_variable
   : var_identifier type_expr {
-    $$ = TypedVariable{.name_=std::move($1), .type_expression_= $2};
+    $$ = TypedVariable{.name_=std::move($1), .type_expression_= std::move($2)};
   }
 
 %%

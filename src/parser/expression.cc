@@ -7,8 +7,10 @@
 
 namespace dbuf::parser {
 
-  void FieldInitialization::AddField(const std::string &field_identifier, Expression& expression){
-    fields_.push_back(std::make_pair(field_identifier, expression));
-  }
+void FieldInitialization::AddField(
+    std::string field_identifier,
+    std::unique_ptr<Expression> expression) {
+  fields_.emplace_back(std::move(field_identifier), std::move(expression));
+}
 
 } // namespace dbuf::parser
