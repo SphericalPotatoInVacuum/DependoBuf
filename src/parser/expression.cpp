@@ -40,7 +40,7 @@ void FieldInitialization::AddField(
 
 ConstructedValue::ConstructedValue(
     std::string constructor_identifier,
-    std::unique_ptr<FieldInitialization> field_initialization)
+    FieldInitialization field_initialization)
     : constructor_identifier_(std::move(std::move(constructor_identifier)))
     , field_initialization_(std::move(field_initialization)) {}
 
