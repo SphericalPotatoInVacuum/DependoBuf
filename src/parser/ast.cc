@@ -18,7 +18,7 @@ void Message::AddField(TypedVariable field) {
   fields_.emplace_back(std::move(field));
 }
 
-void Enum::AddInput(std::vector<std::unique_ptr<std::variant<Value, StarValue>>> input) {
+void Enum::AddInput(std::vector<std::variant<Value, StarValue>> input) {
   inputs_.emplace_back(std::move(input));
 }
 

@@ -31,12 +31,12 @@ add_flex_bison_dependency(LEXER PARSER)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-add_executable(dbuf "${SRC_DIR}/main.cpp" "${SRC_DIR}/parser/driver.cpp" "${SRC_DIR}/parser/ast.cc" "${SRC_DIR}/parser/expression.cpp" "${BISON_PARSER_OUTPUTS}" "${FLEX_LEXER_OUTPUTS}")
+add_executable(dbuf "${SRC_DIR}/main.cpp" "${SRC_DIR}/parser/driver.cpp" "${SRC_DIR}/parser/ast.cc" "${SRC_DIR}/parser/expression.cc" "${BISON_PARSER_OUTPUTS}" "${FLEX_LEXER_OUTPUTS}")
 target_include_directories(dbuf PRIVATE "${SRC_DIR}")
 
 enable_testing()
 
-add_executable(debufTests "${TEST_DIR}/parser_test.cpp" "${SRC_DIR}/parser/driver.cpp" "${SRC_DIR}/parser/ast.cc" "${SRC_DIR}/parser/expression.cpp" "${BISON_PARSER_OUTPUTS}" "${FLEX_LEXER_OUTPUTS}")
+add_executable(debufTests "${TEST_DIR}/parser_test.cpp" "${SRC_DIR}/parser/driver.cpp" "${SRC_DIR}/parser/ast.cc" "${SRC_DIR}/parser/expression.cc" "${BISON_PARSER_OUTPUTS}" "${FLEX_LEXER_OUTPUTS}")
 target_include_directories(debufTests PRIVATE "${SRC_DIR}")
 target_link_libraries(debufTests PRIVATE GTest::GTest pthread)
 
