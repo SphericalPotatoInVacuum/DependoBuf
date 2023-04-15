@@ -158,18 +158,18 @@ independent_enum_body
 type_dependencies
   : type_dependency {
     $$ = std::vector<TypedVariable>();
-    $$.emplace_back(std::move($1));
+    $$.push_back($1);
   }
   | type_dependencies type_dependency {
-    $$ = std::move($1);
-    $$.emplace_back(std::move($2));
+    $$ = $1;
+    $$.push_back($2);
   }
   ;
 
 %nterm <TypedVariable> type_dependency;
 type_dependency
   : "(" typed_variable ")" {
-    $$ = std::move($2);
+    $$ = $2;
   }
   ;
 
@@ -182,9 +182,9 @@ dependent_blocks
     $$ = Enum();
   }
   | dependent_blocks pattern_matching IMPL constructors_block {
-    $$ = std::move($1);
-    $$.AddInput(std::move($2));
-    $$.AddOutput(std::move($4));
+    $$ = $1;
+    $$.AddInput($2);
+    $$.AddOutput($4);
   }
   ;
 
@@ -192,11 +192,11 @@ dependent_blocks
 pattern_matching
   : pattern_match {
     $$ = std::vector<std::variant<Value, StarValue>>();
-    $$.emplace_back(std::move($1));
+    $$.push_back($1);
   }
   | pattern_matching "," pattern_match {
-    $$ = std::move($1);
-    $$.emplace_back(std::move($3));
+    $$ = $1;
+    $$.push_back($3);
   }
   ;
 
@@ -206,13 +206,13 @@ pattern_match
     $$ = StarValue{};
   }
   | value {
-    $$ = std::move($1);
+    $$ = $1;
   }
   ;
 
 %nterm <std::vector<Constructor>> constructors_block;
 constructors_block
-  : "{" NL constructor_declarations "}" NL { $$ = std::move($3); };
+  : "{" NL constructor_declarations "}" NL { $$ = $3; };
 
 %nterm <std::vector<Constructor>> constructor_declarations;
 constructor_declarations
@@ -220,20 +220,20 @@ constructor_declarations
     $$ = std::vector<Constructor>();
   }
   | constructor_declarations constructor_identifier fields_block {
-    $$ = std::move($1);
-    $$.emplace_back(Constructor{.name_=std::move($2)});
+    $$ = $1;
+    $$.push_back(Constructor{.name_= $2});
     for (auto &field : $3) {
-      $$.back().AddField(std::move(field));
+      $$.back().AddField(field);
     }
   }
   | constructor_declarations constructor_identifier NL {
-    $$ = std::move($1);
-    $$.emplace_back(Constructor{.name_=std::move($2)});
+    $$ = $1;
+    $$.push_back(Constructor{.name_=$2});
   }
   ;
 
 %nterm <std::vector<TypedVariable>> fields_block;
-fields_block : "{" NL field_declarations "}" NL { $$ = std::move($3); }; ;
+fields_block : "{" NL field_declarations "}" NL { $$ = $3; }; ;
 
 %nterm <std::vector<TypedVariable>> field_declarations;
 field_declarations
@@ -241,15 +241,15 @@ field_declarations
     $$ = std::vector<TypedVariable>();
   }
   | field_declarations typed_variable NL {
-    $$ = std::move($1);
-    $$.emplace_back(std::move($2));
+    $$ = $1;
+    $$.push_back($2);
   }
   ;
 
 %nterm <TypeExpression> type_expr;
 type_expr
   : type_identifier {
-    $$ = TypeExpression{std::move($1)};
+    $$ = TypeExpression{$1};
   }
   | type_expr primary {
     $$ = $1;
@@ -300,7 +300,7 @@ primary
     $$ = $1;
   }
   | "(" expression ")" {
-    $$ = std::move($2);
+    $$ = $2;
   }
   ;
 
