@@ -37,11 +37,11 @@ struct Message : public DependentType {
 };
 
 struct Enum : public DependentType {
-  void AddInput(std::vector<std::unique_ptr<std::variant<Value, StarValue>>> input);
+  void AddInput(std::vector<std::variant<Value, StarValue>> input);
   void AddOutput(std::vector<Constructor> output);
 
   std::string name_;
-  std::vector<std::vector<std::unique_ptr<std::variant<Value, StarValue>>>> inputs_;
+  std::vector<std::vector<std::variant<Value, StarValue>>> inputs_;
   std::vector<std::vector<Constructor>> outputs_;
 };
 

@@ -66,14 +66,8 @@ ident_char [a-zA-Z0-9]
 }
 
     /* One or two character tokens */
-"!=" return token::TOK_BANG_EQUAL;
-">=" return token::TOK_GREATER_EQUAL;
-"<=" return token::TOK_LESS_EQUAL;
 "&&" return token::TOK_AND;
 "||" return token::TOK_OR;
-"<"  return token::TOK_LESS;
-"="  return token::TOK_EQUAL;
-">"  return token::TOK_GREATER;
 "!"  return token::TOK_BANG;
 
     /* Single-character tokens */

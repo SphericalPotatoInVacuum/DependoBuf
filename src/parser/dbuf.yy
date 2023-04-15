@@ -57,14 +57,8 @@
   SLASH "/"
 ;
 %token
-  BANG_EQUAL "!="
-  GREATER_EQUAL ">="
-  LESS_EQUAL "<="
   AND "&&"
   OR "||"
-  LESS "<"
-  EQUAL "="
-  GREATER ">"
   BANG "!"
 ;
 %token
@@ -118,13 +112,13 @@ message_definition
       $$.AddDependency(std::move(type_dependency));
     }
     for (auto &field : $4) {
-      $$.AddField(std::move(field));
+      $$.AddField(field);
     }
   }
   | MESSAGE type_identifier fields_block {
     $$ = Message{.name_=std::move($2)};
     for (auto &field : $3) {
-      $$.AddField(std::move(field));
+      $$.AddField(field);
     }
   }
   ;
@@ -194,10 +188,10 @@ dependent_blocks
   }
   ;
 
-%nterm <std::vector<std::unique_ptr<std::variant<Value, StarValue>>>> pattern_matching;
+%nterm <std::vector<std::variant<Value, StarValue>>> pattern_matching;
 pattern_matching
   : pattern_match {
-    $$ = std::vector<std::unique_ptr<std::variant<Value, StarValue>>>();
+    $$ = std::vector<std::variant<Value, StarValue>>();
     $$.emplace_back(std::move($1));
   }
   | pattern_matching "," pattern_match {
@@ -206,13 +200,13 @@ pattern_matching
   }
   ;
 
-%nterm <std::unique_ptr<std::variant<Value, StarValue>>> pattern_match;
+%nterm <std::variant<Value, StarValue>> pattern_match;
 pattern_match
   : STAR {
-    $$ = std::make_unique<std::variant<Value, StarValue>>(StarValue{});
+    $$ = StarValue{};
   }
   | value {
-    $$ = std::make_unique<std::variant<Value, StarValue>>(std::move(*$1));
+    $$ = std::move($1);
   }
   ;
 
@@ -255,118 +249,100 @@ field_declarations
 %nterm <TypeExpression> type_expr;
 type_expr
   : type_identifier {
-    $$ = TypeExpression(std::move($1));
+    $$ = TypeExpression{std::move($1)};
   }
   | type_expr primary {
-    $$ = std::move($1);
-    $$.type_parameters_.push_back(std::move($2));
+    $$ = $1;
+    $$.type_parameters_.push_back($2);
   }
   ;
 
-%nterm <std::unique_ptr<Expression>> expression;
+%nterm <Expression> expression;
 expression
   : expression PLUS expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kPlus, std::move($3));
+    $$ = BinaryExpression{$1, BinaryExpressionType::kPlus, $3};
   }
   | expression MINUS expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kMinus, std::move($3));
+    $$ = BinaryExpression{$1, BinaryExpressionType::kMinus, $3};
   }
   | expression STAR expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kStar, std::move($3));
+    $$ = BinaryExpression{$1, BinaryExpressionType::kStar, $3};
   }
   | expression SLASH expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kSlash, std::move($3));
-  }
-  | expression BANG_EQUAL expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kBangEqual, std::move($3));
-  }
-  | expression GREATER_EQUAL expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kGreaterEqual, std::move($3));
-  }
-  | expression LESS_EQUAL expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kLessEqual, std::move($3));
+    $$ = BinaryExpression{$1, BinaryExpressionType::kSlash, $3};
   }
   | expression AND expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kAnd, std::move($3));
+    $$ = BinaryExpression{$1, BinaryExpressionType::kAnd, $3};
   }
   | expression OR expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kOr, std::move($3));
-  }
-  | expression LESS expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kLess, std::move($3));
-  }
-  | expression EQUAL expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kEqual, std::move($3));
-  }
-  | expression GREATER expression {
-    $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kGreater, std::move($3));
+    $$ = BinaryExpression{$1, BinaryExpressionType::kOr, $3};
   }
   | type_expr {
-    $$ = std::make_unique<TypeExpression>(std::move($1));
+    $$ = TypeExpression{$1};
   }
   | MINUS expression {
-    $$ = std::make_unique<UnaryExpression>(UnaryExpressionType::kMinus, std::move($2));
+    $$ = UnaryExpression{UnaryExpressionType::kMinus, $2};
   }
   | BANG expression {
-    $$ = std::make_unique<UnaryExpression>(UnaryExpressionType::kBang, std::move($2));
+    $$ = UnaryExpression{UnaryExpressionType::kBang, $2};
   }
   | primary {
-    $$ = std::move($1);
+    $$ = $1;
   }
   ;
 
-%nterm <std::unique_ptr<Expression>> primary;
+%nterm <Expression> primary;
 primary
   : value {
-    $$ = std::move($1);
+    $$ = $1;
   }
   | var_access {
-    $$ = std::move($1);
+    $$ = $1;
   }
   | "(" expression ")" {
     $$ = std::move($2);
   }
   ;
 
-%nterm <std::unique_ptr<VarAccess>> var_access;
+%nterm <VarAccess> var_access;
 var_access
   : var_identifier {
-    $$ = std::make_unique<VarAccess>($1);
+    $$ = VarAccess{$1};
   }
   | var_access "." var_identifier {
-    $1->field_identifiers.push_back($3);
-    $$ = std::move($1);
+    $1.field_identifiers.push_back($3);
+    $$ = $1;
   }
   ;
 
-%nterm <std::unique_ptr<Value>> value;
+%nterm <Value> value;
 value
-  : bool_literal { $$ = std::move($1); }
-  | float_literal { $$ = std::move($1); }
-  | int_literal { $$ = std::move($1); }
-  | string_literal { $$ = std::move($1); }
-  | constructed_value { $$ = std::move($1); }
+  : bool_literal { $$ = $1; }
+  | float_literal { $$ = $1; }
+  | int_literal { $$ = $1; }
+  | string_literal { $$ = $1; }
+  | constructed_value { $$ = $1; }
   ;
 
-%nterm <std::unique_ptr<BoolValue>> bool_literal;
+%nterm <Value> bool_literal;
 bool_literal
-  : FALSE { $$ = std::make_unique<BoolValue>(false); }
-  | TRUE { $$ = std::make_unique<BoolValue>(true); }
+  : FALSE { $$ = Value(ScalarValue<bool>{false}); }
+  | TRUE { $$ = Value(ScalarValue<bool>{true}); }
   ;
 
-%nterm <std::unique_ptr<FloatValue>> float_literal;
-float_literal : FLOAT_LITERAL { $$ = std::make_unique<FloatValue>($1); } ;
+%nterm <Value> float_literal;
+float_literal : FLOAT_LITERAL { $$ = Value(ScalarValue<double>{$1}); } ;
 
-%nterm <std::unique_ptr<IntValue>> int_literal;
-int_literal : INT_LITERAL { $$ = std::make_unique<IntValue>($1); };
+%nterm <Value> int_literal;
+int_literal : INT_LITERAL { $$ = Value(ScalarValue<long long>{$1}); };
 
-%nterm <std::unique_ptr<StringValue>> string_literal;
-string_literal : STRING_LITERAL { $$ = std::make_unique<StringValue>(std::move($1)); };
+%nterm <Value> string_literal;
+string_literal : STRING_LITERAL { $$ = Value(ScalarValue<std::string>{$1}); };
 
-%nterm <std::unique_ptr<ConstructedValue>> constructed_value;
+%nterm <Value> constructed_value;
 constructed_value
   : constructor_identifier "{" field_initialization "}" {
-    $$ = std::make_unique<ConstructedValue>(std::move($1), std::move($3));
+    $$ = Value(ConstructedValue{$1, $3});
   }
   ;
 %nterm <FieldInitialization> field_initialization;
@@ -376,11 +352,11 @@ field_initialization
   }
   | var_identifier COLON expression {
     $$ = FieldInitialization();
-    $$.AddField($1, std::move($3));
+    $$.AddField($1, $3);
   }
   | field_initialization "," var_identifier COLON expression {
-    $$ = std::move($1);
-    $$.AddField($3, std::move($5));
+    $$ = $1;
+    $$.AddField($3, $5);
   }
   ;
 
@@ -416,7 +392,7 @@ arguments
 %nterm <TypedVariable> typed_variable;
 typed_variable
   : var_identifier type_expr {
-    $$ = TypedVariable{.name_=std::move($1), .type_expression_=std::move($2)};
+    $$ = TypedVariable{.name_=std::move($1), .type_expression_= $2};
   }
 
 %%
