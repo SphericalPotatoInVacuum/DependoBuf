@@ -110,60 +110,60 @@ definitions
   }
   ;
 
-%nterm <std::unique_ptr<Message>> message_definition;
+%nterm <Message> message_definition;
 message_definition
   : MESSAGE type_identifier type_dependencies fields_block {
-    $$ = std::make_unique<Message>(std::move($2));
+    $$ = Message(std::move($2));
     for (auto &type_dependency : $3) {
-      $$->AddDependency(std::move(type_dependency));
+      $$.AddDependency(std::move(type_dependency));
     }
     for (auto &field : $4) {
-      $$->AddField(std::move(field));
+      $$.AddField(std::move(field));
     }
   }
   | MESSAGE type_identifier fields_block {
-    $$ = std::make_unique<Message>(std::move($2));
+    $$ = Message(std::move($2));
     for (auto &field : $3) {
-      $$->AddField(std::move(field));
+      $$.AddField(std::move(field));
     }
   }
   ;
 
-%nterm <std::unique_ptr<Enum>> enum_definition;
+%nterm <Enum> enum_definition;
 enum_definition
   : dependent_enum { $$ = std::move($1); }
   | independent_enum { $$ = std::move($1); }
   ;
 
-%nterm <std::unique_ptr<Enum>> dependent_enum;
+%nterm <Enum> dependent_enum;
 dependent_enum
   : ENUM type_identifier type_dependencies dependent_enum_body {
     $$ = std::move($4);
-    $$->name_ = $2;
+    $$.name_ = $2;
     for (auto &type_dependency : $3) {
-      $$->AddDependency(std::move(type_dependency));
+      $$.AddDependency(std::move(type_dependency));
     }
   }
   ;
 
-%nterm <std::unique_ptr<Enum>> independent_enum;
+%nterm <Enum> independent_enum;
 independent_enum
   : ENUM type_identifier independent_enum_body {
-    $$ = std::make_unique<Enum>($2);
+    $$ = Enum(std::move($2));
   }
   ;
 
-%nterm <std::unique_ptr<Enum>> independent_enum_body;
+%nterm <Enum> independent_enum_body;
 independent_enum_body
   : constructors_block {
-    $$ = std::make_unique<Enum>();
-    $$->AddOutput(std::move($1));
+    $$ = Enum();
+    $$.AddOutput(std::move($1));
   }
 
-%nterm <std::vector<std::unique_ptr<TypedVariable>>> type_dependencies;
+%nterm <std::vector<TypedVariable>> type_dependencies;
 type_dependencies
   : type_dependency {
-    $$ = std::vector<std::unique_ptr<TypedVariable>>();
+    $$ = std::vector<TypedVariable>();
     $$.emplace_back(std::move($1));
   }
   | type_dependencies type_dependency {
@@ -172,25 +172,25 @@ type_dependencies
   }
   ;
 
-%nterm <std::unique_ptr<TypedVariable>> type_dependency;
+%nterm <TypedVariable> type_dependency;
 type_dependency
   : "(" typed_variable ")" {
     $$ = std::move($2);
   }
   ;
 
-%nterm <std::unique_ptr<Enum>> dependent_enum_body;
+%nterm <Enum> dependent_enum_body;
 dependent_enum_body : "{" NL dependent_blocks "}" NL { $$ = std::move($3); };
 
-%nterm <std::unique_ptr<Enum>> dependent_blocks;
+%nterm <Enum> dependent_blocks;
 dependent_blocks
   : %empty {
-    $$ = std::make_unique<Enum>();
+    $$ = Enum();
   }
   | dependent_blocks pattern_matching IMPL constructors_block {
     $$ = std::move($1);
-    $$->AddInput(std::move($2));
-    $$->AddOutput(std::move($4));
+    $$.AddInput(std::move($2));
+    $$.AddOutput(std::move($4));
   }
   ;
 
@@ -216,35 +216,35 @@ pattern_match
   }
   ;
 
-%nterm <std::vector<std::unique_ptr<Constructor>>> constructors_block;
+%nterm <std::vector<Constructor>> constructors_block;
 constructors_block
   : "{" NL constructor_declarations "}" NL { $$ = std::move($3); };
 
-%nterm <std::vector<std::unique_ptr<Constructor>>> constructor_declarations;
+%nterm <std::vector<Constructor>> constructor_declarations;
 constructor_declarations
   : %empty {
-    $$ = std::vector<std::unique_ptr<Constructor>>();
+    $$ = std::vector<Constructor>();
   }
   | constructor_declarations constructor_identifier fields_block {
     $$ = std::move($1);
-    $$.emplace_back(std::make_unique<Constructor>(std::move($2)));
+    $$.emplace_back(std::move($2));
     for (auto &field : $3) {
-      $$.back()->AddField(std::move(field));
+      $$.back().AddField(std::move(field));
     }
   }
   | constructor_declarations constructor_identifier NL {
     $$ = std::move($1);
-    $$.emplace_back(std::make_unique<Constructor>(std::move($2)));
+    $$.emplace_back(std::move($2));
   }
   ;
 
-%nterm <std::vector<std::unique_ptr<TypedVariable>>> fields_block;
+%nterm <std::vector<TypedVariable>> fields_block;
 fields_block : "{" NL field_declarations "}" NL { $$ = std::move($3); }; ;
 
-%nterm <std::vector<std::unique_ptr<TypedVariable>>> field_declarations;
+%nterm <std::vector<TypedVariable>> field_declarations;
 field_declarations
   : %empty {
-    $$ = std::vector<std::unique_ptr<TypedVariable>>();
+    $$ = std::vector<TypedVariable>();
   }
   | field_declarations typed_variable NL {
     $$ = std::move($1);
@@ -252,14 +252,14 @@ field_declarations
   }
   ;
 
-%nterm <std::unique_ptr<TypeExpression>> type_expr;
+%nterm <TypeExpression> type_expr;
 type_expr
   : type_identifier {
-    $$ = std::make_unique<TypeExpression>($1);
+    $$ = TypeExpression(std::move($1));
   }
   | type_expr primary {
-    $1->type_parameters.push_back(std::move($2));
     $$ = std::move($1);
+    $$.type_parameters.push_back(std::move($2));
   }
   ;
 
@@ -302,7 +302,7 @@ expression
     $$ = std::make_unique<BinaryExpression>(std::move($1), BinaryExpressionType::kGreater, std::move($3));
   }
   | type_expr {
-    $$ = std::move($1);
+    $$ = std::make_unique<TypeExpression>(std::move($1));
   }
   | MINUS expression {
     $$ = std::make_unique<UnaryExpression>(UnaryExpressionType::kMinus, std::move($2));
@@ -361,26 +361,26 @@ float_literal : FLOAT_LITERAL { $$ = std::make_unique<FloatValue>($1); } ;
 int_literal : INT_LITERAL { $$ = std::make_unique<IntValue>($1); };
 
 %nterm <std::unique_ptr<StringValue>> string_literal;
-string_literal : STRING_LITERAL { $$ = std::make_unique<StringValue>($1); };
+string_literal : STRING_LITERAL { $$ = std::make_unique<StringValue>(std::move($1)); };
 
 %nterm <std::unique_ptr<ConstructedValue>> constructed_value;
 constructed_value
   : constructor_identifier "{" field_initialization "}" {
-    $$ = std::make_unique<ConstructedValue>($1, std::move($3));
+    $$ = std::make_unique<ConstructedValue>(std::move($1), std::move($3));
   }
   ;
-%nterm <std::unique_ptr<FieldInitialization>> field_initialization;
+%nterm <FieldInitialization> field_initialization;
 field_initialization
   : %empty {
-    $$ = std::make_unique<FieldInitialization>();
+    $$ = FieldInitialization();
   }
   | var_identifier COLON expression {
-    $$ = std::make_unique<FieldInitialization>();
-    $$->AddField($1, std::move($3));
+    $$ = FieldInitialization();
+    $$.AddField($1, std::move($3));
   }
   | field_initialization "," var_identifier COLON expression {
-    $1->AddField($3, std::move($5));
     $$ = std::move($1);
+    $$.AddField($3, std::move($5));
   }
   ;
 
@@ -391,11 +391,11 @@ field_initialization
   var_identifier
   rpc_identifier
 ;
-type_identifier : UC_IDENTIFIER ;
-constructor_identifier : UC_IDENTIFIER ;
-service_identifier : UC_IDENTIFIER ;
-var_identifier : LC_IDENTIFIER ;
-rpc_identifier : LC_IDENTIFIER ;
+type_identifier : UC_IDENTIFIER { $$ = std::move($1); };
+constructor_identifier : UC_IDENTIFIER { $$ = std::move($1); };
+service_identifier : UC_IDENTIFIER { $$ = std::move($1); };
+var_identifier : LC_IDENTIFIER { $$ = std::move($1); };
+rpc_identifier : LC_IDENTIFIER { $$ = std::move($1); };
 
 service_definition
   : SERVICE service_identifier rpc_block
@@ -413,10 +413,10 @@ arguments
   | typed_variable "," arguments
   ;
 
-%nterm <std::unique_ptr<TypedVariable>> typed_variable;
+%nterm <TypedVariable> typed_variable;
 typed_variable
   : var_identifier type_expr {
-    $$ = std::make_unique<TypedVariable>($1, std::move($2));
+    $$ = TypedVariable(std::move($1), std::move($2));
   }
 
 %%

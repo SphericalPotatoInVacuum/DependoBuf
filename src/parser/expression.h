@@ -12,10 +12,12 @@ struct Expression {
 };
 
 struct TypeExpression : Expression {
+  TypeExpression() = default;
   explicit TypeExpression(std::string type)
       : type_name(std::move(type)) {}
+
   std::string type_name;
-  std::vector<std::unique_ptr<Expression>> type_parameters;
+  std::vector<std::unique_ptr<Expression>> type_parameters = {};
 };
 
 enum struct BinaryExpressionType {
@@ -47,16 +49,14 @@ struct BinaryExpression : public Expression {
 enum struct UnaryExpressionType { kMinus, kBang };
 
 struct UnaryExpression : public Expression {
-  explicit UnaryExpression(UnaryExpressionType type, std::unique_ptr<Expression> expression);
+  UnaryExpression(UnaryExpressionType type, std::unique_ptr<Expression> expression);
 
   UnaryExpressionType type_;
   std::unique_ptr<Expression> expression_;
 };
 
 // Value struct definitions
-struct Value : public Expression {
-  ~Value() override = default;
-};
+struct Value : public Expression {};
 
 struct BoolValue : public Value {
   explicit BoolValue(bool value);
@@ -91,12 +91,10 @@ struct FieldInitialization {
 
 // Constructed value struct definition
 struct ConstructedValue : public Value {
-  ConstructedValue(
-      std::string constructor_identifier,
-      std::unique_ptr<FieldInitialization> field_initialization);
+  ConstructedValue(std::string constructor_identifier, FieldInitialization field_initialization);
 
   std::string constructor_identifier_;
-  std::unique_ptr<FieldInitialization> field_initialization_;
+  FieldInitialization field_initialization_;
 };
 
 struct StarValue {};
