@@ -113,7 +113,7 @@ definitions
 %nterm <Message> message_definition;
 message_definition
   : MESSAGE type_identifier type_dependencies fields_block {
-    $$ = Message(std::move($2));
+    $$ = Message{.name_=std::move($2)};
     for (auto &type_dependency : $3) {
       $$.AddDependency(std::move(type_dependency));
     }
@@ -122,7 +122,7 @@ message_definition
     }
   }
   | MESSAGE type_identifier fields_block {
-    $$ = Message(std::move($2));
+    $$ = Message{.name_=std::move($2)};
     for (auto &field : $3) {
       $$.AddField(std::move(field));
     }
@@ -149,14 +149,14 @@ dependent_enum
 %nterm <Enum> independent_enum;
 independent_enum
   : ENUM type_identifier independent_enum_body {
-    $$ = Enum(std::move($2));
+    $$ = Enum{.name_=std::move($2)};
   }
   ;
 
 %nterm <Enum> independent_enum_body;
 independent_enum_body
   : constructors_block {
-    $$ = Enum();
+    $$ = Enum{};
     $$.AddOutput(std::move($1));
   }
 
@@ -227,14 +227,14 @@ constructor_declarations
   }
   | constructor_declarations constructor_identifier fields_block {
     $$ = std::move($1);
-    $$.emplace_back(std::move($2));
+    $$.emplace_back(Constructor{.name_=std::move($2)});
     for (auto &field : $3) {
       $$.back().AddField(std::move(field));
     }
   }
   | constructor_declarations constructor_identifier NL {
     $$ = std::move($1);
-    $$.emplace_back(std::move($2));
+    $$.emplace_back(Constructor{.name_=std::move($2)});
   }
   ;
 
@@ -259,7 +259,7 @@ type_expr
   }
   | type_expr primary {
     $$ = std::move($1);
-    $$.type_parameters.push_back(std::move($2));
+    $$.type_parameters_.push_back(std::move($2));
   }
   ;
 
@@ -416,7 +416,7 @@ arguments
 %nterm <TypedVariable> typed_variable;
 typed_variable
   : var_identifier type_expr {
-    $$ = TypedVariable(std::move($1), std::move($2));
+    $$ = TypedVariable{.name_=std::move($1), .type_expression_=std::move($2)};
   }
 
 %%

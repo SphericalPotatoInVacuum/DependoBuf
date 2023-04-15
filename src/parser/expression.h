@@ -13,11 +13,11 @@ struct Expression {
 
 struct TypeExpression : Expression {
   TypeExpression() = default;
-  explicit TypeExpression(std::string type)
-      : type_name(std::move(type)) {}
+  explicit TypeExpression(std::string type_name)
+      : type_name_(std::move(type_name)) {}
 
-  std::string type_name;
-  std::vector<std::unique_ptr<Expression>> type_parameters = {};
+  std::string type_name_;
+  std::vector<std::unique_ptr<Expression>> type_parameters_ = {};
 };
 
 enum struct BinaryExpressionType {
