@@ -16,29 +16,29 @@ struct TypedVariable {
 };
 
 struct Constructor {
-  void AddField(TypedVariable& field);
+  void AddField(TypedVariable field);
 
   std::string name_;
   std::vector<TypedVariable> fields_ = {};
 };
 
 struct DependentType {
-  void AddDependency(TypedVariable& type_dependency_);
+  void AddDependency(TypedVariable type_dependency_);
 
   std::vector<TypedVariable> type_dependencies_;
   std::unordered_map<std::string, std::vector<TypedVariable>::const_iterator> iterators_;
 };
 
 struct Message : public DependentType {
-  void AddField(TypedVariable& field);
+  void AddField(TypedVariable field);
 
   std::string name_;
   std::vector<TypedVariable> fields_ = {};
 };
 
 struct Enum : public DependentType {
-  void AddInput(std::vector<std::variant<Value, StarValue>>& input);
-  void AddOutput(std::vector<Constructor>& output);
+  void AddInput(std::vector<std::variant<Value, StarValue>> input);
+  void AddOutput(std::vector<Constructor> output);
 
   std::string name_;
   std::vector<std::vector<std::variant<Value, StarValue>>> inputs_;
@@ -46,8 +46,8 @@ struct Enum : public DependentType {
 };
 
 struct AST {
-  void AddMessage(Message& message);
-  void AddEnum(Enum& enum_);
+  void AddMessage(Message message);
+  void AddEnum(Enum enum_);
 
   std::unordered_map<std::string, Message> messages_;
   std::unordered_map<std::string, Enum> enums_;

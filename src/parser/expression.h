@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -8,21 +9,12 @@
 
 namespace dbuf::parser {
 
-struct ConstructedValue;
-// * value
-struct StarValue {};
-
 template <typename T>
 struct ScalarValue {
   T value_;
 };
 
-// Value definition
-using Value = std::variant<
-  ScalarValue<bool>, ScalarValue<double>,
-  ScalarValue<long long>, ScalarValue<unsigned>,
-  ScalarValue <std::string>, ConstructedValue
->;
+struct Expression;
 
 // Field access struct definition
 struct VarAccess {
@@ -30,17 +22,22 @@ struct VarAccess {
   std::vector<std::string> field_identifiers;
 };
 
-struct TypeExpression;
-struct BinaryExpression;
-struct UnaryExpression;
-
-using Expression = std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess>;
-
 // Type std::unique_ptr<Expression> struct definition
 struct TypeExpression {
+  TypeExpression() = default;
+
+  TypeExpression(const TypeExpression &)            = delete;
+  TypeExpression &operator=(const TypeExpression &) = delete;
+
+  TypeExpression(TypeExpression &&)            = default;
+  TypeExpression &operator=(TypeExpression &&) = default;
+
   std::string type_name_;
-  std::vector<Expression> type_parameters_ = {};
+  std::vector<std::unique_ptr<Expression>> type_parameters_ = {};
 };
+
+// * value
+struct StarValue {};
 
 // Supported binary operations
 enum struct BinaryExpressionType { kPlus, kMinus, kStar, kSlash, kAnd, kOr };
@@ -49,28 +46,50 @@ enum struct BinaryExpressionType { kPlus, kMinus, kStar, kSlash, kAnd, kOr };
 enum struct UnaryExpressionType { kMinus, kBang };
 
 struct BinaryExpression {
-  Expression left_;
+  std::unique_ptr<Expression> left_;
   BinaryExpressionType type_;
-  Expression right_;
+  std::unique_ptr<Expression> right_;
 };
 
 struct UnaryExpression {
   UnaryExpressionType type_;
-  Expression expression_;
+  std::unique_ptr<Expression> expression_;
 };
 
 // Field initialization struct definition
 struct FieldInitialization {
-  void AddField(const std::string &field_identifier, Expression& expression);
+  FieldInitialization() = default;
 
-  std::vector<std::pair<std::string, Expression>> fields_;
+  FieldInitialization(const FieldInitialization &)            = delete;
+  FieldInitialization &operator=(const FieldInitialization &) = delete;
+
+  FieldInitialization(FieldInitialization &&)            = default;
+  FieldInitialization &operator=(FieldInitialization &&) = default;
+
+  void AddField(std::string field_identifier, std::unique_ptr<Expression> expression);
+
+  std::vector<std::pair<std::string, std::unique_ptr<Expression>>> fields_ = {};
 };
-
 
 // Constructed value struct definition
 struct ConstructedValue {
   std::string constructor_identifier_;
   FieldInitialization field_initialization_;
+};
+
+// Value definition
+using Value = std::variant<
+    ScalarValue<bool>,
+    ScalarValue<double>,
+    ScalarValue<int64_t>,
+    ScalarValue<uint64_t>,
+    ScalarValue<std::string>,
+    ConstructedValue>;
+
+struct Expression
+    : std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess> {
+  using Base = std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess>;
+  using Base::Base;
 };
 
 } // namespace dbuf::parser
