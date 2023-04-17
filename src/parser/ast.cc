@@ -11,7 +11,6 @@ void Constructor::AddField(TypedVariable field) {
 
 void DependentType::AddDependency(TypedVariable type_dependency_) {
   type_dependencies_.emplace_back(std::move(type_dependency_));
-  iterators_.insert(std::make_pair(type_dependency_.name_, std::prev(type_dependencies_.cend())));
 }
 
 void Message::AddField(TypedVariable field) {
