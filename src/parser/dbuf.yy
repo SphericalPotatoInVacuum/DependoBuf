@@ -74,6 +74,7 @@
 ;
 %token <double> FLOAT_LITERAL
 %token <int64_t> INT_LITERAL
+%token <uint64_t> UINT_LITERAL
 %token <std::string> STRING_LITERAL
 
 %right ":"
@@ -99,6 +100,9 @@ definitions
     $$.AddEnum(std::move($2));
   }
   | definitions service_definition {
+    $$ = std::move($1);
+  }
+  | definitions NL {
     $$ = std::move($1);
   }
   ;
@@ -357,6 +361,7 @@ value
   : bool_literal { $$ = std::move($1); }
   | float_literal { $$ = std::move($1); }
   | int_literal { $$ = std::move($1); }
+  | uint_literal { $$ = std::move($1); }
   | string_literal { $$ = std::move($1); }
   | constructed_value { $$ = std::move($1); }
   ;
@@ -372,6 +377,9 @@ float_literal : FLOAT_LITERAL { $$ = Value(ScalarValue<double>{$1}); } ;
 
 %nterm <Value> int_literal;
 int_literal : INT_LITERAL { $$ = Value(ScalarValue<int64_t>{$1}); };
+
+%nterm <Value> uint_literal;
+uint_literal : UINT_LITERAL { $$ = Value(ScalarValue<uint64_t>{$1}); };
 
 %nterm <Value> string_literal;
 string_literal : STRING_LITERAL { $$ = Value(ScalarValue<std::string>{$1}); };

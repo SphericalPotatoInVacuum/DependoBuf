@@ -1,7 +1,6 @@
 %{
 #include <string>
 #include <cstdlib>
-#include <iostream>
 
 #include <parser/lexer.hpp>
 
@@ -33,14 +32,14 @@ string_literal \"(\\.|[^\\"])*\"
 %}
 
     /* Keywords */
-"message" return token::TOK_MESSAGE;
-"service" return token::TOK_SERVICE;
-"false"   return token::TOK_FALSE;
-"rpc"     return token::TOK_RPC;
-"true"    return token::TOK_TRUE;
-"enum"    return token::TOK_ENUM;
-"=>"      return token::TOK_IMPL;
-"returns" return token::TOK_RETURNS;
+"message"/[^{ident_char}]   return token::TOK_MESSAGE;
+"service"/[^{ident_char}]   return token::TOK_SERVICE;
+"rpc"/[^{ident_char}]       return token::TOK_RPC;
+"false"/[^{ident_char}]     return token::TOK_FALSE;
+"true"/[^{ident_char}]      return token::TOK_TRUE;
+"enum"/[^{ident_char}]      return token::TOK_ENUM;
+"=>"                         return token::TOK_IMPL;
+"returns"/[^{ident_char}]   return token::TOK_RETURNS;
 
     /* Literals */
 {string_literal} {
@@ -55,12 +54,16 @@ string_literal \"(\\.|[^\\"])*\"
   yylval->emplace<std::string>(yytext);
   return token::TOK_UC_IDENTIFIER;
 }
-{digit}+ {
-  yylval->emplace<int64_t>(atol(yytext));
+{digit}+u {
+  yylval->emplace<uint64_t>(std::stoull(yytext));
+  return token::TOK_UINT_LITERAL;
+}
+[+-]?{digit}+ {
+  yylval->emplace<int64_t>(std::stoll(yytext));
   return token::TOK_INT_LITERAL;
 }
-{digit}+"."{digit}+ {
-  yylval->emplace<double>(atof(yytext));
+[+-]?{digit}+"."{digit}+ {
+  yylval->emplace<double>(std::stold(yytext));
   return token::TOK_FLOAT_LITERAL;
 }
 
