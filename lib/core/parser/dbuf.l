@@ -1,8 +1,8 @@
 %{
+#include "core/parser/lexer.h"
+
 #include <string>
 #include <cstdlib>
-
-#include <parser/lexer.hpp>
 
 #undef YY_DECL
 #define YY_DECL int dbuf::parser::Lexer::yylex(dbuf::parser::Parser::semantic_type *const lval, dbuf::parser::Parser::location_type *loc)

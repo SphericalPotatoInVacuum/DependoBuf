@@ -18,8 +18,8 @@ struct Expression;
 
 // Field access struct definition
 struct VarAccess {
-  std::string var_identifier;
-  std::vector<std::string> field_identifiers;
+  std::string var_identifier_;
+  std::vector<std::string> field_identifiers_ = {};
 };
 
 // Type std::unique_ptr<Expression> struct definition

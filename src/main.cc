@@ -1,7 +1,8 @@
+#include "core/parser/driver.h"
+
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <parser/driver.hpp>
 
 int main(const int argc, const char **argv) {
   if (argc == 2) {

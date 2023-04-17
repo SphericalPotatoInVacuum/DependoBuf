@@ -1,7 +1,7 @@
 #pragma once
 
+#include "core/parser/lexer.h"
 #include "dbuf.tab.hpp"
-#include "lexer.hpp"
 
 #include <cstddef>
 #include <istream>
