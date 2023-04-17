@@ -1,4 +1,4 @@
-message ConstructorsWithFields enum {
+enum ConstructorsWithFields {
     Constructor1  {
         f1 Field1
     }

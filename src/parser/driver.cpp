@@ -1,26 +1,27 @@
+#include "driver.hpp"
+
 #include <cassert>
 #include <cctype>
 #include <fstream>
 
-#include "driver.hpp"
+namespace dbuf::parser {
 
-dbuf::Driver::~Driver() {
-  delete (lexer);
-  lexer = nullptr;
-  delete (parser);
-  parser = nullptr;
+Driver::~Driver() {
+  delete (lexer_);
+  lexer_ = nullptr;
+  delete (parser_);
+  parser_ = nullptr;
 }
 
-void dbuf::Driver::parse( std::istream &stream ) {
-   if( ! stream.good()  && stream.eof() ) {
-       return;
-   }
-   //else
-   parse_helper( stream ); 
-   return;
+void Driver::parse(std::istream &iss) {
+  if (!iss.good() && iss.eof()) {
+    return;
+  }
+  // else
+  parse_helper(iss);
 }
 
-void dbuf::Driver::parse(const char *const filename) {
+void Driver::parse(const char *const filename) {
   /**
    * Remember, if you want to have checks in release mode
    * then this needs to be an if statement
@@ -31,31 +32,31 @@ void dbuf::Driver::parse(const char *const filename) {
     exit(EXIT_FAILURE);
   }
   parse_helper(in_file);
-  return;
 }
 
-void dbuf::Driver::parse_helper(std::istream &stream) {
-  delete (lexer);
+void Driver::saveAst(AST ast) { ast_ = std::move(ast); }
+
+void Driver::parse_helper(std::istream &stream) {
+  delete (lexer_);
   try {
-    lexer = new dbuf::Lexer(&stream);
+    lexer_ = new Lexer(&stream);
   } catch (std::bad_alloc &ba) {
-    std::cerr << "Failed to allocate scanner: (" << ba.what()
-              << "), exiting!!\n";
+    std::cerr << "Failed to allocate scanner: (" << ba.what() << "), exiting!!\n";
     exit(EXIT_FAILURE);
   }
 
-  delete (parser);
+  delete (parser_);
   try {
-    parser = new dbuf::Parser((*lexer) /* scanner */, (*this) /* driver */);
-    parser->set_debug_level(0);
+    parser_ = new Parser((*lexer_) /* scanner */, (*this) /* driver */);
+    parser_->set_debug_level(0);
   } catch (std::bad_alloc &ba) {
-    std::cerr << "Failed to allocate parser: (" << ba.what()
-              << "), exiting!!\n";
+    std::cerr << "Failed to allocate parser: (" << ba.what() << "), exiting!!\n";
     exit(EXIT_FAILURE);
   }
   const int accept(0);
-  if (parser->parse() != accept) {
+  if (parser_->parse() != accept) {
     throw "Parse failed!\n";
   }
-  return;
 }
+
+} // namespace dbuf::parser

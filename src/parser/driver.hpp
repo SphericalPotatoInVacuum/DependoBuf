@@ -1,13 +1,13 @@
 #pragma once
 
+#include "dbuf.tab.hpp"
+#include "lexer.hpp"
+
 #include <cstddef>
 #include <istream>
 #include <string>
 
-#include "dbuf.tab.hpp"
-#include "lexer.hpp"
-
-namespace dbuf {
+namespace dbuf::parser {
 
 class Driver {
 public:
@@ -19,18 +19,21 @@ public:
    * parse - parse from a file
    * @param filename - valid string with input file
    */
-  void parse(const char *const filename);
+  void parse(const char *filename);
   /**
    * parse - parse from a c++ input stream
    * @param is - std::istream&, valid input stream
    */
   void parse(std::istream &iss);
 
+  void saveAst(AST);
+
 private:
   void parse_helper(std::istream &stream);
 
-  Parser *parser = nullptr;
-  Lexer *lexer = nullptr;
+  Parser *parser_ = nullptr;
+  Lexer *lexer_   = nullptr;
+  AST ast_;
 };
 
-} // namespace dbuf
+} // namespace dbuf::parser
