@@ -26,7 +26,6 @@ struct DependentType {
   void AddDependency(TypedVariable type_dependency_);
 
   std::vector<TypedVariable> type_dependencies_;
-  std::unordered_map<std::string, std::vector<TypedVariable>::const_iterator> iterators_;
 };
 
 struct Message : public DependentType {
