@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <istream>
 #include <string>
+#include <unordered_map>
 
 namespace dbuf::parser {
 
@@ -28,12 +29,22 @@ public:
 
   void saveAst(AST);
 
+  uint64_t GetInterning(std::string &input_string);
+
 private:
   void parse_helper(std::istream &stream);
 
   Parser *parser_ = nullptr;
   Lexer *lexer_   = nullptr;
   AST ast_;
+
+  struct Interning {
+    uint64_t GetInterning(std::string &input_string);
+
+    std::unordered_map<std::string, uint64_t> tokens_;
+    uint64_t counter_ {0};
+  };
+  Interning interning_;
 };
 
 } // namespace dbuf::parser
