@@ -1,4 +1,4 @@
-#include "../src/parser/driver.hpp"
+#include "core/parser/driver.h"
 
 #include <exception>
 #include <filesystem>
@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-const std::string kSamplesPath              = "../test/code_samples";
+const std::string kSamplesPath              = "../../test/code_samples";
 const std::string kCorrectSyntaxSamplesPath = kSamplesPath + "/correct_syntax/";
 const std::filesystem::directory_iterator kCorrectSyntaxSamplesIterator(kCorrectSyntaxSamplesPath);
 
@@ -25,12 +25,14 @@ protected:
   }
 
   void SetUp() override {
-    std::string path = GetParam().path().u8string();
+    std::string path = GetParam().path().string();
     input_file_.open(path);
     ASSERT_TRUE(input_file_.is_open()) << "Could not open input file: " << GetParam();
   }
 
-  void TearDown() override { input_file_.close(); }
+  void TearDown() override {
+    input_file_.close();
+  }
 
   static dbuf::parser::Driver *driver_;
   std::ifstream input_file_;

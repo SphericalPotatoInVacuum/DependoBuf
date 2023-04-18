@@ -11,8 +11,8 @@
 %define api.parser.class {Parser}
 
 %code requires{
-  #include <parser/ast.h>
-  #include <parser/expression.h>
+  #include "core/parser/ast.h"
+  #include "core/parser/expression.h"
 
   namespace dbuf::parser {
     class Driver;
@@ -31,13 +31,13 @@
 %define parse.lac full
 
 %code {
+  #include "core/parser/driver.h"
+  #include "core/parser/ast.h"
+  #include "core/parser/expression.h"
+
   #include <iostream>
   #include <cstdlib>
   #include <fstream>
-
-  #include <parser/driver.hpp>
-  #include <parser/ast.h>
-  #include <parser/expression.h>
 
 #undef yylex
 #define yylex scanner.yylex
@@ -90,7 +90,7 @@ schema : definitions { driver.saveAst(std::move($1)); }
 
 %nterm <AST> definitions;
 definitions
-  : %empty { $$ = std::move(AST()); }
+  : %empty { $$ = AST{}; }
   | definitions message_definition {
     $$ = std::move($1);
     $$.AddMessage(std::move($2));
@@ -252,7 +252,8 @@ field_declarations
 %nterm <TypeExpression> type_expr;
 type_expr
   : type_identifier {
-    $$ = TypeExpression{$1};
+    $$ = TypeExpression{};
+    $$.type_name_ = std::move($1);
   }
   | type_expr primary {
     $$ = std::move($1);
@@ -351,8 +352,8 @@ var_access
     $$ = VarAccess{$1};
   }
   | var_access "." var_identifier {
-    $$ = $1;
-    $$.field_identifiers.push_back($3);
+    $$ = std::move($1);
+    $$.field_identifiers_.emplace_back(std::move($3));
   }
   ;
 

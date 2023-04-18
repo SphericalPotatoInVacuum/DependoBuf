@@ -1,4 +1,4 @@
-#include "driver.hpp"
+#include "core/parser/driver.h"
 
 #include <cassert>
 #include <cctype>
@@ -34,7 +34,9 @@ void Driver::parse(const char *const filename) {
   parse_helper(in_file);
 }
 
-void Driver::saveAst(AST ast) { ast_ = std::move(ast); }
+void Driver::saveAst(AST ast) {
+  ast_ = std::move(ast);
+}
 
 void Driver::parse_helper(std::istream &stream) {
   delete (lexer_);

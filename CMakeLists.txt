@@ -2,43 +2,10 @@ cmake_minimum_required(VERSION 3.21)
 
 project(DBUF VERSION 1.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(SRC_DIR "src")
-set(PARSER_DIR "${SRC_DIR}/parser")
-
-set(TEST_DIR "test")
-
-include(FetchContent)
-
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        v1.13.0
-)
-FetchContent_MakeAvailable(googletest)
-add_library(GTest::GTest INTERFACE IMPORTED)
-target_link_libraries(GTest::GTest INTERFACE gtest_main)
-
-find_package(FLEX 2.6 REQUIRED)
-find_package(BISON 3.4 REQUIRED)
-
-bison_target(PARSER "${PARSER_DIR}/dbuf.yy" ${CMAKE_CURRENT_BINARY_DIR}/dbuf.tab.cpp)
-flex_target(LEXER "${PARSER_DIR}/dbuf.l"  ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp)
-add_flex_bison_dependency(LEXER PARSER)
-
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-add_executable(dbuf "${SRC_DIR}/main.cpp" "${SRC_DIR}/parser/driver.cpp" "${SRC_DIR}/parser/ast.cc" "${SRC_DIR}/parser/expression.cc" "${BISON_PARSER_OUTPUTS}" "${FLEX_LEXER_OUTPUTS}")
-target_include_directories(dbuf PRIVATE "${SRC_DIR}")
-
-enable_testing()
-
-add_executable(debufTests "${TEST_DIR}/parser_test.cpp" "${SRC_DIR}/parser/driver.cpp" "${SRC_DIR}/parser/ast.cc" "${SRC_DIR}/parser/expression.cc" "${BISON_PARSER_OUTPUTS}" "${FLEX_LEXER_OUTPUTS}")
-target_include_directories(debufTests PRIVATE "${SRC_DIR}")
-target_link_libraries(debufTests PRIVATE GTest::GTest pthread)
-
-include(GoogleTest)
-gtest_discover_tests(debufTests)
+add_subdirectory("lib")
+add_subdirectory("src")
+add_subdirectory("test")
