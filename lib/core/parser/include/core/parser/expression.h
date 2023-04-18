@@ -18,8 +18,8 @@ struct Expression;
 
 // Field access struct definition
 struct VarAccess {
-  std::string var_identifier_;
-  std::vector<std::string> field_identifiers_ = {};
+  uint64_t var_identifier_;
+  std::vector<uint64_t> field_identifiers_ = {};
 };
 
 // Type std::unique_ptr<Expression> struct definition
@@ -32,7 +32,7 @@ struct TypeExpression {
   TypeExpression(TypeExpression &&)            = default;
   TypeExpression &operator=(TypeExpression &&) = default;
 
-  std::string type_name_;
+  uint64_t type_name_;
   std::vector<std::unique_ptr<Expression>> type_parameters_ = {};
 };
 
@@ -66,14 +66,14 @@ struct FieldInitialization {
   FieldInitialization(FieldInitialization &&)            = default;
   FieldInitialization &operator=(FieldInitialization &&) = default;
 
-  void AddField(std::string field_identifier, std::unique_ptr<Expression> expression);
+  void AddField(uint64_t field_identifier, std::unique_ptr<Expression> expression);
 
-  std::vector<std::pair<std::string, std::unique_ptr<Expression>>> fields_ = {};
+  std::vector<std::pair<uint64_t, std::unique_ptr<Expression>>> fields_ = {};
 };
 
 // Constructed value struct definition
 struct ConstructedValue {
-  std::string constructor_identifier_;
+  uint64_t constructor_identifier_;
   FieldInitialization field_initialization_;
 };
 

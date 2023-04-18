@@ -7,26 +7,27 @@
 #include "dbuf.tab.hpp"
 #include "location.hh"
 
-namespace dbuf {
-namespace parser {
+namespace dbuf::parser {
 
 class Lexer : public yyFlexLexer {
 public:
-  Lexer(std::istream *in) : yyFlexLexer(in) { loc = new Parser::location_type(); };
+  explicit Lexer(std::istream *in)
+      : yyFlexLexer(in) {
+    loc_ = new Parser::location_type();
+  };
 
   // get rid of override virtual function warning
   using FlexLexer::yylex;
 
-  virtual int yylex(Parser::semantic_type *const lval, Parser::location_type *location);
+  virtual int yylex(Parser::semantic_type *lval, Parser::location_type *location);
   // YY_DECL defined in mc_lexer.l
   // Method body created by flex in mc_lexer.yy.cc
 
 private:
   /* yyval ptr */
-  Parser::semantic_type *yylval = nullptr;
+  Parser::semantic_type *yylval_ = nullptr;
   /* location ptr */
-  Parser::location_type *loc = nullptr;
+  Parser::location_type *loc_ = nullptr;
 };
 
-} // namespace parser
-} // namespace dbuf
+} // namespace dbuf::parser

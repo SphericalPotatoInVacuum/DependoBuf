@@ -110,7 +110,7 @@ definitions
 %nterm <Message> message_definition;
 message_definition
   : MESSAGE type_identifier type_dependencies fields_block {
-    $$ = Message{.name_=std::move($2)};
+    $$ = Message{.name_= std::move($2)};
     for (auto &type_dependency : $3) {
       $$.AddDependency(std::move(type_dependency));
     }
@@ -119,7 +119,7 @@ message_definition
     }
   }
   | MESSAGE type_identifier fields_block {
-    $$ = Message{.name_=std::move($2)};
+    $$ = Message{.name_= std::move($2)};
     for (auto &field : $3) {
       $$.AddField(std::move(field));
     }
@@ -136,7 +136,7 @@ enum_definition
 dependent_enum
   : ENUM type_identifier type_dependencies dependent_enum_body {
     $$ = std::move($4);
-    $$.name_ = $2;
+    $$.name_ = std::move($2);
     for (auto &type_dependency : $3) {
       $$.AddDependency(std::move(type_dependency));
     }
@@ -406,18 +406,18 @@ field_initialization
   }
   ;
 
-%nterm <std::string>
+%nterm <uint64_t>
   type_identifier
   constructor_identifier
   service_identifier
   var_identifier
   rpc_identifier
 ;
-type_identifier : UC_IDENTIFIER { $$ = std::move($1); };
-constructor_identifier : UC_IDENTIFIER { $$ = std::move($1); };
-service_identifier : UC_IDENTIFIER { $$ = std::move($1); };
-var_identifier : LC_IDENTIFIER { $$ = std::move($1); };
-rpc_identifier : LC_IDENTIFIER { $$ = std::move($1); };
+type_identifier : UC_IDENTIFIER { $$ = driver.GetInterning($1); };
+constructor_identifier : UC_IDENTIFIER { $$ = driver.GetInterning($1); };
+service_identifier : UC_IDENTIFIER { $$ = driver.GetInterning($1); };
+var_identifier : LC_IDENTIFIER { $$ = driver.GetInterning($1); };
+rpc_identifier : LC_IDENTIFIER { $$ = driver.GetInterning($1); };
 
 service_definition
   : SERVICE service_identifier rpc_block
