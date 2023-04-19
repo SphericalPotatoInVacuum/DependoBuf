@@ -110,7 +110,7 @@ definitions
 %nterm <Message> message_definition;
 message_definition
   : MESSAGE type_identifier type_dependencies fields_block {
-    $$ = Message{.name_= std::move($2)};
+    $$ = Message{.name_= $2};
     for (auto &type_dependency : $3) {
       $$.AddDependency(std::move(type_dependency));
     }
@@ -119,7 +119,7 @@ message_definition
     }
   }
   | MESSAGE type_identifier fields_block {
-    $$ = Message{.name_= std::move($2)};
+    $$ = Message{.name_= $2};
     for (auto &field : $3) {
       $$.AddField(std::move(field));
     }
@@ -136,7 +136,7 @@ enum_definition
 dependent_enum
   : ENUM type_identifier type_dependencies dependent_enum_body {
     $$ = std::move($4);
-    $$.name_ = std::move($2);
+    $$.name_ = $2;
     for (auto &type_dependency : $3) {
       $$.AddDependency(std::move(type_dependency));
     }
