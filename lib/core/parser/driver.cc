@@ -25,11 +25,14 @@ uint64_t Driver::GetInterning(std::string &input_string) {
   return interning_.GetInterning(input_string);
 }
 
-uint64_t Driver::Interning::GetInterning(std::string &input_string) {
-  if (!tokens_.contains(input_string)) {
-    tokens_[input_string] = counter_++;
+uint64_t Driver::Interning::GetInterning(std::string &&input_string) {
+  auto it = tokens_.find(input_string);
+  if (it != tokens_.end()) {
+    return it->second;
   }
-  return tokens_[input_string];
+  uint64_t new_token = counter_++;
+  tokens_.insert(std::make_pair(std::move(input_string), new_token));
+  return new_token;
 }
 
 void Driver::parse(const char *const filename) {
