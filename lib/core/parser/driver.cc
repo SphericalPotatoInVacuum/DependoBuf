@@ -21,8 +21,8 @@ void Driver::parse(std::istream &iss) {
   parse_helper(iss);
 }
 
-uint64_t Driver::GetInterning(std::string &input_string) {
-  return interning_.GetInterning(input_string);
+uint64_t Driver::GetInterning(std::string &&input_string) {
+  return interning_.GetInterning(std::move(input_string));
 }
 
 uint64_t Driver::Interning::GetInterning(std::string &&input_string) {

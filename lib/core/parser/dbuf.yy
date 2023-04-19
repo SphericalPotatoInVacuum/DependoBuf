@@ -413,11 +413,11 @@ field_initialization
   var_identifier
   rpc_identifier
 ;
-type_identifier : UC_IDENTIFIER { $$ = driver.GetInterning($1); };
-constructor_identifier : UC_IDENTIFIER { $$ = driver.GetInterning($1); };
-service_identifier : UC_IDENTIFIER { $$ = driver.GetInterning($1); };
-var_identifier : LC_IDENTIFIER { $$ = driver.GetInterning($1); };
-rpc_identifier : LC_IDENTIFIER { $$ = driver.GetInterning($1); };
+type_identifier : UC_IDENTIFIER { $$ = driver.GetInterning(std::move($1)); };
+constructor_identifier : UC_IDENTIFIER { $$ = driver.GetInterning(std::move($1)); };
+service_identifier : UC_IDENTIFIER { $$ = driver.GetInterning(std::move($1)); };
+var_identifier : LC_IDENTIFIER { $$ = driver.GetInterning(std::move($1)); };
+rpc_identifier : LC_IDENTIFIER { $$ = driver.GetInterning(std::move($1)); };
 
 service_definition
   : SERVICE service_identifier rpc_block
