@@ -39,7 +39,7 @@ jobs:
 
   tidy:
     runs-on: ubuntu-latest
-    wokrking-directory: ${{github.workspace}}
+    working-directory: ${{github.workspace}}
 
     steps:
     - uses: actions/checkout@v3
@@ -67,7 +67,7 @@ jobs:
 
   format:
     runs-on: ubuntu-latest
-    wokrking-directory: ${{github.workspace}}
+    working-directory: ${{github.workspace}}
 
     steps:
     - name: Checkout
