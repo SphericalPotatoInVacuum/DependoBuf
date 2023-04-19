@@ -39,7 +39,10 @@ jobs:
 
   tidy:
     runs-on: ubuntu-latest
-    working-directory: ${{github.workspace}}
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{github.workspace}}
 
     steps:
     - uses: actions/checkout@v3
@@ -67,7 +70,10 @@ jobs:
 
   format:
     runs-on: ubuntu-latest
-    working-directory: ${{github.workspace}}
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{github.workspace}}
 
     steps:
     - name: Checkout
