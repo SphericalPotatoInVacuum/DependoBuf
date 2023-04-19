@@ -5,7 +5,7 @@
 #include <cstdlib>
 
 #undef YY_DECL
-#define YY_DECL int dbuf::parser::Lexer::yylex(dbuf::parser::Parser::semantic_type *const lval, dbuf::parser::Parser::location_type *loc)
+#define YY_DECL int dbuf::parser::Lexer::yylex(dbuf::parser::Parser::semantic_type * lval, dbuf::parser::Parser::location_type *loc)
 
 using token = dbuf::parser::Parser::token;
 
@@ -28,7 +28,7 @@ string_literal \"(\\.|[^\\"])*\"
 %%
 
 %{/** Code executed at the beginning of yylex **/
-  yylval = lval;
+  yylval_ = lval;
 %}
 
     /* Keywords */
@@ -43,27 +43,27 @@ string_literal \"(\\.|[^\\"])*\"
 
     /* Literals */
 {string_literal} {
-  yylval->emplace<std::string>(yytext);
+  yylval_->emplace<std::string>(yytext);
   return token::TOK_STRING_LITERAL;
 }
 {lc_letter}{ident_char}* {
-  yylval->emplace<std::string>(yytext);
+  yylval_->emplace<std::string>(yytext);
   return token::TOK_LC_IDENTIFIER;
 }
 {uc_letter}{ident_char}* {
-  yylval->emplace<std::string>(yytext);
+  yylval_->emplace<std::string>(yytext);
   return token::TOK_UC_IDENTIFIER;
 }
 {digit}+u {
-  yylval->emplace<uint64_t>(std::stoull(yytext));
+  yylval_->emplace<uint64_t>(std::stoull(yytext));
   return token::TOK_UINT_LITERAL;
 }
 [+-]?{digit}+ {
-  yylval->emplace<int64_t>(std::stoll(yytext));
+  yylval_->emplace<int64_t>(std::stoll(yytext));
   return token::TOK_INT_LITERAL;
 }
 [+-]?{digit}+"."{digit}+ {
-  yylval->emplace<double>(std::stold(yytext));
+  yylval_->emplace<double>(std::stold(yytext));
   return token::TOK_FLOAT_LITERAL;
 }
 
