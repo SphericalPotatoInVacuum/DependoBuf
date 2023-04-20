@@ -77,10 +77,9 @@
 %token <uint64_t> UINT_LITERAL
 %token <std::string> STRING_LITERAL
 
-%right ":"
 %left "||" "-" "+"
 %left "&&" "*" "/"
-%right "!"
+%precedence "!"
 
 %start schema
 
