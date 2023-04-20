@@ -35,7 +35,7 @@ private:
   void parse_helper(std::istream &stream);
 
   Parser *parser_ = nullptr;
-  Lexer *lexer    = nullptr;
+  Lexer *lexer_   = nullptr;
   AST ast_;
 
   struct Interning {

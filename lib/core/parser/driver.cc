@@ -7,8 +7,8 @@
 namespace dbuf::parser {
 
 Driver::~Driver() {
-  delete (lexer);
-      lexer = nullptr;
+  delete (lexer_);
+  lexer_ = nullptr;
   delete (parser_);
   parser_ = nullptr;
 }
@@ -51,9 +51,9 @@ void Driver::saveAst(AST ast) {
 }
 
 void Driver::parse_helper(std::istream &stream) {
-  delete (lexer);
+  delete (lexer_);
   try {
-    lexer = new Lexer(&stream);
+    lexer_ = new Lexer(&stream);
   } catch (std::bad_alloc &ba) {
     std::cerr << "Failed to allocate scanner: (" << ba.what() << "), exiting!!\n";
     exit(EXIT_FAILURE);
@@ -61,7 +61,7 @@ void Driver::parse_helper(std::istream &stream) {
 
   delete (parser_);
   try {
-    parser_ = new Parser((*lexer) /* scanner */, (*this) /* driver */);
+    parser_ = new Parser((*lexer_) /* scanner */, (*this) /* driver */);
     parser_->set_debug_level(0);
   } catch (std::bad_alloc &ba) {
     std::cerr << "Failed to allocate parser: (" << ba.what() << "), exiting!!\n";
