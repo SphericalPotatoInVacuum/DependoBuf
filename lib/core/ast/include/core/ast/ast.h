@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/parser/expression.h"
+#include "core/ast/expression.h"
 
 #include <memory>
 #include <string>
@@ -8,7 +8,7 @@
 #include <variant>
 #include <vector>
 
-namespace dbuf::parser {
+namespace dbuf::ast {
 
 struct TypedVariable {
   uint64_t name_;
@@ -41,4 +41,4 @@ struct AST {
   std::unordered_map<uint64_t, Enum> enums_;
 };
 
-} // namespace dbuf::parser
+} // namespace dbuf::ast

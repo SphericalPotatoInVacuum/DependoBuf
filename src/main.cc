@@ -1,4 +1,4 @@
-#include "core/parser/driver.h"
+#include "core/driver.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -6,7 +6,7 @@
 
 int main(const int argc, const char **argv) {
   if (argc == 2) {
-    dbuf::parser::Driver driver;
+    dbuf::Driver driver;
     driver.parse(argv[1]);
   } else {
     return (EXIT_FAILURE);
