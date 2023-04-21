@@ -10,7 +10,6 @@ add_library(parser
   ${FLEX_DBUF_LEXER_OUTPUTS}
   ast.cc
   driver.cc
-  expression.cc
 )
 
 target_include_directories(parser PUBLIC
