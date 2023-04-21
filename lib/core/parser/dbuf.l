@@ -27,10 +27,6 @@ string_literal \"(\\.|[^\\"])*\"
 
 %%
 
-%{/** Code executed at the beginning of yylex **/
-  yylval_ = lval;
-%}
-
     /* Keywords */
 "message"/[^{ident_char}]   return token::TOK_MESSAGE;
 "service"/[^{ident_char}]   return token::TOK_SERVICE;
@@ -43,27 +39,27 @@ string_literal \"(\\.|[^\\"])*\"
 
     /* Literals */
 {string_literal} {
-  yylval_->emplace<std::string>(yytext);
+  lval->emplace<std::string>(yytext);
   return token::TOK_STRING_LITERAL;
 }
 {lc_letter}{ident_char}* {
-  yylval_->emplace<std::string>(yytext);
+  lval->emplace<std::string>(yytext);
   return token::TOK_LC_IDENTIFIER;
 }
 {uc_letter}{ident_char}* {
-  yylval_->emplace<std::string>(yytext);
+  lval->emplace<std::string>(yytext);
   return token::TOK_UC_IDENTIFIER;
 }
 {digit}+u {
-  yylval_->emplace<uint64_t>(std::stoull(yytext));
+  lval->emplace<uint64_t>(std::stoull(yytext));
   return token::TOK_UINT_LITERAL;
 }
 [+-]?{digit}+ {
-  yylval_->emplace<int64_t>(std::stoll(yytext));
+  lval->emplace<int64_t>(std::stoll(yytext));
   return token::TOK_INT_LITERAL;
 }
 [+-]?{digit}+"."{digit}+ {
-  yylval_->emplace<double>(std::stold(yytext));
+  lval->emplace<double>(std::stold(yytext));
   return token::TOK_FLOAT_LITERAL;
 }
 
