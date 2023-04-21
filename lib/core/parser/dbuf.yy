@@ -17,8 +17,9 @@
   namespace dbuf::parser {
     class Driver;
     class Lexer;
-  }
 
+    using ExprPtr = std::unique_ptr<Expression>;
+  }
 }
 
 %parse-param { Lexer &scanner }
@@ -110,19 +111,10 @@ definitions
 %nterm <Message> message_definition;
 message_definition
   : MESSAGE type_identifier type_dependencies fields_block {
-    $$ = Message{.name_= $2};
-    for (auto &type_dependency : $3) {
-      $$.AddDependency(std::move(type_dependency));
-    }
-    for (auto &field : $4) {
-      $$.AddField(std::move(field));
-    }
+    $$ = Message{.name_ = $2, .type_dependencies_ = std::move($3), .fields_ = std::move($4)};
   }
   | MESSAGE type_identifier fields_block {
-    $$ = Message{.name_= $2};
-    for (auto &field : $3) {
-      $$.AddField(std::move(field));
-    }
+    $$ = Message{.name_ = $2, .fields_ = std::move($3)};
   }
   ;
 
@@ -137,16 +129,14 @@ dependent_enum
   : ENUM type_identifier type_dependencies dependent_enum_body {
     $$ = std::move($4);
     $$.name_ = $2;
-    for (auto &type_dependency : $3) {
-      $$.AddDependency(std::move(type_dependency));
-    }
+    $$.type_dependencies_ = std::move($3);
   }
   ;
 
 %nterm <Enum> independent_enum;
 independent_enum
   : ENUM type_identifier independent_enum_body {
-    $$ = Enum{.name_=std::move($2)};
+    $$ = Enum{.name_ = $2};
   }
   ;
 
@@ -154,7 +144,7 @@ independent_enum
 independent_enum_body
   : constructors_block {
     $$ = Enum{};
-    $$.AddOutput(std::move($1));
+    $$.outputs_.emplace_back(std::move($1));
   }
 
 %nterm <std::vector<TypedVariable>> type_dependencies;
@@ -182,12 +172,12 @@ dependent_enum_body : "{" NL dependent_blocks "}" NL { $$ = std::move($3); };
 %nterm <Enum> dependent_blocks;
 dependent_blocks
   : %empty {
-    $$ = Enum();
+    $$ = Enum{};
   }
   | dependent_blocks pattern_matching IMPL constructors_block {
     $$ = std::move($1);
-    $$.AddInput(std::move($2));
-    $$.AddOutput(std::move($4));
+    $$.inputs_.emplace_back(std::move($2));
+    $$.outputs_.emplace_back(std::move($4));
   }
   ;
 
@@ -224,14 +214,11 @@ constructor_declarations
   }
   | constructor_declarations constructor_identifier fields_block {
     $$ = std::move($1);
-    $$.emplace_back(Constructor{.name_=std::move($2)});
-    for (auto &field : $3) {
-      $$.back().AddField(std::move(field));
-    }
+    $$.emplace_back(Constructor{.name_ = $2, .fields_ = std::move($3)});
   }
   | constructor_declarations constructor_identifier NL {
     $$ = std::move($1);
-    $$.emplace_back(Constructor{.name_=std::move($2)});
+    $$.emplace_back(Constructor{.name_ = $2});
   }
   ;
 
@@ -252,8 +239,7 @@ field_declarations
 %nterm <TypeExpression> type_expr;
 type_expr
   : type_identifier {
-    $$ = TypeExpression{};
-    $$.type_name_ = std::move($1);
+    $$ = TypeExpression{.type_name_ = $1};
   }
   | type_expr primary {
     $$ = std::move($1);
@@ -261,79 +247,71 @@ type_expr
   }
   ;
 
-%nterm <std::unique_ptr<Expression>> expression;
+%nterm <ExprPtr> expression;
 expression
   : expression PLUS expression {
-    Expression expr = BinaryExpression{
+    $$ = std::make_unique<Expression>(BinaryExpression{
       .left_=std::move($1),
       .type_=BinaryExpressionType::kPlus,
       .right_=std::move($3)
-    };
-    $$ = std::make_unique<Expression>(std::move(expr));
+    });
   }
   | expression MINUS expression {
-    Expression expr = BinaryExpression{
+    $$ = std::make_unique<Expression>(BinaryExpression{
       .left_=std::move($1),
       .type_=BinaryExpressionType::kMinus,
       .right_=std::move($3)
-    };
-    $$ = std::make_unique<Expression>(std::move(expr));
+    });
   }
   | expression STAR expression {
-    Expression expr = BinaryExpression{
+    $$ = std::make_unique<Expression>(BinaryExpression{
       .left_=std::move($1),
       .type_=BinaryExpressionType::kStar,
       .right_=std::move($3)
-    };
-    $$ = std::make_unique<Expression>(std::move(expr));
+    });
   }
   | expression SLASH expression {
-    Expression expr = BinaryExpression{
+    $$ = std::make_unique<Expression>(BinaryExpression{
       .left_=std::move($1),
       .type_=BinaryExpressionType::kSlash,
       .right_=std::move($3)
-    };
-    $$ = std::make_unique<Expression>(std::move(expr));
+    });
   }
   | expression AND expression {
-    Expression expr = BinaryExpression{
+    $$ = std::make_unique<Expression>(BinaryExpression{
       .left_=std::move($1),
       .type_=BinaryExpressionType::kAnd,
       .right_=std::move($3)
-    };
-    $$ = std::make_unique<Expression>(std::move(expr));
+    });
   }
   | expression OR expression {
-    Expression expr = BinaryExpression{
+    $$ = std::make_unique<Expression>(BinaryExpression{
       .left_=std::move($1),
       .type_=BinaryExpressionType::kOr,
       .right_=std::move($3)
-    };
-    $$ = std::make_unique<Expression>(std::move(expr));
+    });
+  }
+  | MINUS expression {
+    $$ = std::make_unique<Expression>(UnaryExpression{
+      .type_=UnaryExpressionType::kMinus,
+      .expression_=std::move($2)
+    });
+  }
+  | BANG expression {
+    $$ = std::make_unique<Expression>(UnaryExpression{
+      .type_=UnaryExpressionType::kBang,
+      .expression_=std::move($2)
+    });
   }
   | type_expr {
     $$ = std::make_unique<Expression>(std::move($1));
-  }
-  | MINUS expression {
-    Expression expr = UnaryExpression{
-      .type_=UnaryExpressionType::kMinus,
-      .expression_=std::move($2)
-    };
-    $$ = std::make_unique<Expression>(std::move(expr));
-  }
-  | BANG expression {
-    Expression expr = UnaryExpression{
-      .type_=UnaryExpressionType::kBang,
-      .expression_=std::move($2)
-    };
-    $$ = std::make_unique<Expression>(std::move(expr));
   }
   | primary {
     $$ = std::move($1);
   }
   ;
 
-%nterm <std::unique_ptr<Expression>> primary;
+%nterm <ExprPtr> primary;
 primary
   : value {
     $$ = std::make_unique<Expression>(std::move($1));
@@ -349,11 +327,11 @@ primary
 %nterm <VarAccess> var_access;
 var_access
   : var_identifier {
-    $$ = VarAccess{$1};
+    $$ = VarAccess{.var_identifier_ = $1};
   }
   | var_access "." var_identifier {
     $$ = std::move($1);
-    $$.field_identifiers_.emplace_back(std::move($3));
+    $$.field_identifiers_.emplace_back($3);
   }
   ;
 
@@ -388,23 +366,30 @@ string_literal : STRING_LITERAL { $$ = Value(ScalarValue<std::string>{$1}); };
 %nterm <Value> constructed_value;
 constructed_value
   : constructor_identifier "{" field_initialization "}" {
-    $$ = ConstructedValue{std::move($1), std::move($3)};
+    $$ = ConstructedValue {.constructor_identifier_ = $1, .fields_ = std::move($3)};
   }
   ;
-%nterm <FieldInitialization> field_initialization;
+
+%nterm <std::vector<std::pair<uint64_t, ExprPtr>>> field_initialization;
 field_initialization
   : %empty {
-    $$ = FieldInitialization{};
+    $$ = std::vector<std::pair<uint64_t, ExprPtr>>();
   }
-  | var_identifier COLON expression {
-    $$ = FieldInitialization{};
-    $$.AddField(std::move($1), std::move($3));
+  | field_initialization_list {
+    $$ = std::move($1);
+  }
+  ;
+
+%nterm <std::vector<std::pair<uint64_t, ExprPtr>>> field_initialization_list;
+field_initialization_list
+  : var_identifier COLON expression {
+    $$ = std::vector<std::pair<uint64_t, ExprPtr>>();
+    $$.emplace_back($1, std::move($3));
   }
   | field_initialization "," var_identifier COLON expression {
     $$ = std::move($1);
-    $$.AddField(std::move($3), std::move($5));
+    $$.emplace_back($3, std::move($5));
   }
-  ;
 
 %nterm <uint64_t>
   type_identifier
@@ -438,7 +423,7 @@ arguments
 %nterm <TypedVariable> typed_variable;
 typed_variable
   : var_identifier type_expr {
-    $$ = TypedVariable{.name_=std::move($1), .type_expression_= std::move($2)};
+    $$ = TypedVariable{.name_ = $1, .type_expression_= std::move($2)};
   }
 
 %%
