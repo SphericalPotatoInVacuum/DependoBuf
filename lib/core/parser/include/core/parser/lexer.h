@@ -12,22 +12,11 @@ namespace dbuf::parser {
 class Lexer : public yyFlexLexer {
 public:
   explicit Lexer(std::istream *in)
-      : yyFlexLexer(in) {
-    loc_ = new Parser::location_type();
-  };
+      : yyFlexLexer(in) {};
 
-  // get rid of override virtual function warning
   using FlexLexer::yylex;
 
-  virtual int yylex(Parser::semantic_type *lval, Parser::location_type *location);
-  // YY_DECL defined in mc_lexer.l
-  // Method body created by flex in mc_lexer.yy.cc
-
-private:
-  /* yyval ptr */
-  Parser::semantic_type *yylval_ = nullptr;
-  /* location ptr */
-  Parser::location_type *loc_ = nullptr;
+  int yylex(Parser::semantic_type *lval, Parser::location_type *location);
 };
 
 } // namespace dbuf::parser
