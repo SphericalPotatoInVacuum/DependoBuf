@@ -7,7 +7,7 @@
 #include <variant>
 #include <vector>
 
-namespace dbuf::parser {
+namespace dbuf::ast {
 
 /**
  * @brief Represents scalar values like numbers, booleans and strings
@@ -109,4 +109,4 @@ struct Expression
   using Base::Base;
 };
 
-} // namespace dbuf::parser
+} // namespace dbuf::ast

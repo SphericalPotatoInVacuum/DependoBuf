@@ -8,7 +8,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace dbuf::parser {
+namespace dbuf {
 
 class Driver {
 public:
@@ -34,9 +34,9 @@ public:
 private:
   void parse_helper(std::istream &stream);
 
-  Parser *parser_ = nullptr;
-  Lexer *lexer_   = nullptr;
-  AST ast_;
+  parser::Parser *parser_ = nullptr;
+  parser::Lexer *lexer_   = nullptr;
+  ast::AST ast_;
 
   struct Interning {
     uint64_t GetInterning(std::string &&input_string);
@@ -47,4 +47,4 @@ private:
   Interning interning_;
 };
 
-} // namespace dbuf::parser
+} // namespace dbuf

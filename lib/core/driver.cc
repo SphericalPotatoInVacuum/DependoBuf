@@ -1,10 +1,12 @@
-#include "core/parser/driver.h"
+#include "core/driver.h"
+
+#include "core/ast/ast.h"
 
 #include <cassert>
 #include <cctype>
 #include <fstream>
 
-namespace dbuf::parser {
+namespace dbuf {
 
 Driver::~Driver() {
   delete (lexer_);
@@ -53,7 +55,7 @@ void Driver::saveAst(AST ast) {
 void Driver::parse_helper(std::istream &stream) {
   delete (lexer_);
   try {
-    lexer_ = new Lexer(&stream);
+    lexer_ = new parser::Lexer(&stream);
   } catch (std::bad_alloc &ba) {
     std::cerr << "Failed to allocate scanner: (" << ba.what() << "), exiting!!\n";
     exit(EXIT_FAILURE);
@@ -61,7 +63,7 @@ void Driver::parse_helper(std::istream &stream) {
 
   delete (parser_);
   try {
-    parser_ = new Parser((*lexer_) /* scanner */, (*this) /* driver */);
+    parser_ = new parser::Parser((*lexer_) /* scanner */, (*this) /* driver */);
     parser_->set_debug_level(0);
   } catch (std::bad_alloc &ba) {
     std::cerr << "Failed to allocate parser: (" << ba.what() << "), exiting!!\n";
@@ -73,4 +75,4 @@ void Driver::parse_helper(std::istream &stream) {
   }
 }
 
-} // namespace dbuf::parser
+} // namespace dbuf

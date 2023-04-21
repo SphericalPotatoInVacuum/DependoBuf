@@ -11,11 +11,16 @@
 %define api.parser.class {Parser}
 
 %code requires{
-  #include "core/parser/ast.h"
-  #include "core/parser/expression.h"
+  #include "core/ast/ast.h"
+  #include "core/ast/expression.h"
+
+  namespace dbuf {
+    class Driver;
+  }
+
+  using namespace dbuf::ast;
 
   namespace dbuf::parser {
-    class Driver;
     class Lexer;
 
     using ExprPtr = std::unique_ptr<Expression>;
@@ -32,9 +37,10 @@
 %define parse.lac full
 
 %code {
-  #include "core/parser/driver.h"
-  #include "core/parser/ast.h"
-  #include "core/parser/expression.h"
+  #include "core/driver.h"
+
+  #include "core/ast/ast.h"
+  #include "core/ast/expression.h"
 
   #include <iostream>
   #include <cstdlib>

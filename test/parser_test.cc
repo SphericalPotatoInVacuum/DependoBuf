@@ -1,4 +1,4 @@
-#include "core/parser/driver.h"
+#include "core/driver.h"
 
 #include <exception>
 #include <filesystem>
@@ -15,7 +15,7 @@ class ParserTest : public ::testing::TestWithParam<std::filesystem::directory_en
 protected:
   static void SetUpTestSuite() {
     if (driver_ == nullptr) {
-      driver_ = new dbuf::parser::Driver;
+      driver_ = new dbuf::Driver;
     }
   }
 
@@ -34,10 +34,10 @@ protected:
     input_file_.close();
   }
 
-  static dbuf::parser::Driver *driver_;
+  static dbuf::Driver *driver_;
   std::ifstream input_file_;
 };
-dbuf::parser::Driver *ParserTest::driver_ = nullptr;
+dbuf::Driver *ParserTest::driver_ = nullptr;
 
 TEST_P(ParserTest, WorksForCorrectSyntax) {
   try {
