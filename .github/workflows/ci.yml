@@ -40,35 +40,24 @@ jobs:
   tidy:
     permissions: write-all
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-        working-directory: ${{github.workspace}}
 
     steps:
     - uses: actions/checkout@v3
-
-    - uses: awalsh128/cache-apt-pkgs-action@latest
-      with:
-        packages: libfl-dev
-        version: 1.0
-
-    - name: Configure CMake
-      run: cmake -B ./build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
     - name: clang-tidy review
       id: review
       uses: ZedThree/clang-tidy-review@v0.12.3
       with:
-        build_dir: build
+        apt_packages: libfl-dev,flex,bison
+        cmake_command: >
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} &&
+          cmake --build ${{github.workspace}}/build --target parser
+        build_dir: ${{github.workspace}}/build
+        config_file: .clang-tidy
         include: '*.h,*.cc'
-        exclude: '*build/*'
 
     - if: steps.review.outputs.total_comments > 0
       run: exit 1
-
-    - uses: ntsd/auto-request-changes-action@v2
-      if: ${{ github.event.pull_request && failure() }}
 
   format:
     permissions: write-all
@@ -98,7 +87,3 @@ jobs:
 
     - name: Fail if changes
       run: git diff --exit-code
-
-    - name: Request changes
-      uses: ntsd/auto-request-changes-action@v2
-      if: ${{ github.event.pull_request && failure() }}
