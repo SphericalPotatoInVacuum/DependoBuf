@@ -5,9 +5,8 @@
 #include <iostream>
 
 int main(const int argc, const char **argv) {
-  if (argc == 2) {
-    dbuf::Driver driver;
-    driver.parse(argv[1]);
+  if (argc == 3) {
+    dbuf::Driver::Run(argv[1], argv[2]);
   } else {
     return (EXIT_FAILURE);
   }

@@ -11,8 +11,8 @@ namespace dbuf::parser {
 
 class Lexer : public yyFlexLexer {
 public:
-  explicit Lexer(std::istream *in)
-      : yyFlexLexer(in) {};
+  explicit Lexer(std::istream &in, std::ostream &out)
+      : yyFlexLexer(in, out) {};
 
   using FlexLexer::yylex;
 

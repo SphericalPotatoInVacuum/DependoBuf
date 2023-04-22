@@ -1,6 +1,8 @@
 #include "core/driver.h"
 
 #include "core/ast/ast.h"
+#include "core/checker/checker.h"
+#include "core/parser/parse_helper.h"
 
 #include <cassert>
 #include <cctype>
@@ -8,71 +10,22 @@
 
 namespace dbuf {
 
-Driver::~Driver() {
-  delete (lexer_);
-  lexer_ = nullptr;
-  delete (parser_);
-  parser_ = nullptr;
-}
-
-void Driver::parse(std::istream &iss) {
-  if (!iss.good() && iss.eof()) {
-    return;
-  }
-  // else
-  parse_helper(iss);
-}
-
-uint64_t Driver::GetInterning(std::string &&input_string) {
-  return interning_.GetInterning(std::move(input_string));
-}
-
-uint64_t Driver::Interning::GetInterning(std::string &&input_string) {
-  auto result = tokens_.try_emplace(std::move(input_string), counter_);
-  if (result.second) {
-    counter_++;
-  }
-  return result.first->second;
-}
-
-void Driver::parse(const char *const filename) {
-  /**
-   * Remember, if you want to have checks in release mode
-   * then this needs to be an if statement
-   */
-  assert(filename != nullptr);
-  std::ifstream in_file(filename);
+void Driver::Run(const std::string &input_filename, const std::string &output_filename) {
+  std::ifstream in_file(input_filename);
   if (!in_file.good()) {
     exit(EXIT_FAILURE);
   }
-  parse_helper(in_file);
-}
 
-void Driver::saveAst(AST ast) {
-  ast_ = std::move(ast);
-}
-
-void Driver::parse_helper(std::istream &stream) {
-  delete (lexer_);
-  try {
-    lexer_ = new parser::Lexer(&stream);
-  } catch (std::bad_alloc &ba) {
-    std::cerr << "Failed to allocate scanner: (" << ba.what() << "), exiting!!\n";
+  std::ofstream out_file(output_filename);
+  if (!out_file.good()) {
     exit(EXIT_FAILURE);
   }
 
-  delete (parser_);
-  try {
-    parser_ = new parser::Parser((*lexer_) /* scanner */, (*this) /* driver */);
-    parser_->set_debug_level(0);
-  } catch (std::bad_alloc &ba) {
-    std::cerr << "Failed to allocate parser: (" << ba.what() << "), exiting!!\n";
-    exit(EXIT_FAILURE);
-  }
-  const int accept(0);
-  if (parser_->parse() != accept) {
-    throw "Parse failed!\n";
-  }
+  ast::AST ast {};
+  parser::ParseHelper parse_helper(in_file, out_file, &ast);
+
+  checker::Checker checker(ast);
+  checker.CheckAll();
 }
 
 } // namespace dbuf

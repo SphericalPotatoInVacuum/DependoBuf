@@ -14,21 +14,19 @@
   #include "core/ast/ast.h"
   #include "core/ast/expression.h"
 
-  namespace dbuf {
-    class Driver;
+  namespace dbuf::ast {
+    class AST;
   }
-
-  using namespace dbuf::ast;
 
   namespace dbuf::parser {
     class Lexer;
 
-    using ExprPtr = std::unique_ptr<Expression>;
+    using ExprPtr = std::unique_ptr<ast::Expression>;
   }
 }
 
-%parse-param { Lexer &scanner }
-%parse-param { Driver &driver }
+%parse-param { Lexer *scanner }
+%parse-param { ast::AST *ast }
 
 %locations
 
@@ -37,17 +35,17 @@
 %define parse.lac full
 
 %code {
-  #include "core/driver.h"
-
   #include "core/ast/ast.h"
   #include "core/ast/expression.h"
+
+  #include "core/parser/lexer.h"
 
   #include <iostream>
   #include <cstdlib>
   #include <fstream>
 
 #undef yylex
-#define yylex scanner.yylex
+#define yylex scanner->yylex
 }
 
 %define api.token.prefix {TOK_}
@@ -92,44 +90,35 @@
 
 %%
 
-schema : definitions { driver.saveAst(std::move($1)); }
-
-%nterm <AST> definitions;
-definitions
-  : %empty { $$ = AST{}; }
-  | definitions message_definition {
-    $$ = std::move($1);
-    $$.AddMessage(std::move($2));
+schema
+  : %empty
+  | schema message_definition {
+    ast->AddMessage(std::move($2));
   }
-  | definitions enum_definition {
-    $$ = std::move($1);
-    $$.AddEnum(std::move($2));
+  | schema enum_definition {
+    ast->AddEnum(std::move($2));
   }
-  | definitions service_definition {
-    $$ = std::move($1);
-  }
-  | definitions NL {
-    $$ = std::move($1);
-  }
+  | schema service_definition
+  | schema NL
   ;
 
-%nterm <Message> message_definition;
+%nterm <ast::Message> message_definition;
 message_definition
   : MESSAGE type_identifier type_dependencies fields_block {
-    $$ = Message{.name_ = $2, .type_dependencies_ = std::move($3), .fields_ = std::move($4)};
+    $$ = ast::Message{.name_ = $2, .type_dependencies_ = std::move($3), .fields_ = std::move($4)};
   }
   | MESSAGE type_identifier fields_block {
-    $$ = Message{.name_ = $2, .fields_ = std::move($3)};
+    $$ = ast::Message{.name_ = $2, .fields_ = std::move($3)};
   }
   ;
 
-%nterm <Enum> enum_definition;
+%nterm <ast::Enum> enum_definition;
 enum_definition
   : dependent_enum { $$ = std::move($1); }
   | independent_enum { $$ = std::move($1); }
   ;
 
-%nterm <Enum> dependent_enum;
+%nterm <ast::Enum> dependent_enum;
 dependent_enum
   : ENUM type_identifier type_dependencies dependent_enum_body {
     $$ = std::move($4);
@@ -138,24 +127,24 @@ dependent_enum
   }
   ;
 
-%nterm <Enum> independent_enum;
+%nterm <ast::Enum> independent_enum;
 independent_enum
   : ENUM type_identifier independent_enum_body {
-    $$ = Enum{.name_ = $2};
+    $$ = ast::Enum{.name_ = $2};
   }
   ;
 
-%nterm <Enum> independent_enum_body;
+%nterm <ast::Enum> independent_enum_body;
 independent_enum_body
   : constructors_block {
-    $$ = Enum{};
+    $$ = ast::Enum{};
     $$.outputs_.emplace_back(std::move($1));
   }
 
-%nterm <std::vector<TypedVariable>> type_dependencies;
+%nterm <std::vector<ast::TypedVariable>> type_dependencies;
 type_dependencies
   : type_dependency {
-    $$ = std::vector<TypedVariable>();
+    $$ = std::vector<ast::TypedVariable>();
     $$.emplace_back(std::move($1));
   }
   | type_dependencies type_dependency {
@@ -164,20 +153,20 @@ type_dependencies
   }
   ;
 
-%nterm <TypedVariable> type_dependency;
+%nterm <ast::TypedVariable> type_dependency;
 type_dependency
   : "(" typed_variable ")" {
     $$ = std::move($2);
   }
   ;
 
-%nterm <Enum> dependent_enum_body;
+%nterm <ast::Enum> dependent_enum_body;
 dependent_enum_body : "{" NL dependent_blocks "}" NL { $$ = std::move($3); };
 
-%nterm <Enum> dependent_blocks;
+%nterm <ast::Enum> dependent_blocks;
 dependent_blocks
   : %empty {
-    $$ = Enum{};
+    $$ = ast::Enum{};
   }
   | dependent_blocks pattern_matching IMPL constructors_block {
     $$ = std::move($1);
@@ -186,10 +175,10 @@ dependent_blocks
   }
   ;
 
-%nterm <std::vector<std::variant<Value, StarValue>>> pattern_matching;
+%nterm <std::vector<std::variant<ast::Value, ast::StarValue>>> pattern_matching;
 pattern_matching
   : pattern_match {
-    $$ = std::vector<std::variant<Value, StarValue>>();
+    $$ = std::vector<std::variant<ast::Value, ast::StarValue>>();
     $$.emplace_back(std::move($1));
   }
   | pattern_matching "," pattern_match {
@@ -198,42 +187,42 @@ pattern_matching
   }
   ;
 
-%nterm <std::variant<Value, StarValue>> pattern_match;
+%nterm <std::variant<ast::Value, ast::StarValue>> pattern_match;
 pattern_match
   : STAR {
-    $$ = StarValue{};
+    $$ = ast::StarValue{};
   }
   | value {
     $$ = std::move($1);
   }
   ;
 
-%nterm <std::vector<Constructor>> constructors_block;
+%nterm <std::vector<ast::Constructor>> constructors_block;
 constructors_block
   : "{" NL constructor_declarations "}" NL { $$ = std::move($3); };
 
-%nterm <std::vector<Constructor>> constructor_declarations;
+%nterm <std::vector<ast::Constructor>> constructor_declarations;
 constructor_declarations
   : %empty {
-    $$ = std::vector<Constructor>();
+    $$ = std::vector<ast::Constructor>();
   }
   | constructor_declarations constructor_identifier fields_block {
     $$ = std::move($1);
-    $$.emplace_back(Constructor{.name_ = $2, .fields_ = std::move($3)});
+    $$.emplace_back(ast::Constructor{.name_ = $2, .fields_ = std::move($3)});
   }
   | constructor_declarations constructor_identifier NL {
     $$ = std::move($1);
-    $$.emplace_back(Constructor{.name_ = $2});
+    $$.emplace_back(ast::Constructor{.name_ = $2});
   }
   ;
 
-%nterm <std::vector<TypedVariable>> fields_block;
+%nterm <std::vector<ast::TypedVariable>> fields_block;
 fields_block : "{" NL field_declarations "}" NL { $$ = std::move($3); }; ;
 
-%nterm <std::vector<TypedVariable>> field_declarations;
+%nterm <std::vector<ast::TypedVariable>> field_declarations;
 field_declarations
   : %empty {
-    $$ = std::vector<TypedVariable>();
+    $$ = std::vector<ast::TypedVariable>();
   }
   | field_declarations typed_variable NL {
     $$ = std::move($1);
@@ -241,10 +230,10 @@ field_declarations
   }
   ;
 
-%nterm <TypeExpression> type_expr;
+%nterm <ast::TypeExpression> type_expr;
 type_expr
   : type_identifier {
-    $$ = TypeExpression{.type_name_ = $1};
+    $$ = ast::TypeExpression{.type_name_ = $1};
   }
   | type_expr primary {
     $$ = std::move($1);
@@ -255,61 +244,61 @@ type_expr
 %nterm <ExprPtr> expression;
 expression
   : expression PLUS expression {
-    $$ = std::make_unique<Expression>(BinaryExpression{
+    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
       .left_=std::move($1),
-      .type_=BinaryExpressionType::kPlus,
+      .type_=ast::BinaryExpressionType::kPlus,
       .right_=std::move($3)
     });
   }
   | expression MINUS expression {
-    $$ = std::make_unique<Expression>(BinaryExpression{
+    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
       .left_=std::move($1),
-      .type_=BinaryExpressionType::kMinus,
+      .type_=ast::BinaryExpressionType::kMinus,
       .right_=std::move($3)
     });
   }
   | expression STAR expression {
-    $$ = std::make_unique<Expression>(BinaryExpression{
+    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
       .left_=std::move($1),
-      .type_=BinaryExpressionType::kStar,
+      .type_=ast::BinaryExpressionType::kStar,
       .right_=std::move($3)
     });
   }
   | expression SLASH expression {
-    $$ = std::make_unique<Expression>(BinaryExpression{
+    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
       .left_=std::move($1),
-      .type_=BinaryExpressionType::kSlash,
+      .type_=ast::BinaryExpressionType::kSlash,
       .right_=std::move($3)
     });
   }
   | expression AND expression {
-    $$ = std::make_unique<Expression>(BinaryExpression{
+    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
       .left_=std::move($1),
-      .type_=BinaryExpressionType::kAnd,
+      .type_=ast::BinaryExpressionType::kAnd,
       .right_=std::move($3)
     });
   }
   | expression OR expression {
-    $$ = std::make_unique<Expression>(BinaryExpression{
+    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
       .left_=std::move($1),
-      .type_=BinaryExpressionType::kOr,
+      .type_=ast::BinaryExpressionType::kOr,
       .right_=std::move($3)
     });
   }
   | MINUS expression {
-    $$ = std::make_unique<Expression>(UnaryExpression{
-      .type_=UnaryExpressionType::kMinus,
+    $$ = std::make_unique<ast::Expression>(ast::UnaryExpression{
+      .type_=ast::UnaryExpressionType::kMinus,
       .expression_=std::move($2)
     });
   }
   | BANG expression {
-    $$ = std::make_unique<Expression>(UnaryExpression{
-      .type_=UnaryExpressionType::kBang,
+    $$ = std::make_unique<ast::Expression>(ast::UnaryExpression{
+      .type_=ast::UnaryExpressionType::kBang,
       .expression_=std::move($2)
     });
   }
   | type_expr {
-    $$ = std::make_unique<Expression>(std::move($1));
+    $$ = std::make_unique<ast::Expression>(std::move($1));
   }
   | primary {
     $$ = std::move($1);
@@ -319,20 +308,20 @@ expression
 %nterm <ExprPtr> primary;
 primary
   : value {
-    $$ = std::make_unique<Expression>(std::move($1));
+    $$ = std::make_unique<ast::Expression>(std::move($1));
   }
   | var_access {
-    $$ = std::make_unique<Expression>(std::move($1));
+    $$ = std::make_unique<ast::Expression>(std::move($1));
   }
   | "(" expression ")" {
     $$ = std::move($2);
   }
   ;
 
-%nterm <VarAccess> var_access;
+%nterm <ast::VarAccess> var_access;
 var_access
   : var_identifier {
-    $$ = VarAccess{.var_identifier_ = $1};
+    $$ = ast::VarAccess{.var_identifier_ = $1};
   }
   | var_access "." var_identifier {
     $$ = std::move($1);
@@ -340,7 +329,7 @@ var_access
   }
   ;
 
-%nterm <Value> value;
+%nterm <ast::Value> value;
 value
   : bool_literal { $$ = std::move($1); }
   | float_literal { $$ = std::move($1); }
@@ -350,28 +339,28 @@ value
   | constructed_value { $$ = std::move($1); }
   ;
 
-%nterm <Value> bool_literal;
+%nterm <ast::Value> bool_literal;
 bool_literal
-  : FALSE { $$ = Value(ScalarValue<bool>{false}); }
-  | TRUE { $$ = Value(ScalarValue<bool>{true}); }
+  : FALSE { $$ = ast::Value(ast::ScalarValue<bool>{false}); }
+  | TRUE { $$ = ast::Value(ast::ScalarValue<bool>{true}); }
   ;
 
-%nterm <Value> float_literal;
-float_literal : FLOAT_LITERAL { $$ = Value(ScalarValue<double>{$1}); } ;
+%nterm <ast::Value> float_literal;
+float_literal : FLOAT_LITERAL { $$ = ast::Value(ast::ScalarValue<double>{$1}); } ;
 
-%nterm <Value> int_literal;
-int_literal : INT_LITERAL { $$ = Value(ScalarValue<int64_t>{$1}); };
+%nterm <ast::Value> int_literal;
+int_literal : INT_LITERAL { $$ = ast::Value(ast::ScalarValue<int64_t>{$1}); };
 
-%nterm <Value> uint_literal;
-uint_literal : UINT_LITERAL { $$ = Value(ScalarValue<uint64_t>{$1}); };
+%nterm <ast::Value> uint_literal;
+uint_literal : UINT_LITERAL { $$ = ast::Value(ast::ScalarValue<uint64_t>{$1}); };
 
-%nterm <Value> string_literal;
-string_literal : STRING_LITERAL { $$ = Value(ScalarValue<std::string>{$1}); };
+%nterm <ast::Value> string_literal;
+string_literal : STRING_LITERAL { $$ = ast::Value(ast::ScalarValue<std::string>{$1}); };
 
-%nterm <Value> constructed_value;
+%nterm <ast::Value> constructed_value;
 constructed_value
   : constructor_identifier "{" field_initialization "}" {
-    $$ = ConstructedValue {.constructor_identifier_ = $1, .fields_ = std::move($3)};
+    $$ = ast::ConstructedValue{.constructor_identifier_ = $1, .fields_ = std::move($3)};
   }
   ;
 
@@ -403,11 +392,11 @@ field_initialization_list
   var_identifier
   rpc_identifier
 ;
-type_identifier : UC_IDENTIFIER { $$ = driver.GetInterning(std::move($1)); };
-constructor_identifier : UC_IDENTIFIER { $$ = driver.GetInterning(std::move($1)); };
-service_identifier : UC_IDENTIFIER { $$ = driver.GetInterning(std::move($1)); };
-var_identifier : LC_IDENTIFIER { $$ = driver.GetInterning(std::move($1)); };
-rpc_identifier : LC_IDENTIFIER { $$ = driver.GetInterning(std::move($1)); };
+type_identifier : UC_IDENTIFIER { $$ = ast->GetInterning(std::move($1)); };
+constructor_identifier : UC_IDENTIFIER { $$ = ast->GetInterning(std::move($1)); };
+service_identifier : UC_IDENTIFIER { $$ = ast->GetInterning(std::move($1)); };
+var_identifier : LC_IDENTIFIER { $$ = ast->GetInterning(std::move($1)); };
+rpc_identifier : LC_IDENTIFIER { $$ = ast->GetInterning(std::move($1)); };
 
 service_definition
   : SERVICE service_identifier rpc_block
@@ -425,10 +414,10 @@ arguments
   | typed_variable "," arguments
   ;
 
-%nterm <TypedVariable> typed_variable;
+%nterm <ast::TypedVariable> typed_variable;
 typed_variable
   : var_identifier type_expr {
-    $$ = TypedVariable{.name_ = $1, .type_expression_= std::move($2)};
+    $$ = ast::TypedVariable{.name_ = $1, .type_expression_= std::move($2)};
   }
 
 %%

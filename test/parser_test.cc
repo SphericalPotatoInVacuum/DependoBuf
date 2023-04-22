@@ -1,4 +1,5 @@
-#include "core/driver.h"
+#include "core/ast/ast.h"
+#include "core/parser/parse_helper.h"
 
 #include <exception>
 #include <filesystem>
@@ -13,35 +14,40 @@ const std::filesystem::directory_iterator kCorrectSyntaxSamplesIterator(kCorrect
 
 class ParserTest : public ::testing::TestWithParam<std::filesystem::directory_entry> {
 protected:
-  static void SetUpTestSuite() {
-    if (driver_ == nullptr) {
-      driver_ = new dbuf::Driver;
-    }
-  }
+  static void SetUpTestSuite() {}
 
-  static void TearDownTestSuite() {
-    delete driver_;
-    driver_ = nullptr;
-  }
+  static void TearDownTestSuite() {}
 
   void SetUp() override {
     std::string path = GetParam().path().string();
     input_file_.open(path);
     ASSERT_TRUE(input_file_.is_open()) << "Could not open input file: " << GetParam();
+
+    ast_          = new dbuf::ast::AST();
+    parse_helper_ = new dbuf::parser::ParseHelper(input_file_, std::cout, ast_);
   }
 
   void TearDown() override {
+    delete parse_helper_;
+    parse_helper_ = nullptr;
+
+    delete ast_;
+    ast_ = nullptr;
+
     input_file_.close();
   }
 
-  static dbuf::Driver *driver_;
+  static dbuf::parser::ParseHelper *parse_helper_;
+  static dbuf::ast::AST *ast_;
   std::ifstream input_file_;
 };
-dbuf::Driver *ParserTest::driver_ = nullptr;
+
+dbuf::parser::ParseHelper *ParserTest::parse_helper_ = nullptr;
+dbuf::ast::AST *ParserTest::ast_                     = nullptr;
 
 TEST_P(ParserTest, WorksForCorrectSyntax) {
   try {
-    driver_->parse(input_file_);
+    parse_helper_->Parse();
   } catch (std::exception &e) { FAIL() << "Parsing failed with exception: " << e.what(); }
 }
 

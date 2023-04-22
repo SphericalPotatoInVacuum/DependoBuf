@@ -9,6 +9,7 @@ add_flex_bison_dependency(DBUF_LEXER DBUF_PARSER)
 add_library(parser
   ${BISON_DBUF_PARSER_OUTPUTS}
   ${FLEX_DBUF_LEXER_OUTPUTS}
+  parse_helper.cc
 )
 target_include_directories(parser PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}
