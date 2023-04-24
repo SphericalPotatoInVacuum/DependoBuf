@@ -1,12 +1,13 @@
 #pragma once
 
+#include "core/interning/interned_string.h"
+
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 #include <variant>
 #include <vector>
-
 namespace dbuf::ast {
 
 /**
@@ -27,8 +28,8 @@ struct Expression;
  *
  */
 struct VarAccess {
-  uint64_t var_identifier;
-  std::vector<uint64_t> field_identifiers = {};
+  InternedString var_identifier;
+  std::vector<InternedString> field_identifiers = {};
 };
 
 /**
@@ -36,7 +37,7 @@ struct VarAccess {
  *
  */
 struct TypeExpression {
-  uint64_t name;
+  InternedString name;
   std::vector<std::unique_ptr<Expression>> parameters = {};
 };
 
@@ -82,8 +83,8 @@ struct UnaryExpression {
  *
  */
 struct ConstructedValue {
-  uint64_t constructor_identifier;
-  std::vector<std::pair<uint64_t, std::unique_ptr<Expression>>> fields = {};
+  InternedString constructor_identifier;
+  std::vector<std::pair<InternedString, std::unique_ptr<Expression>>> fields = {};
 };
 
 /**

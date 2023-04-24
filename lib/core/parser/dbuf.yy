@@ -93,10 +93,10 @@
 schema
   : %empty
   | schema message_definition {
-    ast->AddMessage(std::move($2));
+    ast->messages.insert(std::make_pair($2.name, std::move($2)));
   }
   | schema enum_definition {
-    ast->AddEnum(std::move($2));
+    ast->enums.insert(std::make_pair($2.name, std::move($2)));
   }
   | schema service_definition
   | schema NL
@@ -347,17 +347,17 @@ constructed_value
   }
   ;
 
-%nterm <std::vector<std::pair<uint64_t, ExprPtr>>> field_initialization;
+%nterm <std::vector<std::pair<InternedString, ExprPtr>>> field_initialization;
 field_initialization
   : %empty {
-    $$ = std::vector<std::pair<uint64_t, ExprPtr>>();
+    $$ = std::vector<std::pair<InternedString, ExprPtr>>();
   }
   | field_initialization_list {
     $$ = std::move($1);
   }
   ;
 
-%nterm <std::vector<std::pair<uint64_t, ExprPtr>>> field_initialization_list;
+%nterm <std::vector<std::pair<InternedString, ExprPtr>>> field_initialization_list;
 field_initialization_list
   : var_identifier COLON expression {
     $$.emplace_back($1, std::move($3));
@@ -367,18 +367,18 @@ field_initialization_list
     $$.emplace_back($3, std::move($5));
   }
 
-%nterm <uint64_t>
+%nterm <InternedString>
   type_identifier
   constructor_identifier
   service_identifier
   var_identifier
   rpc_identifier
 ;
-type_identifier : UC_IDENTIFIER { $$ = ast->GetInterning(std::move($1)); };
-constructor_identifier : UC_IDENTIFIER { $$ = ast->GetInterning(std::move($1)); };
-service_identifier : UC_IDENTIFIER { $$ = ast->GetInterning(std::move($1)); };
-var_identifier : LC_IDENTIFIER { $$ = ast->GetInterning(std::move($1)); };
-rpc_identifier : LC_IDENTIFIER { $$ = ast->GetInterning(std::move($1)); };
+type_identifier : UC_IDENTIFIER { $$ = InternedString(std::move($1)); };
+constructor_identifier : UC_IDENTIFIER { $$ = InternedString(std::move($1)); };
+service_identifier : UC_IDENTIFIER { $$ = InternedString(std::move($1)); };
+var_identifier : LC_IDENTIFIER { $$ = InternedString(std::move($1)); };
+rpc_identifier : LC_IDENTIFIER { $$ = InternedString(std::move($1)); };
 
 service_definition
   : SERVICE service_identifier rpc_block

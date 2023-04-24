@@ -1,6 +1,7 @@
 add_subdirectory(ast)
-add_subdirectory(parser)
 add_subdirectory(checker)
+add_subdirectory(interning)
+add_subdirectory(parser)
 
 add_library(core
   driver.cc
