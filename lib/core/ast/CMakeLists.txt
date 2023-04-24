@@ -1,8 +1,10 @@
 add_library(ast
-  ast.cc
+  INTERFACE
 )
-
-target_include_directories(ast PUBLIC
+target_include_directories(ast INTERFACE
   ${CMAKE_CURRENT_BINARY_DIR}
   include
+)
+target_link_libraries(ast INTERFACE
+  interning
 )
