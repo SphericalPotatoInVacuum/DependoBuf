@@ -12,51 +12,55 @@
 namespace dbuf::ast {
 
 struct TypedVariable {
-  uint64_t name_;
-  TypeExpression type_expression_;
+  uint64_t name;
+  TypeExpression type_expression;
 };
 
 struct Constructor {
-  uint64_t name_;
-  std::vector<TypedVariable> fields_ = {};
+  uint64_t name;
+  std::vector<TypedVariable> fields = {};
 };
 
 struct Message {
-  uint64_t name_;
-  std::vector<TypedVariable> type_dependencies_ = {};
-  std::vector<TypedVariable> fields_            = {};
+  uint64_t name;
+  std::vector<TypedVariable> type_dependencies = {};
+  std::vector<TypedVariable> fields            = {};
 };
 
 struct Enum {
-  uint64_t name_;
-  std::vector<TypedVariable> type_dependencies_                    = {};
-  std::vector<std::vector<std::variant<Value, StarValue>>> inputs_ = {};
-  std::vector<std::vector<Constructor>> outputs_                   = {};
+  struct Rule {
+    using InputPattern = std::variant<Value, Star>;
+
+    std::vector<InputPattern> inputs = {};
+    std::vector<Constructor> outputs = {};
+  };
+
+  uint64_t name;
+  std::vector<TypedVariable> type_dependencies = {};
+  std::vector<Rule> pattern_mapping            = {};
 };
 
-class AST {
-public:
+struct AST {
   void AddMessage(Message &&message_arg);
   void AddEnum(Enum &&enum_arg);
 
   uint64_t GetInterning(std::string &&input_string);
 
-private:
   struct {
     uint64_t GetInterning(std::string &&input_string) {
-      auto result = tokens_.try_emplace(std::move(input_string), counter_);
+      auto result = tokens.try_emplace(std::move(input_string), counter);
       if (result.second) {
-        counter_++;
+        counter++;
       }
       return result.first->second;
     }
 
-    std::unordered_map<std::string, uint64_t> tokens_;
-    uint64_t counter_ {0};
-  } interning_ = {};
+    std::unordered_map<std::string, uint64_t> tokens;
+    uint64_t counter {0};
+  } interning = {};
 
-  std::unordered_map<uint64_t, Message> messages_;
-  std::unordered_map<uint64_t, Enum> enums_;
+  std::unordered_map<uint64_t, Message> messages;
+  std::unordered_map<uint64_t, Enum> enums;
 };
 
 } // namespace dbuf::ast

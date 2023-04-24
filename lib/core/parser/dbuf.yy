@@ -105,10 +105,10 @@ schema
 %nterm <ast::Message> message_definition;
 message_definition
   : MESSAGE type_identifier type_dependencies fields_block {
-    $$ = ast::Message{.name_ = $2, .type_dependencies_ = std::move($3), .fields_ = std::move($4)};
+    $$ = ast::Message{.name = $2, .type_dependencies = std::move($3), .fields = std::move($4)};
   }
   | MESSAGE type_identifier fields_block {
-    $$ = ast::Message{.name_ = $2, .fields_ = std::move($3)};
+    $$ = ast::Message{.name = $2, .fields = std::move($3)};
   }
   ;
 
@@ -120,77 +120,60 @@ enum_definition
 
 %nterm <ast::Enum> dependent_enum;
 dependent_enum
-  : ENUM type_identifier type_dependencies dependent_enum_body {
-    $$ = std::move($4);
-    $$.name_ = $2;
-    $$.type_dependencies_ = std::move($3);
+  : ENUM type_identifier type_dependencies "{" NL mapping_rules "}" NL {
+    $$ = ast::Enum{.name = $2, .type_dependencies = std::move($3), .pattern_mapping = std::move($6)};
   }
   ;
 
 %nterm <ast::Enum> independent_enum;
 independent_enum
-  : ENUM type_identifier independent_enum_body {
-    $$ = ast::Enum{.name_ = $2};
+  : ENUM type_identifier constructors_block {
+    std::vector<ast::Enum::Rule> one_rule;
+    one_rule.emplace_back(ast::Enum::Rule{.outputs = std::move($3)});
+
+    $$ = ast::Enum{.name = $2, .pattern_mapping = std::move(one_rule)};
   }
   ;
-
-%nterm <ast::Enum> independent_enum_body;
-independent_enum_body
-  : constructors_block {
-    $$ = ast::Enum{};
-    $$.outputs_.emplace_back(std::move($1));
-  }
 
 %nterm <std::vector<ast::TypedVariable>> type_dependencies;
 type_dependencies
-  : type_dependency {
+  : "(" typed_variable ")" {
     $$ = std::vector<ast::TypedVariable>();
-    $$.emplace_back(std::move($1));
-  }
-  | type_dependencies type_dependency {
-    $$ = std::move($1);
     $$.emplace_back(std::move($2));
   }
-  ;
-
-%nterm <ast::TypedVariable> type_dependency;
-type_dependency
-  : "(" typed_variable ")" {
-    $$ = std::move($2);
-  }
-  ;
-
-%nterm <ast::Enum> dependent_enum_body;
-dependent_enum_body : "{" NL dependent_blocks "}" NL { $$ = std::move($3); };
-
-%nterm <ast::Enum> dependent_blocks;
-dependent_blocks
-  : %empty {
-    $$ = ast::Enum{};
-  }
-  | dependent_blocks pattern_matching IMPL constructors_block {
-    $$ = std::move($1);
-    $$.inputs_.emplace_back(std::move($2));
-    $$.outputs_.emplace_back(std::move($4));
-  }
-  ;
-
-%nterm <std::vector<std::variant<ast::Value, ast::StarValue>>> pattern_matching;
-pattern_matching
-  : pattern_match {
-    $$ = std::vector<std::variant<ast::Value, ast::StarValue>>();
-    $$.emplace_back(std::move($1));
-  }
-  | pattern_matching "," pattern_match {
+  | type_dependencies "(" typed_variable ")" {
     $$ = std::move($1);
     $$.emplace_back(std::move($3));
   }
   ;
 
-%nterm <std::variant<ast::Value, ast::StarValue>> pattern_match;
-pattern_match
+%nterm <std::vector<ast::Enum::Rule>> mapping_rules;
+mapping_rules
+  : %empty {
+    $$ = std::vector<ast::Enum::Rule>();
+  }
+  | mapping_rules input_patterns IMPL constructors_block {
+    $$ = std::move($1);
+    $$.emplace_back(ast::Enum::Rule{.inputs=std::move($2), .outputs=std::move($4)});
+  }
+  ;
+
+%nterm <std::vector<ast::Enum::Rule::InputPattern>> input_patterns;
+input_patterns
+  : input_pattern {
+    $$ = std::vector<ast::Enum::Rule::InputPattern>();
+    $$.emplace_back(std::move($1));
+  }
+  | input_patterns "," input_pattern {
+    $$ = std::move($1);
+    $$.emplace_back(std::move($3));
+  }
+  ;
+
+%nterm <ast::Enum::Rule::InputPattern> input_pattern;
+input_pattern
   : STAR {
-    $$ = ast::StarValue{};
+    $$ = ast::Star{};
   }
   | value {
     $$ = std::move($1);
@@ -208,11 +191,11 @@ constructor_declarations
   }
   | constructor_declarations constructor_identifier fields_block {
     $$ = std::move($1);
-    $$.emplace_back(ast::Constructor{.name_ = $2, .fields_ = std::move($3)});
+    $$.emplace_back(ast::Constructor{.name = $2, .fields = std::move($3)});
   }
   | constructor_declarations constructor_identifier NL {
     $$ = std::move($1);
-    $$.emplace_back(ast::Constructor{.name_ = $2});
+    $$.emplace_back(ast::Constructor{.name = $2});
   }
   ;
 
@@ -233,11 +216,11 @@ field_declarations
 %nterm <ast::TypeExpression> type_expr;
 type_expr
   : type_identifier {
-    $$ = ast::TypeExpression{.type_name_ = $1};
+    $$ = ast::TypeExpression{.name = $1};
   }
   | type_expr primary {
     $$ = std::move($1);
-    $$.type_parameters_.emplace_back(std::move($2));
+    $$.parameters.emplace_back(std::move($2));
   }
   ;
 
@@ -245,56 +228,56 @@ type_expr
 expression
   : expression PLUS expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .left_=std::move($1),
-      .type_=ast::BinaryExpressionType::kPlus,
-      .right_=std::move($3)
+      .type=ast::BinaryExpressionType::kPlus,
+      .left=std::move($1),
+      .right=std::move($3)
     });
   }
   | expression MINUS expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .left_=std::move($1),
-      .type_=ast::BinaryExpressionType::kMinus,
-      .right_=std::move($3)
+      .type=ast::BinaryExpressionType::kMinus,
+      .left=std::move($1),
+      .right=std::move($3)
     });
   }
   | expression STAR expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .left_=std::move($1),
-      .type_=ast::BinaryExpressionType::kStar,
-      .right_=std::move($3)
+      .type=ast::BinaryExpressionType::kStar,
+      .left=std::move($1),
+      .right=std::move($3)
     });
   }
   | expression SLASH expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .left_=std::move($1),
-      .type_=ast::BinaryExpressionType::kSlash,
-      .right_=std::move($3)
+      .type=ast::BinaryExpressionType::kSlash,
+      .left=std::move($1),
+      .right=std::move($3)
     });
   }
   | expression AND expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .left_=std::move($1),
-      .type_=ast::BinaryExpressionType::kAnd,
-      .right_=std::move($3)
+      .type=ast::BinaryExpressionType::kAnd,
+      .left=std::move($1),
+      .right=std::move($3)
     });
   }
   | expression OR expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .left_=std::move($1),
-      .type_=ast::BinaryExpressionType::kOr,
-      .right_=std::move($3)
+      .type=ast::BinaryExpressionType::kOr,
+      .left=std::move($1),
+      .right=std::move($3)
     });
   }
   | MINUS expression {
     $$ = std::make_unique<ast::Expression>(ast::UnaryExpression{
-      .type_=ast::UnaryExpressionType::kMinus,
-      .expression_=std::move($2)
+      .type=ast::UnaryExpressionType::kMinus,
+      .expression=std::move($2)
     });
   }
   | BANG expression {
     $$ = std::make_unique<ast::Expression>(ast::UnaryExpression{
-      .type_=ast::UnaryExpressionType::kBang,
-      .expression_=std::move($2)
+      .type=ast::UnaryExpressionType::kBang,
+      .expression=std::move($2)
     });
   }
   | type_expr {
@@ -321,11 +304,11 @@ primary
 %nterm <ast::VarAccess> var_access;
 var_access
   : var_identifier {
-    $$ = ast::VarAccess{.var_identifier_ = $1};
+    $$ = ast::VarAccess{.var_identifier = $1};
   }
   | var_access "." var_identifier {
     $$ = std::move($1);
-    $$.field_identifiers_.emplace_back($3);
+    $$.field_identifiers.emplace_back($3);
   }
   ;
 
@@ -360,7 +343,7 @@ string_literal : STRING_LITERAL { $$ = ast::Value(ast::ScalarValue<std::string>{
 %nterm <ast::Value> constructed_value;
 constructed_value
   : constructor_identifier "{" field_initialization "}" {
-    $$ = ast::ConstructedValue{.constructor_identifier_ = $1, .fields_ = std::move($3)};
+    $$ = ast::ConstructedValue{.constructor_identifier = $1, .fields = std::move($3)};
   }
   ;
 
@@ -377,7 +360,6 @@ field_initialization
 %nterm <std::vector<std::pair<uint64_t, ExprPtr>>> field_initialization_list;
 field_initialization_list
   : var_identifier COLON expression {
-    $$ = std::vector<std::pair<uint64_t, ExprPtr>>();
     $$.emplace_back($1, std::move($3));
   }
   | field_initialization "," var_identifier COLON expression {
@@ -417,7 +399,7 @@ arguments
 %nterm <ast::TypedVariable> typed_variable;
 typed_variable
   : var_identifier type_expr {
-    $$ = ast::TypedVariable{.name_ = $1, .type_expression_= std::move($2)};
+    $$ = ast::TypedVariable{.name = $1, .type_expression= std::move($2)};
   }
 
 %%

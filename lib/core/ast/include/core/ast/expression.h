@@ -16,7 +16,7 @@ namespace dbuf::ast {
  */
 template <typename T>
 struct ScalarValue {
-  T value_ = {};
+  T value = {};
 };
 
 struct Expression;
@@ -27,8 +27,8 @@ struct Expression;
  *
  */
 struct VarAccess {
-  uint64_t var_identifier_;
-  std::vector<uint64_t> field_identifiers_ = {};
+  uint64_t var_identifier;
+  std::vector<uint64_t> field_identifiers = {};
 };
 
 /**
@@ -36,15 +36,15 @@ struct VarAccess {
  *
  */
 struct TypeExpression {
-  uint64_t type_name_;
-  std::vector<std::unique_ptr<Expression>> type_parameters_ = {};
+  uint64_t name;
+  std::vector<std::unique_ptr<Expression>> parameters = {};
 };
 
 /**
  * @brief Represents a star value (`*`) that matches any value in pattern matching
  *
  */
-struct StarValue {};
+struct Star {};
 
 /**
  * @brief Represents a binary expression operator
@@ -57,9 +57,9 @@ enum struct BinaryExpressionType { kPlus, kMinus, kStar, kSlash, kAnd, kOr };
  *
  */
 struct BinaryExpression {
-  std::unique_ptr<Expression> left_;
-  BinaryExpressionType type_;
-  std::unique_ptr<Expression> right_;
+  BinaryExpressionType type;
+  std::unique_ptr<Expression> left;
+  std::unique_ptr<Expression> right;
 };
 
 /**
@@ -73,8 +73,8 @@ enum struct UnaryExpressionType { kMinus, kBang };
  *
  */
 struct UnaryExpression {
-  UnaryExpressionType type_;
-  std::unique_ptr<Expression> expression_;
+  UnaryExpressionType type;
+  std::unique_ptr<Expression> expression;
 };
 
 /**
@@ -82,8 +82,8 @@ struct UnaryExpression {
  *
  */
 struct ConstructedValue {
-  uint64_t constructor_identifier_;
-  std::vector<std::pair<uint64_t, std::unique_ptr<Expression>>> fields_ = {};
+  uint64_t constructor_identifier;
+  std::vector<std::pair<uint64_t, std::unique_ptr<Expression>>> fields = {};
 };
 
 /**
