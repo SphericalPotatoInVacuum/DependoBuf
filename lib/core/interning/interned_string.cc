@@ -7,9 +7,6 @@
 
 namespace dbuf {
 
-InternedString::InternedString()
-    : id_(kInvalidId) {}
-
 InternedString::InternedString(const std::string &str)
     : InternedString(std::string(str)) {}
 
@@ -18,6 +15,7 @@ InternedString::InternedString(std::string &&str) {
   if (result.second) {
     id_map_.emplace(result.first->second, std::ref(result.first->first));
   }
+  id_ = result.first->second;
 }
 
 uint64_t InternedString::GetId() const {
