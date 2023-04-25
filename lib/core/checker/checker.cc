@@ -33,7 +33,9 @@ int Checker::CheckAll(const ast::AST &ast) {
   CheckNameResolution(ast);
   ErrorList positivity_errors = CheckPositivity(ast);
   if (!positivity_errors.empty()) {
-    for (const auto &error : positivity_errors) { std::cerr << error.message << std::endl; }
+    for (const auto &error : positivity_errors) {
+      std::cerr << error.message << std::endl;
+    }
     return EXIT_FAILURE;
   }
   CheckTypeResolution(ast);
