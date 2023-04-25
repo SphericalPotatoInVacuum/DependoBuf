@@ -10,7 +10,7 @@
 
 namespace dbuf {
 
-void Driver::Run(const std::string &input_filename, const std::string &output_filename) {
+int Driver::Run(const std::string &input_filename, const std::string &output_filename) {
   std::ifstream in_file(input_filename);
   if (!in_file.good()) {
     exit(EXIT_FAILURE);
@@ -21,11 +21,12 @@ void Driver::Run(const std::string &input_filename, const std::string &output_fi
     exit(EXIT_FAILURE);
   }
 
-  ast::AST ast {};
-  parser::ParseHelper parse_helper(in_file, out_file, &ast);
+  ast::AST ast;
+  parser::ParseHelper parse_helper(in_file, std::cout, &ast);
+  parse_helper.Parse();
 
-  checker::Checker checker(ast);
-  checker.CheckAll();
+  checker::Checker checker;
+  return checker.CheckAll(ast);
 }
 
 } // namespace dbuf

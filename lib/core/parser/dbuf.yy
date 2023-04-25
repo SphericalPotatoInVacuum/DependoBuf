@@ -230,55 +230,55 @@ type_expr
 expression
   : expression PLUS expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::kPlus,
+      .type=ast::BinaryExpressionType::Plus,
       .left=std::move($1),
       .right=std::move($3)
     });
   }
   | expression MINUS expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::kMinus,
+      .type=ast::BinaryExpressionType::Minus,
       .left=std::move($1),
       .right=std::move($3)
     });
   }
   | expression STAR expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::kStar,
+      .type=ast::BinaryExpressionType::Star,
       .left=std::move($1),
       .right=std::move($3)
     });
   }
   | expression SLASH expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::kSlash,
+      .type=ast::BinaryExpressionType::Slash,
       .left=std::move($1),
       .right=std::move($3)
     });
   }
   | expression AND expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::kAnd,
+      .type=ast::BinaryExpressionType::And,
       .left=std::move($1),
       .right=std::move($3)
     });
   }
   | expression OR expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::kOr,
+      .type=ast::BinaryExpressionType::Or,
       .left=std::move($1),
       .right=std::move($3)
     });
   }
   | MINUS expression {
     $$ = std::make_unique<ast::Expression>(ast::UnaryExpression{
-      .type=ast::UnaryExpressionType::kMinus,
+      .type=ast::UnaryExpressionType::Minus,
       .expression=std::move($2)
     });
   }
   | BANG expression {
     $$ = std::make_unique<ast::Expression>(ast::UnaryExpression{
-      .type=ast::UnaryExpressionType::kBang,
+      .type=ast::UnaryExpressionType::Bang,
       .expression=std::move($2)
     });
   }

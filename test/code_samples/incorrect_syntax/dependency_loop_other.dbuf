@@ -1,0 +1,5 @@
+message A (b B) {
+}
+
+message B (a A) {
+}
