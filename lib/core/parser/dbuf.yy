@@ -93,10 +93,12 @@
 schema
   : %empty
   | schema message_definition {
-    ast->messages.insert(std::make_pair($2.name, std::move($2)));
+    InternedString name($2.name);
+    ast->messages.insert(std::make_pair(name, std::move($2)));
   }
   | schema enum_definition {
-    ast->enums.insert(std::make_pair($2.name, std::move($2)));
+    InternedString name($2.name);
+    ast->enums.insert(std::make_pair(name, std::move($2)));
   }
   | schema service_definition
   | schema NL

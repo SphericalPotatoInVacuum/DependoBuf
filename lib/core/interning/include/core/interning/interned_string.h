@@ -11,7 +11,14 @@ namespace dbuf {
 
 class InternedString {
 public:
-  InternedString();
+  InternedString()                                           = default;
+  InternedString(const InternedString &other)                = default;
+  InternedString(InternedString &&other) noexcept            = default;
+  InternedString &operator=(const InternedString &other)     = default;
+  InternedString &operator=(InternedString &&other) noexcept = default;
+
+  explicit InternedString(const uint64_t id)
+      : id_(id) {}
 
   explicit InternedString(const std::string &str);
   explicit InternedString(std::string &&str);
@@ -27,7 +34,7 @@ private:
   static std::unordered_map<std::string, uint64_t> string_map_;
   static std::unordered_map<uint64_t, std::reference_wrapper<const std::string>> id_map_;
 
-  uint64_t id_;
+  uint64_t id_ = kInvalidId;
 };
 
 } // namespace dbuf
