@@ -1,28 +1,44 @@
 #include "core/checker/checker.h"
 
 #include "core/ast/ast.h"
+#include "core/checker/common.h"
+#include "core/checker/positivity_checker.h"
+
+#include <cstdlib>
+#include <iostream>
+#include <variant>
 
 namespace dbuf::checker {
 
-Checker::Checker(ast::AST &ast)
-    : ast_(ast) {}
-
-void Checker::CheckNameResolution() {
+ErrorList Checker::CheckNameResolution(const ast::AST & /*ast*/) {
   // TODO (implement this)
+  return {};
 }
 
-void Checker::CheckPositivity() {
-  // TODO (implement this)
+ErrorList Checker::CheckPositivity(const ast::AST &ast) {
+  PositivityChecker::Result result = PositivityChecker()(ast);
+  visit_order_                     = std::move(result.sorted);
+  if (!result.errors.empty()) {
+    return result.errors;
+  }
+  return {};
 }
 
-void Checker::CheckTypeResolution() {
+ErrorList Checker::CheckTypeResolution(const ast::AST & /*ast*/) {
   // TODO (implement this)
+  return {};
 }
 
-void Checker::CheckAll() {
-  CheckNameResolution();
-  CheckPositivity();
-  CheckTypeResolution();
+int Checker::CheckAll(const ast::AST &ast) {
+  CheckNameResolution(ast);
+  ErrorList positivity_errors = CheckPositivity(ast);
+  if (!positivity_errors.empty()) {
+    for (const auto &error : positivity_errors) { std::cerr << error.message << std::endl; }
+    return EXIT_FAILURE;
+  }
+  CheckTypeResolution(ast);
+
+  return EXIT_SUCCESS;
 }
 
 } // namespace dbuf::checker

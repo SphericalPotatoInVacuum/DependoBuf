@@ -1,18 +1,23 @@
+#pragma once
+
 #include "core/ast/ast.h"
+#include "core/checker/common.h"
+#include "core/interning/interned_string.h"
 
 namespace dbuf::checker {
 
 class Checker {
 public:
-  explicit Checker(ast::AST &ast);
+  using ErrorList = std::vector<Error>;
 
-  void CheckAll();
-  void CheckNameResolution();
-  void CheckPositivity();
-  void CheckTypeResolution();
+  static ErrorList CheckNameResolution(const ast::AST &ast);
+  ErrorList CheckPositivity(const ast::AST &ast);
+  static ErrorList CheckTypeResolution(const ast::AST &ast);
+
+  int CheckAll(const ast::AST &ast);
 
 private:
-  ast::AST &ast_;
+  std::vector<InternedString> visit_order_;
 };
 
 } // namespace dbuf::checker

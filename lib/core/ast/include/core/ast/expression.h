@@ -51,7 +51,7 @@ struct Star {};
  * @brief Represents a binary expression operator
  *
  */
-enum struct BinaryExpressionType { kPlus, kMinus, kStar, kSlash, kAnd, kOr };
+enum struct BinaryExpressionType { Plus, Minus, Star, Slash, And, Or };
 
 /**
  * @brief Represents a binary expression, like `1 + 2`
@@ -67,7 +67,7 @@ struct BinaryExpression {
  * @brief Represents a unary expression operator
  *
  */
-enum struct UnaryExpressionType { kMinus, kBang };
+enum struct UnaryExpressionType { Minus, Bang };
 
 /**
  * @brief Represents a unary expression, like `-(m + n)`

@@ -1,0 +1,11 @@
+message A (b B) (d D) {
+}
+
+message B (c C) {
+}
+
+message C (a A) {
+}
+
+message D (a A) {
+}
