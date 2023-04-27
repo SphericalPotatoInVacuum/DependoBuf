@@ -11,11 +11,7 @@ namespace dbuf {
 
 class InternedString {
 public:
-  InternedString()                                           = default;
-  InternedString(const InternedString &other)                = default;
-  InternedString(InternedString &&other) noexcept            = default;
-  InternedString &operator=(const InternedString &other)     = default;
-  InternedString &operator=(InternedString &&other) noexcept = default;
+  InternedString() = default;
 
   explicit InternedString(const uint64_t id)
       : id_(id) {}
