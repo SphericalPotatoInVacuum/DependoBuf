@@ -46,17 +46,10 @@ dbuf::parser::ParseHelper *ParserTest::parse_helper_ = nullptr;
 dbuf::ast::AST *ParserTest::ast_                     = nullptr;
 
 TEST_P(ParserTest, WorksForCorrectSyntax) {
-  try {
-    parse_helper_->Parse();
-  } catch (std::exception &e) { FAIL() << "Parsing failed with exception: " << e.what(); }
+  ASSERT_NO_THROW(parse_helper_->Parse());
 }
 
 INSTANTIATE_TEST_SUITE_P(
     ParserTestCorrectSyntax,
     ParserTest,
     ::testing::ValuesIn(begin(kCorrectSyntaxSamplesIterator), end(kCorrectSyntaxSamplesIterator)));
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}
