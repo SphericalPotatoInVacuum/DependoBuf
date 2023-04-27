@@ -4,8 +4,6 @@
 #include "core/checker/common.h"
 #include "core/interning/interned_string.h"
 
-#include <unordered_set>
-
 namespace dbuf::checker {
 
 class Checker {

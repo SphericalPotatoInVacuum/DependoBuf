@@ -4,15 +4,10 @@
 #include "core/checker/common.h"
 #include "core/interning/interned_string.h"
 
-#include <algorithm>
-#include <cstdlib>
 #include <deque>
-#include <iostream>
-#include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
-#include <variant>
-#include <vector>
 
 namespace dbuf::checker {
 
@@ -75,7 +70,7 @@ private:
 
   bool IsInScope(InternedString name);
 
-  void AddName(InternedString name);
+  void AddName(InternedString name, std::string &&identifier_type);
 
   std::unordered_map<
       InternedString,

@@ -1,5 +1,7 @@
 #include "core/checker/positivity_checker.h"
 
+#include <sstream>
+
 namespace dbuf::checker {
 
 void PositivityChecker::operator()(const ast::Value & /* value */) {}

@@ -6,15 +6,7 @@
 #include "core/checker/positivity_checker.h"
 #include "core/interning/interned_string.h"
 
-#include <algorithm>
-#include <cstdlib>
-#include <deque>
 #include <iostream>
-#include <stdexcept>
-#include <unordered_map>
-#include <unordered_set>
-#include <variant>
-#include <vector>
 
 namespace dbuf::checker {
 

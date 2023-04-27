@@ -5,11 +5,8 @@
 #include "core/checker/common.h"
 #include "core/interning/interned_string.h"
 
-#include <cassert>
-#include <sstream>
-#include <string>
-#include <unordered_set>
-#include <variant>
+#include <unordered_map>
+#include <vector>
 
 namespace dbuf::checker {
 

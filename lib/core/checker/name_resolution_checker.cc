@@ -1,6 +1,6 @@
-#pragma once
-
 #include "core/checker/name_resolution_checker.h"
+
+#include <algorithm>
 
 namespace dbuf::checker {
 
@@ -25,9 +25,6 @@ void NameResolutionChecker::operator()(const std::unordered_map<InternedString, 
 
 void NameResolutionChecker::operator()(const ast::Enum &ast_enum) {
   PushScope();
-  if (!IsInScope(ast_enum.name)) {
-    errors_.push_back({"Enum's name " + ast_enum.name.GetString() + " is already in scope."});
-  }
   (*this)(ast_enum.type_dependencies);
 
   (*this)(ast_enum.pattern_mapping);
@@ -79,9 +76,6 @@ void NameResolutionChecker::operator()(
 
 void NameResolutionChecker::operator()(const ast::Message &ast_message) {
   PushScope();
-  if (IsInScope(ast_message.name)) {
-    errors_.push_back({"Message's name " + ast_message.name.GetString() + " is already in scope."});
-  }
   (*this)(ast_message.type_dependencies);
   (*this)(ast_message.fields);
   PopScope();
@@ -95,12 +89,12 @@ void NameResolutionChecker::operator()(const std::vector<ast::TypedVariable> &de
 
 void NameResolutionChecker::operator()(const ast::TypedVariable &typed_variable) {
   (*this)(typed_variable.type_expression);
-  AddName(typed_variable.name);
+  AddName(typed_variable.name, "variable");
 }
 
 void NameResolutionChecker::operator()(const ast::TypeExpression &type_expression) {
   if (!IsInScope(type_expression.name)) {
-    errors_.push_back({"Type's name " + type_expression.name.GetString() + " is not in scope."});
+    errors_.push_back({"Undefined type name: \"" + type_expression.name.GetString() + "\""});
   }
 
   (*this)(type_expression.parameters);
@@ -116,8 +110,7 @@ void NameResolutionChecker::operator()(
 void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
   if (!IsInScope(value.constructor_identifier)) {
     errors_.push_back(
-        {"Constructor's identifier " + value.constructor_identifier.GetString() +
-         " is not in scope."});
+        {"Undefined constructor: \"" + value.constructor_identifier.GetString() + "\""});
   }
   PushScope();
   (*this)(value.constructor_identifier, value.fields);
@@ -141,7 +134,7 @@ void NameResolutionChecker::operator()(
 void NameResolutionChecker::operator()(
     const std::pair<InternedString, std::unique_ptr<ast::Expression>> &field) {
   std::visit(*this, *field.second);
-  AddName(field.first);
+  AddName(field.first, "field");
 }
 
 void NameResolutionChecker::operator()(const ast::BinaryExpression &expr) const {
@@ -155,8 +148,7 @@ void NameResolutionChecker::operator()(const ast::UnaryExpression &expr) const {
 void NameResolutionChecker::operator()(const ast::VarAccess &var_access) {
   if (IsInScope(var_access.var_identifier)) {
     errors_.push_back(
-        {"Variable's identifier " + var_access.var_identifier.GetString() +
-         " is already in scope."});
+        {"Re-declaration of variable: \"" + var_access.var_identifier.GetString() + "\""});
   }
 }
 
@@ -166,13 +158,14 @@ bool NameResolutionChecker::IsInScope(InternedString name) {
   });
 }
 
-void NameResolutionChecker::AddName(InternedString name) {
+void NameResolutionChecker::AddName(InternedString name, std::string &&identifier_type) {
   if (scopes_.empty()) {
     throw std::logic_error("Can't add name to empty scopes.");
   }
 
   if ((!isShadowing_) && IsInScope(name)) {
-    errors_.push_back({"Name" + name.GetString() + " is already in scope."});
+    errors_.push_back(
+        {"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""});
   }
 
   scopes_.back().insert(name);
@@ -197,22 +190,16 @@ NameResolutionChecker::GetConstructorFields(const ast::AST &ast) {
 }
 
 void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
-  AddName(InternedString("Int"));
-  AddName(InternedString("String"));
-  AddName(InternedString("Float"));
+  AddName(InternedString("Int"), "type");
+  AddName(InternedString("String"), "type");
+  AddName(InternedString("Float"), "type");
 
   for (const auto &ast_message : ast.messages) {
-    AddName(ast_message.first);
+    AddName(ast_message.first, "message");
   }
 
   for (const auto &ast_enum : ast.enums) {
-    AddName(ast_enum.first);
-
-    for (const auto &pattern : ast_enum.second.pattern_mapping) {
-      for (const auto &constructor : pattern.outputs) {
-        AddName(constructor.name);
-      }
-    }
+    AddName(ast_enum.first, "");
   }
 }
 
