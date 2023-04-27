@@ -22,6 +22,8 @@
     class Lexer;
 
     using ExprPtr = std::unique_ptr<ast::Expression>;
+
+    uint64_t get_error_count();
   }
 }
 
@@ -46,6 +48,16 @@
 
 #undef yylex
 #define yylex scanner->yylex
+
+namespace dbuf::parser {
+
+  static uint64_t error_count = 0;
+
+  uint64_t get_error_count() {
+    return error_count;
+  }
+
+}
 }
 
 %define api.token.prefix {TOK_}
@@ -92,16 +104,27 @@
 
 schema
   : %empty
-  | schema message_definition {
-    InternedString name($2.name);
-    ast->messages.insert(std::make_pair(name, std::move($2)));
-  }
-  | schema enum_definition {
-    InternedString name($2.name);
-    ast->enums.insert(std::make_pair(name, std::move($2)));
-  }
-  | schema service_definition
+  | schema definition
+  | schema error
   | schema NL
+  ;
+
+definition
+  : message_definition {
+    if (ast->messages.contains($1.name)) {
+      throw syntax_error(@1, "Duplicate message definition: " + $1.name.GetString());
+    }
+    InternedString name($1.name);
+    ast->messages.insert(std::make_pair(name, std::move($1)));
+  }
+  | enum_definition {
+    if (ast->enums.contains($1.name)) {
+      throw syntax_error(@1, "Duplicate enum definition: " + $1.name.GetString());
+    }
+    InternedString name($1.name);
+    ast->enums.insert(std::make_pair(name, std::move($1)));
+  }
+  | service_definition
   ;
 
 %nterm <ast::Message> message_definition;
@@ -386,7 +409,8 @@ service_definition
   : SERVICE service_identifier rpc_block
   ;
 rpc_block
-  : "{" NL rpc_declarations "}" NL ;
+  : "{" NL rpc_declarations "}" NL
+  ;
 rpc_declarations
   : %empty
   | RPC rpc_identifier "(" arguments ")"
@@ -395,13 +419,13 @@ rpc_declarations
 arguments
   : %empty
   | typed_variable
-  | typed_variable "," arguments
+  | arguments "," typed_variable
   ;
 
 %nterm <ast::TypedVariable> typed_variable;
 typed_variable
   : var_identifier type_expr {
-    $$ = ast::TypedVariable{.name = $1, .type_expression= std::move($2)};
+    $$ = ast::TypedVariable{.name = $1, .type_expression = std::move($2)};
   }
 
 %%
@@ -409,4 +433,5 @@ typed_variable
 void dbuf::parser::Parser::error(const location_type &l, const std::string &err_message)
 {
    std::cerr << "Error: " << err_message << " at " << l << "\n";
+   dbuf::parser::error_count++;
 }
