@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/interning/interned_string.h"
+#include "location.hh"
 
 #include <cstdint>
 #include <memory>
@@ -10,13 +11,25 @@
 #include <vector>
 namespace dbuf::ast {
 
+struct NamedType {
+  InternedString name;
+};
+
+struct ASTNode {
+  parser::location location;
+};
+
+struct Identifier
+    : ASTNode
+    , NamedType {};
+
 /**
  * @brief Represents scalar values like numbers, booleans and strings
  *
  * @tparam T The type of the value
  */
 template <typename T>
-struct ScalarValue {
+struct ScalarValue : ASTNode {
   T value = {};
 };
 
@@ -28,16 +41,16 @@ struct Expression;
  *
  */
 struct VarAccess {
-  InternedString var_identifier;
-  std::vector<InternedString> field_identifiers = {};
+  Identifier var_identifier;
+  std::vector<Identifier> field_identifiers = {};
 };
 
 /**
  * @brief Represents a type expression, like `Vec Int 5`
  *
  */
-struct TypeExpression {
-  InternedString name;
+struct TypeExpression : ASTNode {
+  Identifier identifier;
   std::vector<std::unique_ptr<Expression>> parameters = {};
 };
 
@@ -45,7 +58,7 @@ struct TypeExpression {
  * @brief Represents a star value (`*`) that matches any value in pattern matching
  *
  */
-struct Star {};
+struct Star : ASTNode {};
 
 /**
  * @brief Represents a binary expression operator
@@ -57,7 +70,7 @@ enum struct BinaryExpressionType { Plus, Minus, Star, Slash, And, Or };
  * @brief Represents a binary expression, like `1 + 2`
  *
  */
-struct BinaryExpression {
+struct BinaryExpression : ASTNode {
   BinaryExpressionType type;
   std::unique_ptr<Expression> left;
   std::unique_ptr<Expression> right;
@@ -73,7 +86,7 @@ enum struct UnaryExpressionType { Minus, Bang };
  * @brief Represents a unary expression, like `-(m + n)`
  *
  */
-struct UnaryExpression {
+struct UnaryExpression : ASTNode {
   UnaryExpressionType type;
   std::unique_ptr<Expression> expression;
 };
@@ -82,9 +95,9 @@ struct UnaryExpression {
  * @brief Represents a constructed value, like `Succ{prev: Zero{}}`
  *
  */
-struct ConstructedValue {
-  InternedString constructor_identifier;
-  std::vector<std::pair<InternedString, std::unique_ptr<Expression>>> fields = {};
+struct ConstructedValue : ASTNode {
+  Identifier constructor_identifier;
+  std::vector<std::pair<Identifier, std::unique_ptr<Expression>>> fields = {};
 };
 
 /**

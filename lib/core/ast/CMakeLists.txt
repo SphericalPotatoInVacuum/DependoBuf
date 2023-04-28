@@ -7,4 +7,5 @@ target_include_directories(ast INTERFACE
 )
 target_link_libraries(ast INTERFACE
   interning
+  parser
 )

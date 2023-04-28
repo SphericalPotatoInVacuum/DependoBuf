@@ -12,23 +12,30 @@
 
 namespace dbuf::ast {
 
-struct TypedVariable {
-  InternedString name;
+struct TypedVariable : NamedType {
   TypeExpression type_expression;
 };
 
-struct Constructor {
-  InternedString name;
+struct DependentType {
+  std::vector<TypedVariable> type_dependencies = {};
+};
+
+struct TypeWithFields {
   std::vector<TypedVariable> fields = {};
 };
 
-struct Message {
-  InternedString name;
-  std::vector<TypedVariable> type_dependencies = {};
-  std::vector<TypedVariable> fields            = {};
-};
+struct Constructor
+    : NamedType
+    , TypeWithFields {};
 
-struct Enum {
+struct Message
+    : NamedType
+    , DependentType
+    , TypeWithFields {};
+
+struct Enum
+    : NamedType
+    , DependentType {
   struct Rule {
     using InputPattern = std::variant<Value, Star>;
 
@@ -36,9 +43,7 @@ struct Enum {
     std::vector<Constructor> outputs = {};
   };
 
-  InternedString name;
-  std::vector<TypedVariable> type_dependencies = {};
-  std::vector<Rule> pattern_mapping            = {};
+  std::vector<Rule> pattern_mapping = {};
 };
 
 struct AST {
