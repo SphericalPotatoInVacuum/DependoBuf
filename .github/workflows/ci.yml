@@ -6,6 +6,8 @@ on:
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
+  CC: clang-16
+  CXX: clang++-16
 
 jobs:
   build:
@@ -17,9 +19,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - run: |
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+        sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main'
+        sudo apt update
+
     - uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        packages: libfl-dev
+        packages: libfl-dev clang-16 libc++-16-dev libc++abi-16-dev
         version: 1.0
 
     - name: Configure CMake
@@ -46,9 +53,10 @@ jobs:
 
     - name: clang-tidy review
       id: review
-      uses: ZedThree/clang-tidy-review@v0.12.3
+      uses: SphericalPotatoInVacuum/clang-tidy-review@master
       with:
-        apt_packages: libfl-dev,flex,bison
+        apt_packages: libfl-dev,flex,bison,clang-16,libc++-16-dev,libc++abi-16-dev
+        clang_tidy_version: 16
         cmake_command: >
           cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} &&
           cmake --build ${{github.workspace}}/build --target parser
