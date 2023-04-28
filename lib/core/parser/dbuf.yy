@@ -130,10 +130,10 @@ definition
 %nterm <ast::Message> message_definition;
 message_definition
   : MESSAGE type_identifier type_dependencies fields_block {
-    $$ = ast::Message{.name = $2, .type_dependencies = std::move($3), .fields = std::move($4)};
+    $$ = ast::Message{{$2}, {std::move($3)}, {std::move($4)}};
   }
   | MESSAGE type_identifier fields_block {
-    $$ = ast::Message{.name = $2, .fields = std::move($3)};
+    $$ = ast::Message{{$2}, {}, {std::move($3)}};
   }
   ;
 
@@ -146,7 +146,7 @@ enum_definition
 %nterm <ast::Enum> dependent_enum;
 dependent_enum
   : ENUM type_identifier type_dependencies "{" NL mapping_rules "}" NL {
-    $$ = ast::Enum{.name = $2, .type_dependencies = std::move($3), .pattern_mapping = std::move($6)};
+    $$ = ast::Enum{{$2}, {std::move($3)}, {std::move($6)}};
   }
   ;
 
@@ -156,7 +156,7 @@ independent_enum
     std::vector<ast::Enum::Rule> one_rule;
     one_rule.emplace_back(ast::Enum::Rule{.outputs = std::move($3)});
 
-    $$ = ast::Enum{.name = $2, .pattern_mapping = std::move(one_rule)};
+    $$ = ast::Enum{{$2}, {}, {std::move(one_rule)}};
   }
   ;
 
@@ -198,7 +198,7 @@ input_patterns
 %nterm <ast::Enum::Rule::InputPattern> input_pattern;
 input_pattern
   : STAR {
-    $$ = ast::Star{};
+    $$ = ast::Star{{@1}};
   }
   | value {
     $$ = std::move($1);
@@ -216,11 +216,11 @@ constructor_declarations
   }
   | constructor_declarations constructor_identifier fields_block {
     $$ = std::move($1);
-    $$.emplace_back(ast::Constructor{.name = $2, .fields = std::move($3)});
+    $$.emplace_back(ast::Constructor{{$2}, {std::move($3)}});
   }
   | constructor_declarations constructor_identifier NL {
     $$ = std::move($1);
-    $$.emplace_back(ast::Constructor{.name = $2});
+    $$.emplace_back(ast::Constructor{{$2}, {}});
   }
   ;
 
@@ -241,7 +241,7 @@ field_declarations
 %nterm <ast::TypeExpression> type_expr;
 type_expr
   : type_identifier {
-    $$ = ast::TypeExpression{.name = $1};
+    $$ = ast::TypeExpression{{@1}, {$1}};
   }
   | type_expr primary {
     $$ = std::move($1);
@@ -253,56 +253,64 @@ type_expr
 expression
   : expression PLUS expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::Plus,
-      .left=std::move($1),
-      .right=std::move($3)
+      {location(@$)},
+      ast::BinaryExpressionType::Plus,
+      std::move($1),
+      std::move($3)
     });
   }
   | expression MINUS expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::Minus,
-      .left=std::move($1),
-      .right=std::move($3)
+      {location(@$)},
+      ast::BinaryExpressionType::Minus,
+      std::move($1),
+      std::move($3)
     });
   }
   | expression STAR expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::Star,
-      .left=std::move($1),
-      .right=std::move($3)
+      {location(@$)},
+      ast::BinaryExpressionType::Star,
+      std::move($1),
+      std::move($3)
     });
   }
   | expression SLASH expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::Slash,
-      .left=std::move($1),
-      .right=std::move($3)
+      {location(@$)},
+      ast::BinaryExpressionType::Slash,
+      std::move($1),
+      std::move($3)
     });
   }
   | expression AND expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::And,
-      .left=std::move($1),
-      .right=std::move($3)
+      {location(@$)},
+      ast::BinaryExpressionType::And,
+      std::move($1),
+      std::move($3)
     });
   }
   | expression OR expression {
     $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
-      .type=ast::BinaryExpressionType::Or,
-      .left=std::move($1),
-      .right=std::move($3)
+      {location(@$)},
+      ast::BinaryExpressionType::Or,
+      std::move($1),
+      std::move($3)
     });
   }
   | MINUS expression {
     $$ = std::make_unique<ast::Expression>(ast::UnaryExpression{
-      .type=ast::UnaryExpressionType::Minus,
-      .expression=std::move($2)
+      {location(@$)},
+      ast::UnaryExpressionType::Minus,
+      std::move($2)
     });
   }
   | BANG expression {
     $$ = std::make_unique<ast::Expression>(ast::UnaryExpression{
-      .type=ast::UnaryExpressionType::Bang,
-      .expression=std::move($2)
+      {location(@$)},
+      ast::UnaryExpressionType::Bang,
+      std::move($2)
     });
   }
   | type_expr {
@@ -349,40 +357,40 @@ value
 
 %nterm <ast::Value> bool_literal;
 bool_literal
-  : FALSE { $$ = ast::Value(ast::ScalarValue<bool>{false}); }
-  | TRUE { $$ = ast::Value(ast::ScalarValue<bool>{true}); }
+  : FALSE { $$ = ast::Value(ast::ScalarValue<bool>{{@1}, false}); }
+  | TRUE { $$ = ast::Value(ast::ScalarValue<bool>{{@1}, true}); }
   ;
 
 %nterm <ast::Value> float_literal;
-float_literal : FLOAT_LITERAL { $$ = ast::Value(ast::ScalarValue<double>{$1}); } ;
+float_literal : FLOAT_LITERAL { $$ = ast::Value(ast::ScalarValue<double>{{@1}, $1}); } ;
 
 %nterm <ast::Value> int_literal;
-int_literal : INT_LITERAL { $$ = ast::Value(ast::ScalarValue<int64_t>{$1}); };
+int_literal : INT_LITERAL { $$ = ast::Value(ast::ScalarValue<int64_t>{{@1}, $1}); };
 
 %nterm <ast::Value> uint_literal;
-uint_literal : UINT_LITERAL { $$ = ast::Value(ast::ScalarValue<uint64_t>{$1}); };
+uint_literal : UINT_LITERAL { $$ = ast::Value(ast::ScalarValue<uint64_t>{{@1}, $1}); };
 
 %nterm <ast::Value> string_literal;
-string_literal : STRING_LITERAL { $$ = ast::Value(ast::ScalarValue<std::string>{$1}); };
+string_literal : STRING_LITERAL { $$ = ast::Value(ast::ScalarValue<std::string>{{@1}, $1}); };
 
 %nterm <ast::Value> constructed_value;
 constructed_value
   : constructor_identifier "{" field_initialization "}" {
-    $$ = ast::ConstructedValue{.constructor_identifier = $1, .fields = std::move($3)};
+    $$ = ast::ConstructedValue{{@$}, $1, std::move($3)};
   }
   ;
 
-%nterm <std::vector<std::pair<InternedString, ExprPtr>>> field_initialization;
+%nterm <std::vector<std::pair<ast::Identifier, ExprPtr>>> field_initialization;
 field_initialization
   : %empty {
-    $$ = std::vector<std::pair<InternedString, ExprPtr>>();
+    $$ = std::vector<std::pair<ast::Identifier, ExprPtr>>();
   }
   | field_initialization_list {
     $$ = std::move($1);
   }
   ;
 
-%nterm <std::vector<std::pair<InternedString, ExprPtr>>> field_initialization_list;
+%nterm <std::vector<std::pair<ast::Identifier, ExprPtr>>> field_initialization_list;
 field_initialization_list
   : var_identifier COLON expression {
     $$.emplace_back($1, std::move($3));
@@ -392,18 +400,18 @@ field_initialization_list
     $$.emplace_back($3, std::move($5));
   }
 
-%nterm <InternedString>
+%nterm <ast::Identifier>
   type_identifier
   constructor_identifier
   service_identifier
   var_identifier
   rpc_identifier
 ;
-type_identifier : UC_IDENTIFIER { $$ = InternedString(std::move($1)); };
-constructor_identifier : UC_IDENTIFIER { $$ = InternedString(std::move($1)); };
-service_identifier : UC_IDENTIFIER { $$ = InternedString(std::move($1)); };
-var_identifier : LC_IDENTIFIER { $$ = InternedString(std::move($1)); };
-rpc_identifier : LC_IDENTIFIER { $$ = InternedString(std::move($1)); };
+type_identifier : UC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
+constructor_identifier : UC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
+service_identifier : UC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
+var_identifier : LC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
+rpc_identifier : LC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
 
 service_definition
   : SERVICE service_identifier rpc_block
@@ -425,7 +433,7 @@ arguments
 %nterm <ast::TypedVariable> typed_variable;
 typed_variable
   : var_identifier type_expr {
-    $$ = ast::TypedVariable{.name = $1, .type_expression = std::move($2)};
+    $$ = ast::TypedVariable{{$1}, std::move($2)};
   }
 
 %%
