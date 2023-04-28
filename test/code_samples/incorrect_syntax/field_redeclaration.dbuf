@@ -1,0 +1,5 @@
+message A {
+    field1 Int
+    field1 String
+    field1 Int
+}

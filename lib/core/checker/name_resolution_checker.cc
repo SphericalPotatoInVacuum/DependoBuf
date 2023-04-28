@@ -55,10 +55,6 @@ void NameResolutionChecker::operator()(const ast::Value &value) {
 
 void NameResolutionChecker::operator()(const std::vector<ast::Constructor> &constructors) {
   for (const auto &constructor : constructors) {
-    if (IsInScope(constructor.name)) {
-      errors_.push_back(
-          {"Constructor's name " + constructor.name.GetString() + " is already in scope."});
-    }
     (*this)(constructor.fields);
   }
 }
@@ -75,9 +71,9 @@ void NameResolutionChecker::operator()(
   }
 }
 
-void NameResolutionChecker::operator()(const std::vector<ast::TypedVariable> &dependencies) {
-  for (const auto &dependency : dependencies) {
-    (*this)(dependency);
+void NameResolutionChecker::operator()(const std::vector<ast::TypedVariable> &typed_variables) {
+  for (const auto &typed_variable : typed_variables) {
+    (*this)(typed_variable);
   }
 }
 
@@ -131,18 +127,17 @@ void NameResolutionChecker::operator()(
   AddName(field.first, "field");
 }
 
-void NameResolutionChecker::operator()(const ast::BinaryExpression &expr) const {
+void NameResolutionChecker::operator()(const ast::BinaryExpression &expr) {
   std::visit(*this, *(expr.left));
   std::visit(*this, *expr.right);
 }
-void NameResolutionChecker::operator()(const ast::UnaryExpression &expr) const {
+void NameResolutionChecker::operator()(const ast::UnaryExpression &expr) {
   std::visit(*this, *(expr.expression));
 }
 
 void NameResolutionChecker::operator()(const ast::VarAccess &var_access) {
-  if (IsInScope(var_access.var_identifier)) {
-    errors_.push_back(
-        {"Re-declaration of variable: \"" + var_access.var_identifier.GetString() + "\""});
+  if (!IsInScope(var_access.var_identifier)) {
+    errors_.push_back({"Undefined variable: \"" + var_access.var_identifier.GetString() + "\""});
   }
 }
 
@@ -187,13 +182,19 @@ void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
   AddName(InternedString("Int"), "type");
   AddName(InternedString("String"), "type");
   AddName(InternedString("Float"), "type");
+  AddName(InternedString("Bool"), "type");
 
   for (const auto &ast_message : ast.messages) {
     AddName(ast_message.first, "message");
   }
 
   for (const auto &ast_enum : ast.enums) {
-    AddName(ast_enum.first, "");
+    AddName(ast_enum.first, "enum");
+    for (const auto &pattern : ast_enum.second.pattern_mapping) {
+      for (const auto &constructor : pattern.outputs) {
+        AddName(constructor.name, "constructor");
+      }
+    }
   }
 }
 

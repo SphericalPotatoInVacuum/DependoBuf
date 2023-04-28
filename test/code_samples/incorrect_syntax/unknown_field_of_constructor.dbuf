@@ -1,0 +1,10 @@
+enum A {
+  C1 {
+    field1 Int
+  }
+}
+
+enum B (a A) {
+  C1 {field1: 5, field2: "string"} => {
+  }
+}

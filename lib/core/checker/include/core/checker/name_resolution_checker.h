@@ -28,7 +28,7 @@ struct NameResolutionChecker {
 
   void operator()(const std::unordered_map<InternedString, ast::Message> &messages);
 
-  void operator()(const std::vector<ast::TypedVariable> &dependencies);
+  void operator()(const std::vector<ast::TypedVariable> &typed_variables);
 
   void operator()(const ast::TypedVariable &typed_variable);
 
@@ -47,8 +47,8 @@ struct NameResolutionChecker {
   template <typename T>
   void operator()(const ast::ScalarValue<T> &) {}
 
-  void operator()(const ast::BinaryExpression &expr) const;
-  void operator()(const ast::UnaryExpression &expr) const;
+  void operator()(const ast::BinaryExpression &expr);
+  void operator()(const ast::UnaryExpression &expr);
 
   void operator()(const ast::VarAccess &var_access);
 
