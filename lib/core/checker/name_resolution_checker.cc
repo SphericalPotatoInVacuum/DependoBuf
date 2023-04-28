@@ -43,7 +43,17 @@ void NameResolutionChecker::operator()(const std::vector<ast::Enum::Rule> &rules
   }
 }
 
-void NameResolutionChecker::operator()(std::vector<ast::Constructor> &constructors) {
+void NameResolutionChecker::operator()(const std::vector<ast::Enum::Rule::InputPattern> &inputs) {
+  for (const auto &input : inputs) {
+    std::visit(*this, input);
+  }
+}
+
+void NameResolutionChecker::operator()(const ast::Value &value) {
+  std::visit(*this, value);
+}
+
+void NameResolutionChecker::operator()(const std::vector<ast::Constructor> &constructors) {
   for (const auto &constructor : constructors) {
     if (IsInScope(constructor.name)) {
       errors_.push_back(

@@ -1,0 +1,12 @@
+enum A {
+    Constructor1 {
+    }
+}
+
+enum B (a A) {
+    Constructor2{} => {
+        Constructor3 {
+            field1 A
+        }
+    }
+}

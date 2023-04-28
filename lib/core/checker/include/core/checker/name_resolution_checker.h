@@ -12,8 +12,9 @@
 namespace dbuf::checker {
 
 struct NameResolutionChecker {
-  template <typename T>
-  void operator()(const T &) const {}
+  void operator()(const ast::Value &value);
+
+  void operator()(const std::vector<ast::Enum::Rule::InputPattern> &inputs);
 
   ErrorList operator()(const ast::AST &ast);
 
@@ -21,7 +22,7 @@ struct NameResolutionChecker {
 
   void operator()(const std::vector<ast::Enum::Rule> &rules);
 
-  void operator()(std::vector<ast::Constructor> &constructors);
+  void operator()(const std::vector<ast::Constructor> &constructors);
 
   void operator()(const ast::Star &);
 
