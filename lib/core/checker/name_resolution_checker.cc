@@ -19,66 +19,50 @@ ErrorList NameResolutionChecker::operator()(const ast::AST &ast) {
 
 void NameResolutionChecker::operator()(const std::unordered_map<InternedString, ast::Enum> &enums) {
   for (const auto &ast_enum : enums) {
-    (*this)(ast_enum.second);
+    PushScope();
+    (*this)(ast_enum.second.type_dependencies);
+
+    (*this)(ast_enum.second.pattern_mapping);
+    PopScope();
   }
-}
-
-void NameResolutionChecker::operator()(const ast::Enum &ast_enum) {
-  PushScope();
-  (*this)(ast_enum.type_dependencies);
-
-  (*this)(ast_enum.pattern_mapping);
-  PopScope();
 }
 
 void NameResolutionChecker::operator()(const std::vector<ast::Enum::Rule> &rules) {
   for (const auto &rule : rules) {
-    (*this)(rule);
+    PushScope();
+
+    isShadowing_ = true;
+
+    (*this)(rule.inputs);
+
+    isShadowing_ = false;
+
+    (*this)(rule.outputs);
+
+    PopScope();
   }
-}
-
-void NameResolutionChecker::operator()(const ast::Enum::Rule &rule) {
-  PushScope();
-
-  isShadowing_ = true;
-
-  (*this)(rule.inputs);
-
-  isShadowing_ = false;
-
-  (*this)(rule.outputs);
-
-  PopScope();
 }
 
 void NameResolutionChecker::operator()(std::vector<ast::Constructor> &constructors) {
   for (const auto &constructor : constructors) {
-    (*this)(constructor);
+    if (IsInScope(constructor.name)) {
+      errors_.push_back(
+          {"Constructor's name " + constructor.name.GetString() + " is already in scope."});
+    }
+    (*this)(constructor.fields);
   }
-}
-
-void NameResolutionChecker::operator()(const ast::Constructor &constructor) {
-  if (IsInScope(constructor.name)) {
-    errors_.push_back(
-        {"Constructor's name " + constructor.name.GetString() + " is already in scope."});
-  }
-  (*this)(constructor.fields);
 }
 
 void NameResolutionChecker::operator()(const ast::Star &) {}
 
 void NameResolutionChecker::operator()(
     const std::unordered_map<InternedString, ast::Message> &messages) {
-  for (const auto &message : messages) {
-    (*this)(message.second);
+  for (const auto &ast_message : messages) {
+    PushScope();
+    (*this)(ast_message.second.type_dependencies);
+    (*this)(ast_message.second.fields);
+    PopScope();
   }
-}
-
-void NameResolutionChecker::operator()(const ast::Message &ast_message) {
-  PushScope();
-  (*this)(ast_message.type_dependencies);
-  (*this)(ast_message.fields);
-  PopScope();
 }
 
 void NameResolutionChecker::operator()(const std::vector<ast::TypedVariable> &dependencies) {

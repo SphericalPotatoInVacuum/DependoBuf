@@ -19,21 +19,13 @@ struct NameResolutionChecker {
 
   void operator()(const std::unordered_map<InternedString, ast::Enum> &enums);
 
-  void operator()(const ast::Enum &ast_enum);
-
   void operator()(const std::vector<ast::Enum::Rule> &rules);
 
-  void operator()(const ast::Enum::Rule &rule);
-
   void operator()(std::vector<ast::Constructor> &constructors);
-
-  void operator()(const ast::Constructor &constructor);
 
   void operator()(const ast::Star &);
 
   void operator()(const std::unordered_map<InternedString, ast::Message> &messages);
-
-  void operator()(const ast::Message &ast_message);
 
   void operator()(const std::vector<ast::TypedVariable> &dependencies);
 
@@ -66,7 +58,6 @@ private:
 
   std::deque<std::unordered_set<InternedString>> scopes_;
   std::unordered_map<InternedString, std::unordered_set<InternedString>> constructors_fields_;
-  std::unordered_map<InternedString, std::unordered_set<InternedString>> messages_fields_;
 
   bool IsInScope(InternedString name);
 
