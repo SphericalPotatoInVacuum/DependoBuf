@@ -1,10 +1,10 @@
 enum A {
   C1 {
-    field1 Int
+    field1 Bool
   }
 }
 
 enum B (a A) {
-  C1 {field1: 5, field2: "string"} => {
+  C1 {field1: false, field2: "string"} => {
   }
 }

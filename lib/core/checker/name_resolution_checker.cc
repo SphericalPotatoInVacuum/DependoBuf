@@ -114,7 +114,7 @@ void NameResolutionChecker::operator()(
     if (!constructors_fields_[constructor_identifier].contains(field.first)) {
       errors_.push_back(
           {"No field with name " + field.first.GetString() + " in constructor " +
-           constructor_identifier.GetString() + "."});
+           constructor_identifier.GetString()});
     }
 
     (*this)(field);

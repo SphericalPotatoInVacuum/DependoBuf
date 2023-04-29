@@ -1,0 +1,7 @@
+enum A {
+    A {
+    }
+}
+
+message A {
+}

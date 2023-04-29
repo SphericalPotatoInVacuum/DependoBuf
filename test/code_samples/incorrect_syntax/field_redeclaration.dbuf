@@ -3,3 +3,12 @@ message A {
     field1 String
     field1 Int
 }
+
+enum B (n Int) {
+    * => {
+        Constructor1 {
+            field2 Int
+            field2 Int
+        }
+    }
+}

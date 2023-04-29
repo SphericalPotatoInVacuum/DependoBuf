@@ -1,2 +1,3 @@
 message A (a B) {
+    field1 C
 }
