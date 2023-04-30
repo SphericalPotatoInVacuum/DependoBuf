@@ -10,129 +10,108 @@ ErrorList NameResolutionChecker::operator()(const ast::AST &ast) {
 
   constructors_fields_ = GetConstructorFields(ast);
 
-  (*this)(ast.messages);
+  for (const auto &[message_name, message_body] : ast.messages) {
+    (*this)(message_body);
+  }
 
-  (*this)(ast.enums);
+  for (const auto &[enum_name, enum_body] : ast.enums) {
+    (*this)(enum_body);
+  }
 
   return errors_;
 }
 
-void NameResolutionChecker::operator()(const std::unordered_map<InternedString, ast::Enum> &enums) {
-  for (const auto &ast_enum : enums) {
-    PushScope();
-    (*this)(ast_enum.second.type_dependencies);
-
-    (*this)(ast_enum.second.pattern_mapping);
-    PopScope();
+void NameResolutionChecker::operator()(const ast::Message &ast_message) {
+  PushScope();
+  for (const auto &dependency : ast_message.type_dependencies) {
+    (*this)(dependency);
   }
+  for (const auto &field : ast_message.fields) {
+    (*this)(field, false);
+  }
+  PopScope();
 }
 
-void NameResolutionChecker::operator()(const std::vector<ast::Enum::Rule> &rules) {
-  for (const auto &rule : rules) {
-    PushScope();
-
-    isShadowing_ = true;
-
-    (*this)(rule.inputs);
-
-    isShadowing_ = false;
-
-    (*this)(rule.outputs);
-
-    PopScope();
+void NameResolutionChecker::operator()(const ast::Enum &ast_enum) {
+  PushScope();
+  for (const auto &dependency : ast_enum.type_dependencies) {
+    (*this)(dependency);
   }
+  for (const auto &rule : ast_enum.pattern_mapping) {
+    (*this)(rule);
+  }
+  PopScope();
 }
 
-void NameResolutionChecker::operator()(const std::vector<ast::Enum::Rule::InputPattern> &inputs) {
-  for (const auto &input : inputs) {
+void NameResolutionChecker::operator()(const ast::Enum::Rule &rule) {
+  PushScope();
+  for (const auto &input : rule.inputs) {
     std::visit(*this, input);
   }
+  for (const auto &output : rule.outputs) {
+    (*this)(output);
+  }
+  PopScope();
+}
+
+void NameResolutionChecker::operator()(const ast::Constructor &constructor) {
+  for (const auto &field : constructor.fields) {
+    (*this)(field);
+  }
+}
+
+void NameResolutionChecker::operator()(const ast::TypedVariable &variable, bool allow_shadowing) {
+  (*this)(variable.type_expression);
+  AddName(variable.name, "variable", allow_shadowing);
+}
+
+void NameResolutionChecker::operator()(const Field &field) {
+  std::visit(*this, *field.second);
+  AddName(field.first, "field", false);
+}
+
+void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
+  if (!IsInScope(value.constructor_identifier)) {
+    errors_.emplace_back(Error {
+        .message = "Undefined constructor: \"" + value.constructor_identifier.GetString() + "\""});
+  }
+  PushScope();
+
+  for (const auto &field : value.fields) {
+    if (!constructors_fields_[value.constructor_identifier].contains(field.first)) {
+      errors_.emplace_back(Error {
+          .message = "No field with name " + field.first.GetString() + " in constructor " +
+                     value.constructor_identifier.GetString()});
+    }
+
+    (*this)(field);
+  }
+  PopScope();
 }
 
 void NameResolutionChecker::operator()(const ast::Value &value) {
   std::visit(*this, value);
 }
 
-void NameResolutionChecker::operator()(const std::vector<ast::Constructor> &constructors) {
-  for (const auto &constructor : constructors) {
-    (*this)(constructor.fields);
-  }
-}
-
 void NameResolutionChecker::operator()(const ast::Star &) {}
-
-void NameResolutionChecker::operator()(
-    const std::unordered_map<InternedString, ast::Message> &messages) {
-  for (const auto &ast_message : messages) {
-    PushScope();
-    (*this)(ast_message.second.type_dependencies);
-    (*this)(ast_message.second.fields);
-    PopScope();
-  }
-}
-
-void NameResolutionChecker::operator()(const std::vector<ast::TypedVariable> &typed_variables) {
-  for (const auto &typed_variable : typed_variables) {
-    (*this)(typed_variable);
-  }
-}
-
-void NameResolutionChecker::operator()(const ast::TypedVariable &typed_variable) {
-  (*this)(typed_variable.type_expression);
-  AddName(typed_variable.name, "variable");
-}
-
-void NameResolutionChecker::operator()(const ast::TypeExpression &type_expression) {
-  if (!IsInScope(type_expression.name)) {
-    errors_.push_back({"Undefined type name: \"" + type_expression.name.GetString() + "\""});
-  }
-
-  (*this)(type_expression.parameters);
-}
-
-void NameResolutionChecker::operator()(
-    const std::vector<std::unique_ptr<ast::Expression>> &expressions) {
-  for (const auto &expression : expressions) {
-    std::visit(*this, *expression);
-  }
-}
-
-void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
-  if (!IsInScope(value.constructor_identifier)) {
-    errors_.push_back(
-        {"Undefined constructor: \"" + value.constructor_identifier.GetString() + "\""});
-  }
-  PushScope();
-  (*this)(value.constructor_identifier, value.fields);
-  PopScope();
-}
-
-void NameResolutionChecker::operator()(
-    InternedString constructor_identifier,
-    const std::vector<std::pair<InternedString, std::unique_ptr<ast::Expression>>> &fields) {
-  for (const auto &field : fields) {
-    if (!constructors_fields_[constructor_identifier].contains(field.first)) {
-      errors_.push_back(
-          {"No field with name " + field.first.GetString() + " in constructor " +
-           constructor_identifier.GetString()});
-    }
-
-    (*this)(field);
-  }
-}
-
-void NameResolutionChecker::operator()(
-    const std::pair<InternedString, std::unique_ptr<ast::Expression>> &field) {
-  std::visit(*this, *field.second);
-  AddName(field.first, "field");
-}
 
 void NameResolutionChecker::operator()(const ast::BinaryExpression &expr) {
   std::visit(*this, *(expr.left));
-  std::visit(*this, *expr.right);
+  std::visit(*this, *(expr.right));
 }
+
 void NameResolutionChecker::operator()(const ast::UnaryExpression &expr) {
   std::visit(*this, *(expr.expression));
+}
+
+void NameResolutionChecker::operator()(const ast::TypeExpression &expr) {
+  if (!IsInScope(expr.name)) {
+    errors_.push_back({"Undefined type name: \"" + expr.name.GetString() + "\""});
+  }
+
+  for (const auto &parameter : expr.parameters) {
+    std::visit(*this, *parameter);
+  }
 }
 
 void NameResolutionChecker::operator()(const ast::VarAccess &var_access) {
@@ -147,12 +126,15 @@ bool NameResolutionChecker::IsInScope(InternedString name) {
   });
 }
 
-void NameResolutionChecker::AddName(InternedString name, std::string &&identifier_type) {
+void NameResolutionChecker::AddName(
+    InternedString name,
+    std::string &&identifier_type,
+    bool allow_shadowing) {
   if (scopes_.empty()) {
     throw std::logic_error("Can't add name to empty scopes.");
   }
 
-  if ((!isShadowing_) && IsInScope(name)) {
+  if ((!allow_shadowing) && IsInScope(name)) {
     errors_.push_back(
         {"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""});
   }
@@ -160,10 +142,9 @@ void NameResolutionChecker::AddName(InternedString name, std::string &&identifie
   scopes_.back().insert(name);
 }
 
-std::unordered_map<InternedString, std::unordered_set<InternedString>>
+NameResolutionChecker::ConstructorFieldsMap
 NameResolutionChecker::GetConstructorFields(const ast::AST &ast) {
-  std::unordered_map<InternedString, std::unordered_set<InternedString>>
-      constructor_to_fields_names;
+  NameResolutionChecker::ConstructorFieldsMap constructor_to_fields_names;
 
   for (const auto &ast_enum : ast.enums) {
     for (const auto &pattern : ast_enum.second.pattern_mapping) {
@@ -172,6 +153,12 @@ NameResolutionChecker::GetConstructorFields(const ast::AST &ast) {
           constructor_to_fields_names[constructor.name].insert(field.name);
         }
       }
+    }
+  }
+
+  for (const auto &ast_message : ast.messages) {
+    for (const auto &field : ast_message.second.fields) {
+      constructor_to_fields_names[ast_message.first].insert(field.name);
     }
   }
 

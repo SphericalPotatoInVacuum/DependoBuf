@@ -12,66 +12,57 @@
 namespace dbuf::checker {
 
 struct NameResolutionChecker {
-  void operator()(const ast::Value &value);
-
-  void operator()(const std::vector<ast::Enum::Rule::InputPattern> &inputs);
-
   ErrorList operator()(const ast::AST &ast);
 
-  void operator()(const std::unordered_map<InternedString, ast::Enum> &enums);
+  void operator()(const ast::Message &ast_message);
 
-  void operator()(const std::vector<ast::Enum::Rule> &rules);
+  void operator()(const ast::Enum &ast_enum);
 
-  void operator()(const std::vector<ast::Constructor> &constructors);
+  void operator()(const ast::Enum::Rule &rule);
 
-  void operator()(const ast::Star &);
+  void operator()(const ast::Constructor &constructor);
 
-  void operator()(const std::unordered_map<InternedString, ast::Message> &messages);
+  void operator()(const ast::TypedVariable &variable, bool allow_shadowing = true);
 
-  void operator()(const std::vector<ast::TypedVariable> &typed_variables);
+private:
+  using Field = std::pair<InternedString, std::unique_ptr<ast::Expression>>;
 
-  void operator()(const ast::TypedVariable &typed_variable);
-
-  void operator()(const ast::TypeExpression &type_expression);
-
-  void operator()(const std::vector<std::unique_ptr<ast::Expression>> &expressions);
-
-  void operator()(const ast::ConstructedValue &value);
-
-  void operator()(
-      InternedString constructor_identifier,
-      const std::vector<std::pair<InternedString, std::unique_ptr<ast::Expression>>> &fields);
-
-  void operator()(const std::pair<InternedString, std::unique_ptr<ast::Expression>> &field);
+public:
+  void operator()(const Field &field);
 
   template <typename T>
   void operator()(const ast::ScalarValue<T> &) {}
+  void operator()(const ast::ConstructedValue &value);
+  void operator()(const ast::Value &value);
+
+  void operator()(const ast::Star &value);
 
   void operator()(const ast::BinaryExpression &expr);
   void operator()(const ast::UnaryExpression &expr);
-
+  void operator()(const ast::TypeExpression &expr);
   void operator()(const ast::VarAccess &var_access);
 
 private:
+  using Scope                = std::unordered_set<InternedString>;
+  using ConstructorFields    = std::unordered_set<InternedString>;
+  using ConstructorFieldsMap = std::unordered_map<InternedString, ConstructorFields>;
+
+  // private members
   ErrorList errors_;
 
-  bool isShadowing_ = false;
+  std::deque<Scope> scopes_;
 
-  std::deque<std::unordered_set<InternedString>> scopes_;
-  std::unordered_map<InternedString, std::unordered_set<InternedString>> constructors_fields_;
+  ConstructorFieldsMap constructors_fields_;
 
+  // private methods
   bool IsInScope(InternedString name);
+  void AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing = true);
 
-  void AddName(InternedString name, std::string &&identifier_type);
-
-  std::unordered_map<
-      InternedString,
-      std::unordered_set<InternedString>> static GetConstructorFields(const ast::AST &ast);
+  ConstructorFieldsMap static GetConstructorFields(const ast::AST &ast);
 
   void AddGlobalNames(const ast::AST &ast);
 
   void PushScope();
-
   void PopScope();
 };
 
