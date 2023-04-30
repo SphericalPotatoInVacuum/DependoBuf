@@ -22,7 +22,7 @@ struct NameResolutionChecker {
 
   void operator()(const ast::Constructor &constructor);
 
-  void operator()(const ast::TypedVariable &variable, bool allow_shadowing = true);
+  void operator()(const ast::TypedVariable &variable, bool allow_shadowing);
 
 private:
   using Field = std::pair<InternedString, std::unique_ptr<ast::Expression>>;
@@ -56,7 +56,7 @@ private:
 
   // private methods
   bool IsInScope(InternedString name);
-  void AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing = true);
+  void AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing);
 
   ConstructorFieldsMap static GetConstructorFields(const ast::AST &ast);
 

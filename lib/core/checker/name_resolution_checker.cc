@@ -24,7 +24,7 @@ ErrorList NameResolutionChecker::operator()(const ast::AST &ast) {
 void NameResolutionChecker::operator()(const ast::Message &ast_message) {
   PushScope();
   for (const auto &dependency : ast_message.type_dependencies) {
-    (*this)(dependency);
+    (*this)(dependency, true);
   }
   for (const auto &field : ast_message.fields) {
     (*this)(field, false);
@@ -35,7 +35,7 @@ void NameResolutionChecker::operator()(const ast::Message &ast_message) {
 void NameResolutionChecker::operator()(const ast::Enum &ast_enum) {
   PushScope();
   for (const auto &dependency : ast_enum.type_dependencies) {
-    (*this)(dependency);
+    (*this)(dependency, true);
   }
   for (const auto &rule : ast_enum.pattern_mapping) {
     (*this)(rule);
@@ -56,7 +56,7 @@ void NameResolutionChecker::operator()(const ast::Enum::Rule &rule) {
 
 void NameResolutionChecker::operator()(const ast::Constructor &constructor) {
   for (const auto &field : constructor.fields) {
-    (*this)(field);
+    (*this)(field, false);
   }
 }
 
@@ -67,7 +67,7 @@ void NameResolutionChecker::operator()(const ast::TypedVariable &variable, bool 
 
 void NameResolutionChecker::operator()(const Field &field) {
   std::visit(*this, *field.second);
-  AddName(field.first, "field", false);
+  AddName(field.first, "field", true);
 }
 
 void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
@@ -166,20 +166,20 @@ NameResolutionChecker::GetConstructorFields(const ast::AST &ast) {
 }
 
 void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
-  AddName(InternedString("Int"), "type");
-  AddName(InternedString("String"), "type");
-  AddName(InternedString("Float"), "type");
-  AddName(InternedString("Bool"), "type");
+  AddName(InternedString("Int"), "type", false);
+  AddName(InternedString("String"), "type", false);
+  AddName(InternedString("Float"), "type", false);
+  AddName(InternedString("Bool"), "type", false);
 
   for (const auto &ast_message : ast.messages) {
-    AddName(ast_message.first, "message");
+    AddName(ast_message.first, "message", false);
   }
 
   for (const auto &ast_enum : ast.enums) {
-    AddName(ast_enum.first, "enum");
+    AddName(ast_enum.first, "enum", false);
     for (const auto &pattern : ast_enum.second.pattern_mapping) {
       for (const auto &constructor : pattern.outputs) {
-        AddName(constructor.name, "constructor");
+        AddName(constructor.name, "constructor", false);
       }
     }
   }
