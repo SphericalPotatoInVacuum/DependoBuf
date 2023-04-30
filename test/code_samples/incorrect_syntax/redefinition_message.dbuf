@@ -1,6 +1,9 @@
 message A {
 }
 
+enum E {
+}
+
 message A {
 }
 
@@ -11,4 +14,7 @@ message C {
 }
 
 message B {
+}
+
+enum E {
 }
