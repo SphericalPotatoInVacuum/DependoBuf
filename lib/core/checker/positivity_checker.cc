@@ -47,7 +47,7 @@ PositivityChecker::Result PositivityChecker::TopSortGraph() const {
       std::vector<InternedString> cycle = Visit(name, sorted, node_states);
 
       if (!cycle.empty()) {
-        message_stream << "Found cycle in the dependency graph: ";
+        message_stream << "Found dependency cycle: ";
 
         bool first_node = true;
         for (const auto &node : cycle) {
