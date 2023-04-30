@@ -32,7 +32,7 @@ public:
 private:
   enum class NodeState { Visiting, Visited };
 
-  Result TopSortGraph() const;
+  [[nodiscard]] Result TopSortGraph() const;
 
   std::vector<InternedString> Visit( // NOLINT(misc-no-recursion)
       const InternedString &name,
