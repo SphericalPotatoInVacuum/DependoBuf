@@ -15,9 +15,9 @@ namespace dbuf {
 class NameResolutionTest : public ::testing::TestSuite {
 public:
   static ast::TypedVariable
-  make_typed_variable(InternedString &&name, ast::TypeExpression &&type_expression) {
+  make_typed_variable(std::string &&name, ast::TypeExpression &&type_expression) {
     return ast::TypedVariable {
-        .name            = std::move(name),
+        .name            = InternedString(std::move(name)),
         .type_expression = std::move(type_expression),
     };
   }
@@ -30,6 +30,20 @@ public:
     return std::make_pair(
         InternedString(field_name),
         std::make_unique<ast::Expression>(ast::ScalarValue<T> {.value = value}));
+  }
+
+  static ast::VarAccess
+  make_var_access(std::string &&var_identifier, std::vector<std::string> &&field_identifiers) {
+    ast::VarAccess result;
+    result.var_identifier = InternedString(std::move(var_identifier));
+
+    std::vector<InternedString> fields(field_identifiers.size());
+    for (auto &&field_identifier : field_identifiers) {
+      fields.emplace_back(std::move(field_identifier));
+    }
+    result.field_identifiers = std::move(fields);
+
+    return result;
   }
 
   static ast::ConstructedValue make_constructed_value(
@@ -48,9 +62,11 @@ public:
   }
 
   static ast::TypeExpression make_type_expression(
-      InternedString &&name,
+      std::string &&name,
       std::vector<std::unique_ptr<ast::Expression>> &&parameters) {
-    return ast::TypeExpression {.name = std::move(name), .parameters = std::move(parameters)};
+    return ast::TypeExpression {
+        .name       = InternedString(std::move(name)),
+        .parameters = std::move(parameters)};
   }
 
   static ast::Message make_message(
@@ -108,6 +124,41 @@ TEST(NameResolutionTest, GlobalNamesRepetition) {
   checker::ErrorList errors = checker::NameResolutionChecker()(ast);
 
   ASSERT_EQ(errors.size(), 2);
+
+  for (auto &error : errors) {
+    EXPECT_TRUE(expected_errors.contains(error.message));
+  }
+}
+
+TEST(NameResolutionTest, ConstructorRedeclaration) {
+  ast::AST ast;
+
+  ast::Constructor constructor_a = NameResolutionTest::make_constructor("Constructor1", {});
+  std::vector<ast::Constructor> outputs_a;
+  outputs_a.emplace_back(std::move(constructor_a));
+
+  std::vector<ast::Enum::Rule> patterns_a;
+  patterns_a.emplace_back(NameResolutionTest::make_rule({}, std::move(outputs_a)));
+
+  ast::Enum enum_a               = NameResolutionTest::make_enum("A", {}, std::move(patterns_a));
+  ast.enums[InternedString("A")] = std::move(enum_a);
+
+  ast::Constructor constructor_b = NameResolutionTest::make_constructor("Constructor1", {});
+  std::vector<ast::Constructor> outputs_b;
+  outputs_b.emplace_back(std::move(constructor_b));
+
+  std::vector<ast::Enum::Rule> patterns_b;
+  patterns_b.emplace_back(NameResolutionTest::make_rule({}, std::move(outputs_b)));
+
+  ast::Enum enum_b               = NameResolutionTest::make_enum("B", {}, std::move(patterns_b));
+  ast.enums[InternedString("B")] = std::move(enum_b);
+
+  std::unordered_set<std::string> expected_errors {
+      "Re-declaration of constructor: \"Constructor1\""};
+
+  checker::ErrorList errors = checker::NameResolutionChecker()(ast);
+
+  ASSERT_EQ(errors.size(), 1);
 
   for (auto &error : errors) {
     EXPECT_TRUE(expected_errors.contains(error.message));
@@ -270,6 +321,44 @@ TEST(NameResolutionTest, UnknownFieldOfConstructor) {
   checker::ErrorList errors = checker::NameResolutionChecker()(ast);
 
   ASSERT_EQ(errors.size(), 1);
+
+  for (auto &error : errors) {
+    EXPECT_TRUE(expected_errors.contains(error.message));
+  }
+}
+
+TEST(NameResolutionTest, UnknownVariable) {
+  ast::AST ast;
+
+  std::vector<ast::TypedVariable> message_vec_dependencies;
+  message_vec_dependencies.emplace_back(NameResolutionTest::make_simple_typed_variable("i", "Int"));
+  message_vec_dependencies.emplace_back(NameResolutionTest::make_simple_typed_variable("n", "Int"));
+  ast::Message message_vec =
+      NameResolutionTest::make_message("Vec", std::move(message_vec_dependencies), {});
+  ast.messages[InternedString("Vec")] = std::move(message_vec);
+
+  std::vector<std::unique_ptr<ast::Expression>> parameters;
+  parameters.emplace_back(
+      std::make_unique<ast::Expression>(NameResolutionTest::make_var_access("a", {})));
+  parameters.emplace_back(
+      std::make_unique<ast::Expression>(NameResolutionTest::make_var_access("b", {})));
+  ast::TypeExpression type_expression =
+      NameResolutionTest::make_type_expression("Vec", std::move(parameters));
+
+  std::vector<ast::TypedVariable> message_a_fields;
+  message_a_fields.emplace_back(
+      NameResolutionTest::make_typed_variable("field1", std::move(type_expression)));
+
+  ast::Message message_a = NameResolutionTest::make_message("A", {}, std::move(message_a_fields));
+  ast.messages[InternedString("A")] = std::move(message_a);
+
+  std::unordered_set<std::string> expected_errors {
+      "Undefined variable: \"a\"",
+      "Undefined variable: \"b\""};
+
+  checker::ErrorList errors = checker::NameResolutionChecker()(ast);
+
+  ASSERT_EQ(errors.size(), 2);
 
   for (auto &error : errors) {
     EXPECT_TRUE(expected_errors.contains(error.message));

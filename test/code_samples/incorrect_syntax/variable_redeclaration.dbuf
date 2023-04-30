@@ -1,7 +1,0 @@
-enum A {
-    Constructor1 {
-    }
-}
-
-message B (a A) (a A) {
-}

@@ -9,7 +9,7 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(dbufTests test.cc parser_test.cc positivity_test.cc)
+add_executable(dbufTests test.cc parser_test.cc positivity_test.cc name_resolution_test.cc)
 target_link_libraries(dbufTests PRIVATE core gtest gtest_main pthread)
 
 include(GoogleTest)
