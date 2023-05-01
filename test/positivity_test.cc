@@ -2,6 +2,7 @@
 #include "core/ast/expression.h"
 #include "core/checker/positivity_checker.h"
 #include "core/interning/interned_string.h"
+#include "location.hh"
 
 #include <exception>
 #include <filesystem>
@@ -18,12 +19,14 @@ public:
       std::string name,
       const std::vector<std::pair<std::string, std::string>> &dependencies) {
     ast::Message message {
-        .name = InternedString(std::move(name)),
+        {{parser::location(), InternedString(std::move(name))}},
     };
     for (const auto &[dep_name, dep_type] : dependencies) {
       message.type_dependencies.emplace_back(ast::TypedVariable {
-          .name            = InternedString(dep_name),
-          .type_expression = ast::TypeExpression {.name = InternedString(dep_type)}});
+          {InternedString(dep_name)},
+          ast::TypeExpression {
+              {parser::location()},
+              {parser::location(), InternedString(dep_type)}}});
     }
     return message;
   }
@@ -38,7 +41,8 @@ TEST(PositivityTest, SelfDependency) {
 
   ast::Message message_a = PositivityTest::make_message("A", {{"a", "A"}});
 
-  ast.messages.insert(std::make_pair(InternedString(message_a.name), std::move(message_a)));
+  ast.messages.insert(
+      std::make_pair(InternedString(message_a.identifier.name), std::move(message_a)));
 
   checker::PositivityChecker::Result result = checker::PositivityChecker()(ast);
 
@@ -56,8 +60,10 @@ TEST(PositivityTest, CoDependency) {
   ast::Message message_a = PositivityTest::make_message("A", {{"b", "B"}});
   ast::Message message_b = PositivityTest::make_message("B", {{"a", "A"}});
 
-  ast.messages.insert(std::make_pair(InternedString(message_a.name), std::move(message_a)));
-  ast.messages.insert(std::make_pair(InternedString(message_b.name), std::move(message_b)));
+  ast.messages.insert(
+      std::make_pair(InternedString(message_a.identifier.name), std::move(message_a)));
+  ast.messages.insert(
+      std::make_pair(InternedString(message_b.identifier.name), std::move(message_b)));
 
   checker::PositivityChecker::Result result = checker::PositivityChecker()(ast);
 
@@ -78,10 +84,14 @@ TEST(PositivityTest, DAG) {
   ast::Message message_c = PositivityTest::make_message("C", {{"d", "D"}});
   ast::Message message_d = PositivityTest::make_message("D", {});
 
-  ast.messages.insert(std::make_pair(InternedString(message_a.name), std::move(message_a)));
-  ast.messages.insert(std::make_pair(InternedString(message_b.name), std::move(message_b)));
-  ast.messages.insert(std::make_pair(InternedString(message_c.name), std::move(message_c)));
-  ast.messages.insert(std::make_pair(InternedString(message_d.name), std::move(message_d)));
+  ast.messages.insert(
+      std::make_pair(InternedString(message_a.identifier.name), std::move(message_a)));
+  ast.messages.insert(
+      std::make_pair(InternedString(message_b.identifier.name), std::move(message_b)));
+  ast.messages.insert(
+      std::make_pair(InternedString(message_c.identifier.name), std::move(message_c)));
+  ast.messages.insert(
+      std::make_pair(InternedString(message_d.identifier.name), std::move(message_d)));
 
   checker::PositivityChecker::Result result = checker::PositivityChecker()(ast);
 

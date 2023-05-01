@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/ast/ast.h"
+#include "core/ast/expression.h"
 #include "core/checker/common.h"
 #include "core/interning/interned_string.h"
 
@@ -25,7 +26,7 @@ struct NameResolutionChecker {
   void operator()(const ast::TypedVariable &variable, bool allow_shadowing);
 
 private:
-  using Field = std::pair<InternedString, std::unique_ptr<ast::Expression>>;
+  using Field = std::pair<ast::Identifier, std::unique_ptr<ast::Expression>>;
 
 public:
   void operator()(const Field &field);
