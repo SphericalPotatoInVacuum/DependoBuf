@@ -23,6 +23,10 @@ struct Identifier
     : ASTNode
     , NamedType {};
 
+struct Identifiable {
+  Identifier identifier;
+};
+
 /**
  * @brief Represents scalar values like numbers, booleans and strings
  *

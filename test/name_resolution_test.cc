@@ -3,6 +3,7 @@
 #include "core/checker/common.h"
 #include "core/checker/name_resolution_checker.h"
 #include "core/interning/interned_string.h"
+#include "location.hh"
 
 #include <gtest/gtest.h>
 #include <memory>
@@ -17,29 +18,28 @@ public:
   static ast::TypedVariable
   make_typed_variable(std::string &&name, ast::TypeExpression &&type_expression) {
     return ast::TypedVariable {
-        .name            = InternedString(std::move(name)),
-        .type_expression = std::move(type_expression),
+        {InternedString(std::move(name))},
+        std::move(type_expression),
     };
   }
 
   template <typename T>
-  static std::pair<InternedString, std::unique_ptr<ast::Expression>>
+  static std::pair<ast::Identifier, std::unique_ptr<ast::Expression>>
   make_field_assigment(std::string &&field_name, T value) {
-    std::unique_ptr<ast::Expression> ptr =
-        std::make_unique<ast::Expression>(ast::Value(ast::ScalarValue<T> {.value = value}));
+    std::unique_ptr<ast::Expression> ptr = std::make_unique<ast::Expression>(
+        ast::Value(ast::ScalarValue<T> {{parser::location()}, value}));
     return std::make_pair(
-        InternedString(field_name),
-        std::make_unique<ast::Expression>(ast::ScalarValue<T> {.value = value}));
+        ast::Identifier {parser::location(), InternedString(field_name)},
+        std::make_unique<ast::Expression>(ast::ScalarValue<T> {{parser::location()}, value}));
   }
 
   static ast::VarAccess
   make_var_access(std::string &&var_identifier, std::vector<std::string> &&field_identifiers) {
-    ast::VarAccess result;
-    result.var_identifier = InternedString(std::move(var_identifier));
+    ast::VarAccess result {{parser::location(), InternedString(std::move(var_identifier))}};
 
-    std::vector<InternedString> fields(field_identifiers.size());
+    std::vector<ast::Identifier> fields(field_identifiers.size());
     for (auto &&field_identifier : field_identifiers) {
-      fields.emplace_back(std::move(field_identifier));
+      fields.emplace_back(ast::Identifier {parser::location(), InternedString(field_identifier)});
     }
     result.field_identifiers = std::move(fields);
 
@@ -48,25 +48,29 @@ public:
 
   static ast::ConstructedValue make_constructed_value(
       std::string &&constructor_identifier,
-      std::vector<std::pair<InternedString, std::unique_ptr<ast::Expression>>> &&fields) {
+      std::vector<std::pair<ast::Identifier, std::unique_ptr<ast::Expression>>> &&fields) {
     return ast::ConstructedValue {
-        .constructor_identifier = InternedString(std::move(constructor_identifier)),
-        .fields                 = std::move(fields)};
+        {parser::location()},
+        ast::Identifier {{parser::location()}, InternedString(std::move(constructor_identifier))},
+        std::move(fields)};
   }
 
   static ast::TypedVariable make_simple_typed_variable(std::string &&name, std::string &&type) {
     return ast::TypedVariable {
-        .name            = InternedString(std::move(name)),
-        .type_expression = ast::TypeExpression {.name = InternedString(std::move(type))},
-    };
+        {InternedString(std::move(name))},
+        ast::TypeExpression {
+            {parser::location()},
+            {parser::location(), InternedString(std::move(type))},
+        }};
   }
 
   static ast::TypeExpression make_type_expression(
       std::string &&name,
       std::vector<std::unique_ptr<ast::Expression>> &&parameters) {
     return ast::TypeExpression {
-        .name       = InternedString(std::move(name)),
-        .parameters = std::move(parameters)};
+        {parser::location()},
+        {parser::location(), InternedString(std::move(name))},
+        std::move(parameters)};
   }
 
   static ast::Message make_message(
@@ -74,14 +78,16 @@ public:
       std::vector<ast::TypedVariable> &&type_dependencies,
       std::vector<ast::TypedVariable> &&fields) {
     return ast::Message {
-        .name              = InternedString(std::move(name)),
-        .type_dependencies = std::move(type_dependencies),
-        .fields            = std::move(fields)};
+        {{parser::location(), InternedString(std::move(name))}},
+        {std::move(type_dependencies)},
+        {std::move(fields)}};
   }
 
   static ast::Constructor
   make_constructor(std::string &&name, std::vector<ast::TypedVariable> &&fields) {
-    return ast::Constructor {.name = InternedString(std::move(name)), .fields = std::move(fields)};
+    return ast::Constructor {
+        {parser::location(), InternedString(std::move(name))},
+        {std::move(fields)}};
   }
 
   static ast::Enum make_enum(
@@ -89,9 +95,9 @@ public:
       std::vector<ast::TypedVariable> &&type_dependencies,
       std::vector<ast::Enum::Rule> &&pattern_mapping) {
     return ast::Enum {
-        .name              = InternedString(std::move(name)),
-        .type_dependencies = std::move(type_dependencies),
-        .pattern_mapping   = std::move(pattern_mapping)};
+        {{parser::location(), InternedString(std::move(name))}},
+        {std::move(type_dependencies)},
+        {std::move(pattern_mapping)}};
   }
 
   static ast::Enum::Rule make_rule(
@@ -179,15 +185,15 @@ TEST(NameResolutionTest, UnknownTypename) {
   ast.messages[InternedString("A")] = std::move(message_a);
 
   std::unordered_set<std::string> expected_errors {
-      "Undefined type name: \"B\"",
-      "Undefined type name: \"C\""};
+      "Undefined type name: \"B\" at 1.1",
+      "Undefined type name: \"C\" at 1.1"};
 
   checker::ErrorList errors = checker::NameResolutionChecker()(ast);
 
   ASSERT_EQ(errors.size(), 2);
 
   for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message));
+    EXPECT_TRUE(expected_errors.contains(error.message)) << error.message;
   }
 }
 
@@ -209,7 +215,7 @@ TEST(NameResolutionTest, FieldRedeclaration) {
   outputs.emplace_back(
       NameResolutionTest::make_constructor("Constructor1", std::move(constructor_fields)));
   std::vector<ast::Enum::Rule::InputPattern> inputs;
-  inputs.emplace_back(ast::Star {});
+  inputs.emplace_back(ast::Star {parser::location()});
   std::vector<ast::Enum::Rule> patterns;
   patterns.emplace_back(
       ast::Enum::Rule {.inputs = std::move(inputs), .outputs = std::move(outputs)});
@@ -227,7 +233,7 @@ TEST(NameResolutionTest, FieldRedeclaration) {
   ASSERT_EQ(errors.size(), 3);
 
   for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message));
+    EXPECT_TRUE(expected_errors.contains(error.message)) << error.message;
   }
 }
 
@@ -273,7 +279,7 @@ TEST(NameResolutionTest, UnknownConstructor) {
   ASSERT_EQ(errors.size(), 1);
 
   for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message));
+    EXPECT_TRUE(expected_errors.contains(error.message)) << error.message;
   }
 }
 
@@ -296,7 +302,7 @@ TEST(NameResolutionTest, UnknownFieldOfConstructor) {
 
   std::vector<ast::TypedVariable> enum2_fields;
 
-  std::vector<std::pair<InternedString, std::unique_ptr<ast::Expression>>> enum2_fields_assigment;
+  std::vector<std::pair<ast::Identifier, std::unique_ptr<ast::Expression>>> enum2_fields_assigment;
   enum2_fields_assigment.emplace_back(NameResolutionTest::make_field_assigment("field1", false));
   enum2_fields_assigment.emplace_back(
       NameResolutionTest::make_field_assigment("field2", std::string("string")));
@@ -323,7 +329,7 @@ TEST(NameResolutionTest, UnknownFieldOfConstructor) {
   ASSERT_EQ(errors.size(), 1);
 
   for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message));
+    EXPECT_TRUE(expected_errors.contains(error.message)) << error.message;
   }
 }
 
@@ -353,15 +359,15 @@ TEST(NameResolutionTest, UnknownVariable) {
   ast.messages[InternedString("A")] = std::move(message_a);
 
   std::unordered_set<std::string> expected_errors {
-      "Undefined variable: \"a\"",
-      "Undefined variable: \"b\""};
+      "Undefined variable: \"a\" at 1.1",
+      "Undefined variable: \"b\" at 1.1"};
 
   checker::ErrorList errors = checker::NameResolutionChecker()(ast);
 
   ASSERT_EQ(errors.size(), 2);
 
   for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message));
+    EXPECT_TRUE(expected_errors.contains(error.message)) << error.message;
   }
 }
 

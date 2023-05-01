@@ -25,16 +25,16 @@ struct TypeWithFields {
 };
 
 struct Constructor
-    : NamedType
+    : Identifiable
     , TypeWithFields {};
 
 struct Message
-    : NamedType
+    : Identifiable
     , DependentType
     , TypeWithFields {};
 
 struct Enum
-    : NamedType
+    : Identifiable
     , DependentType {
   struct Rule {
     using InputPattern = std::variant<Value, Star>;

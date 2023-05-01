@@ -18,7 +18,7 @@ void PositivityChecker::operator()(const ast::BinaryExpression &expr) {
 }
 
 void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
-  dependency_graph_[current_type_].insert(type_expression.name);
+  dependency_graph_[current_type_].insert(type_expression.identifier.name);
   for (const auto &parameter : type_expression.parameters) {
     std::visit(*this, *parameter);
   }
@@ -26,7 +26,7 @@ void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
 
 PositivityChecker::Result PositivityChecker::operator()(const ast::AST &ast) {
   for (const auto &[_, message] : ast.messages) {
-    current_type_ = message.name;
+    current_type_ = message.identifier.name;
     for (const auto &dep : message.type_dependencies) {
       (*this)(dep.type_expression);
     }
@@ -42,9 +42,9 @@ PositivityChecker::Result PositivityChecker::TopSortGraph() const {
   std::stringstream message_stream;
   Result result;
 
-  for (const auto &[name, _] : dependency_graph_) {
-    if (!node_states.contains(name)) {
-      std::vector<InternedString> cycle = Visit(name, sorted, node_states);
+  for (const auto &[type_name, _] : dependency_graph_) {
+    if (!node_states.contains(type_name)) {
+      std::vector<InternedString> cycle = Visit(type_name, sorted, node_states);
 
       if (!cycle.empty()) {
         message_stream << "Found dependency cycle: ";

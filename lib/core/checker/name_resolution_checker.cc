@@ -1,6 +1,7 @@
 #include "core/checker/name_resolution_checker.h"
 
 #include <algorithm>
+#include <sstream>
 
 namespace dbuf::checker {
 
@@ -67,21 +68,22 @@ void NameResolutionChecker::operator()(const ast::TypedVariable &variable, bool 
 
 void NameResolutionChecker::operator()(const Field &field) {
   std::visit(*this, *field.second);
-  AddName(field.first, "field", true);
+  AddName(field.first.name, "field", true);
 }
 
 void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
-  if (!IsInScope(value.constructor_identifier)) {
+  if (!IsInScope(value.constructor_identifier.name)) {
     errors_.emplace_back(Error {
-        .message = "Undefined constructor: \"" + value.constructor_identifier.GetString() + "\""});
+        .message =
+            "Undefined constructor: \"" + value.constructor_identifier.name.GetString() + "\""});
   }
   PushScope();
 
   for (const auto &field : value.fields) {
-    if (!constructors_fields_[value.constructor_identifier].contains(field.first)) {
+    if (!constructors_fields_[value.constructor_identifier.name].contains(field.first.name)) {
       errors_.emplace_back(Error {
-          .message = "No field with name " + field.first.GetString() + " in constructor " +
-                     value.constructor_identifier.GetString()});
+          .message = "No field with name " + field.first.name.GetString() + " in constructor " +
+                     value.constructor_identifier.name.GetString()});
     }
 
     (*this)(field);
@@ -105,8 +107,11 @@ void NameResolutionChecker::operator()(const ast::UnaryExpression &expr) {
 }
 
 void NameResolutionChecker::operator()(const ast::TypeExpression &expr) {
-  if (!IsInScope(expr.name)) {
-    errors_.push_back({"Undefined type name: \"" + expr.name.GetString() + "\""});
+  if (!IsInScope(expr.identifier.name)) {
+    std::stringstream ms;
+    ms << "Undefined type name: \"" << expr.identifier.name.GetString() << "\" at "
+       << expr.identifier.location;
+    errors_.emplace_back(Error {.message = ms.str()});
   }
 
   for (const auto &parameter : expr.parameters) {
@@ -115,8 +120,11 @@ void NameResolutionChecker::operator()(const ast::TypeExpression &expr) {
 }
 
 void NameResolutionChecker::operator()(const ast::VarAccess &var_access) {
-  if (!IsInScope(var_access.var_identifier)) {
-    errors_.push_back({"Undefined variable: \"" + var_access.var_identifier.GetString() + "\""});
+  if (!IsInScope(var_access.var_identifier.name)) {
+    std::stringstream ms;
+    ms << "Undefined variable: \"" << var_access.var_identifier.name.GetString() << "\" at "
+       << var_access.var_identifier.location;
+    errors_.emplace_back(Error {.message = ms.str()});
   }
 }
 
@@ -150,7 +158,7 @@ NameResolutionChecker::GetConstructorFields(const ast::AST &ast) {
     for (const auto &pattern : ast_enum.second.pattern_mapping) {
       for (const auto &constructor : pattern.outputs) {
         for (const auto &field : constructor.fields) {
-          constructor_to_fields_names[constructor.name].insert(field.name);
+          constructor_to_fields_names[constructor.identifier.name].insert(field.name);
         }
       }
     }
@@ -179,7 +187,7 @@ void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
     AddName(ast_enum.first, "enum", false);
     for (const auto &pattern : ast_enum.second.pattern_mapping) {
       for (const auto &constructor : pattern.outputs) {
-        AddName(constructor.name, "constructor", false);
+        AddName(constructor.identifier.name, "constructor", false);
       }
     }
   }
