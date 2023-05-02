@@ -1,0 +1,9 @@
+enum A {
+    Constructor1 {
+    }
+}
+
+enum B {
+    Constructor1 {
+    }
+}
