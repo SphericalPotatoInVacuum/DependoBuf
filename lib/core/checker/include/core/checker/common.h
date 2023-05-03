@@ -2,13 +2,13 @@
 
 #include "core/interning/interned_string.h"
 
+#include <map>
+#include <set>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 
 namespace dbuf::checker {
 
-using DependencyGraph = std::unordered_map<InternedString, std::unordered_set<InternedString>>;
+using DependencyGraph = std::map<InternedString, std::set<InternedString>>;
 
 struct Error {
   std::string message;

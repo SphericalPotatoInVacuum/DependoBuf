@@ -23,6 +23,7 @@ public:
   [[nodiscard]] const std::string &GetString() const;
 
   bool operator==(const InternedString &other) const;
+  bool operator<(const InternedString &other) const;
 
 private:
   static constexpr uint64_t kInvalidId = std::numeric_limits<uint64_t>::max();

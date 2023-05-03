@@ -5,7 +5,7 @@
 #include "core/checker/common.h"
 #include "core/interning/interned_string.h"
 
-#include <unordered_map>
+#include <map>
 #include <vector>
 
 namespace dbuf::checker {
@@ -17,6 +17,7 @@ public:
     ErrorList errors;
   };
 
+  void operator()(const ast::Star & /* star */);
   void operator()(const ast::Value & /* value */);
 
   void operator()(const ast::VarAccess & /* var_access */);
@@ -37,10 +38,11 @@ private:
   std::vector<InternedString> Visit( // NOLINT(misc-no-recursion)
       const InternedString &name,
       std::vector<InternedString> &sorted,
-      std::unordered_map<InternedString, NodeState> &node_states) const;
+      std::map<InternedString, NodeState> &node_states) const;
 
   DependencyGraph dependency_graph_;
   InternedString current_type_;
+  bool add_self_;
 };
 
 }; // namespace dbuf::checker
