@@ -1,0 +1,10 @@
+enum List (n Uint32) {
+  0 => {
+  }
+  * => {
+    ListNode {
+      value Int32
+      tail List (n - 1)
+    }
+  }
+}

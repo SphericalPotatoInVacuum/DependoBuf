@@ -1,0 +1,17 @@
+message A (b B) (d D) {
+}
+
+enum B (c C) {
+  * => {
+    Constructor {
+    }
+  }
+}
+
+message C (a A) (d D) {
+}
+
+enum D {
+  Constructor2 {
+  }
+}
