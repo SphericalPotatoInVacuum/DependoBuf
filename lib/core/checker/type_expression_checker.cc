@@ -1,6 +1,8 @@
 #include "type_expression_checker.h"
 
 #include "core/ast/ast.h"
+#include "core/ast/expression.h"
+#include "location.hh"
 
 #include <string>
 #include <vector>
@@ -14,7 +16,7 @@ void TypeExpressionChecker::GetConstructorToEnum() {
   for (const auto &ast_enum : ast_.enums) {
     for (const auto &rule : ast_enum.second.pattern_mapping) {
       for (const auto &constructor : rule.outputs) {
-        constructor_to_enum_[constructor.name] = ast_enum.second.name;
+        constructor_to_enum_[constructor.identifier.name] = ast_enum.second.identifier.name;
       }
     }
   }
@@ -48,23 +50,23 @@ void TypeExpressionChecker::AddName(InternedString name, InternedString type) {
 void TypeExpressionChecker::operator()(
     const ast::TypeExpression &expected_type,
     const ast::VarAccess &expression) {
-  if (!IsInScope(expression.var_identifier)) {
-    errors_.emplace_back(
-        Error {.message = "Undefined variable: \"" + expression.var_identifier.GetString() + "\""});
+  if (!IsInScope(expression.var_identifier.name)) {
+    errors_.emplace_back(Error {
+        .message = "Undefined variable: \"" + expression.var_identifier.name.GetString() + "\""});
     return;
   }
 
   if (expression.field_identifiers.empty()) {
-    operator()(expected_type, scopes_.back()[expression.var_identifier]);
+    operator()(expected_type, scopes_.back()[expression.var_identifier.name]);
     return;
   }
 
-  InternedString message_name   = scopes_.back()[expression.var_identifier];
-  InternedString expected_field = expression.field_identifiers[0];
+  InternedString message_name   = scopes_.back()[expression.var_identifier.name];
+  InternedString expected_field = expression.field_identifiers[0].name;
   bool found                    = false;
   PushScope();
   for (auto &dependencie : ast_.messages[message_name].type_dependencies) {
-    AddName(dependencie.name, dependencie.type_expression.name);
+    AddName(dependencie.name, dependencie.type_expression.identifier.name);
     if (dependencie.name == expected_field) {
       found = true;
       break;
@@ -73,7 +75,7 @@ void TypeExpressionChecker::operator()(
 
   if (!found) {
     for (auto &field : ast_.messages[message_name].fields) {
-      AddName(field.name, field.type_expression.name);
+      AddName(field.name, field.type_expression.identifier.name);
       if (field.name == expected_field) {
         found = true;
         break;
@@ -82,8 +84,8 @@ void TypeExpressionChecker::operator()(
   }
 
   ast::VarAccess var_access;
-  var_access.var_identifier    = expected_field;
-  var_access.field_identifiers = std::vector<InternedString>();
+  var_access.var_identifier    = {parser::location(), expected_field};
+  var_access.field_identifiers = std::vector<ast::Identifier>();
   for (size_t id = 1; id < expression.field_identifiers.size(); ++id) {
     var_access.field_identifiers.push_back(expression.field_identifiers[id]);
   }
@@ -96,10 +98,11 @@ void TypeExpressionChecker::operator()(
 void TypeExpressionChecker::operator()(
     const ast::TypeExpression &expected_type,
     const ast::TypeExpression &expression) {
-  if (expected_type.name != expression.name) {
+  if (expected_type.identifier.name != expression.identifier.name) {
     errors_.emplace_back(Error {
-        .message = "Got type \"" + expression.name.GetString() + "\", but expected type is \"" +
-                   expected_type.name.GetString() + "\""});
+        .message = "Got type \"" + expression.identifier.name.GetString() +
+                   "\", but expected type is \"" + expected_type.identifier.name.GetString() +
+                   "\""});
     return;
   }
 
@@ -118,12 +121,13 @@ void TypeExpressionChecker::operator()(
 void TypeExpressionChecker::operator()(
     const ast::TypeExpression &expected_type,
     const ast::ConstructedValue &value) {
-  InternedString enum_identifier = constructor_to_enum_[value.constructor_identifier];
+  InternedString enum_identifier = constructor_to_enum_[value.constructor_identifier.name];
 
-  if (enum_identifier != expected_type.name) {
+  if (enum_identifier != expected_type.identifier.name) {
     errors_.emplace_back(Error {
         .message = "Got value of type \"" + enum_identifier.GetString() +
-                   "\", but expected type is \"" + expected_type.name.GetString() + "\""});
+                   "\", but expected type is \"" + expected_type.identifier.name.GetString() +
+                   "\""});
     return;
   }
 
@@ -137,7 +141,7 @@ void TypeExpressionChecker::operator()(
   if (type_expression.parameters.size() != type_dependencies.size()) {
     errors_.emplace_back(Error {
         .message = "Expected " + std::to_string(type_dependencies.size()) +
-                   " parameters for typename \"" + type_expression.name.GetString() +
+                   " parameters for typename \"" + type_expression.identifier.name.GetString() +
                    "\", but got " + std::to_string(type_expression.parameters.size())});
     return;
   }
@@ -154,13 +158,13 @@ void TypeExpressionChecker::operator()(
     for (const auto &dependencie : ast_message.second.type_dependencies) {
       (*this)(dependencie.type_expression);
 
-      AddName(dependencie.name, dependencie.type_expression.name);
+      AddName(dependencie.name, dependencie.type_expression.identifier.name);
     }
 
     for (const auto &field : ast_message.second.fields) {
       (*this)(field.type_expression);
 
-      AddName(field.name, field.type_expression.name);
+      AddName(field.name, field.type_expression.identifier.name);
     }
     PopScope();
   }
@@ -171,14 +175,14 @@ void TypeExpressionChecker::operator()(const std::unordered_map<InternedString, 
     for (const auto &dependencie : ast_enum.second.type_dependencies) {
       (*this)(dependencie.type_expression);
 
-      AddName(dependencie.name, dependencie.type_expression.name);
+      AddName(dependencie.name, dependencie.type_expression.identifier.name);
     }
 
     for (const auto &pattern : ast_enum.second.pattern_mapping) {
       for (const auto &output : pattern.outputs) {
         for (const auto &field : output.fields) {
           (*this)(field.type_expression);
-          AddName(field.name, field.type_expression.name);
+          AddName(field.name, field.type_expression.identifier.name);
         }
       }
     }
@@ -194,18 +198,18 @@ void TypeExpressionChecker::operator()() {
 }
 
 void TypeExpressionChecker::operator()(const ast::TypeExpression &type_expression) {
-  if (!IsTypeName(type_expression.name)) {
-    errors_.emplace_back(
-        Error {.message = "Unknown typename: \"" + type_expression.name.GetString() + "\""});
+  if (!IsTypeName(type_expression.identifier.name)) {
+    errors_.emplace_back(Error {
+        .message = "Unknown typename: \"" + type_expression.identifier.name.GetString() + "\""});
     return;
   }
 
-  auto it_message = ast_.messages.find(type_expression.name);
+  auto it_message = ast_.messages.find(type_expression.identifier.name);
   if (it_message != ast_.messages.end()) {
     (*this)(it_message->second.type_dependencies, type_expression);
   }
 
-  auto it_enum = ast_.enums.find(type_expression.name);
+  auto it_enum = ast_.enums.find(type_expression.identifier.name);
   if (it_enum != ast_.enums.end()) {
     (*this)(it_enum->second.type_dependencies, type_expression);
   }
