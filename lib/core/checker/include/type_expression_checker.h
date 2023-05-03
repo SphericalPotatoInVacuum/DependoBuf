@@ -35,10 +35,11 @@ class TypeExpressionChecker {
 
   template <typename T>
   void operator()(const ast::TypeExpression &expected_type, const ast::ScalarValue<T> &value) {
-    if (expected_type.name != GetTypename(value)) {
+    if (expected_type.identifier.name != GetTypename(value)) {
       errors_.emplace_back(Error {
           .message = "Got value of type \"" + GetTypename(value).GetString() +
-                     "\", but expected type is \"" + expected_type.name.GetString() + "\""});
+                     "\", but expected type is \"" + expected_type.identifier.name.GetString() +
+                     "\""});
       return;
     }
   }
