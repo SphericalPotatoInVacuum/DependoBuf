@@ -1,100 +1,92 @@
 #include "core/ast/ast.h"
-#include "core/ast/expression.h"
 #include "core/checker/positivity_checker.h"
-#include "core/interning/interned_string.h"
-#include "location.hh"
+#include "core/parser/parse_helper.h"
 
+#include <cstring>
 #include <exception>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <ios>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace dbuf {
 
-class PositivityTest : public ::testing::TestSuite {
-public:
-  static ast::Message make_message(
-      std::string name,
-      const std::vector<std::pair<std::string, std::string>> &dependencies) {
-    ast::Message message {
-        {{parser::location(), InternedString(std::move(name))}},
-    };
-    for (const auto &[dep_name, dep_type] : dependencies) {
-      message.type_dependencies.emplace_back(ast::TypedVariable {
-          {InternedString(dep_name)},
-          ast::TypeExpression {
-              {parser::location()},
-              {parser::location(), InternedString(dep_type)}}});
-    }
-    return message;
+const std::string kSamplesPath = "../../test/code_samples/incorrect_syntax/";
+
+using ParamTuple = std::tuple<std::string_view, std::string_view>;
+
+class WellFoundednessTest : public ::testing::TestWithParam<ParamTuple> {
+protected:
+  static void SetUpTestSuite() {}
+
+  static void TearDownTestSuite() {}
+
+  void SetUp() override {
+    input_file_.open(std::get<0>(GetParam()), std::ios_base::in);
+    ASSERT_TRUE(input_file_.is_open())
+        << "Could not open input file: " << strerror(errno) << std::endl;
+
+    ast_          = new dbuf::ast::AST();
+    parse_helper_ = new dbuf::parser::ParseHelper(input_file_, std::cout, ast_);
   }
+
+  void TearDown() override {
+    delete parse_helper_;
+    parse_helper_ = nullptr;
+
+    delete ast_;
+    ast_ = nullptr;
+
+    input_file_.close();
+  }
+
+  static dbuf::parser::ParseHelper *parse_helper_;
+  static dbuf::ast::AST *ast_;
+  static std::ifstream input_file_;
 };
 
-/**
- * @brief Test that a dependency cycle between a message and itself is detected.
- *
- */
-TEST(PositivityTest, SelfDependency) {
-  ast::AST ast;
+dbuf::parser::ParseHelper *WellFoundednessTest::parse_helper_ = nullptr;
+dbuf::ast::AST *WellFoundednessTest::ast_                     = nullptr;
+std::ifstream WellFoundednessTest::input_file_;
 
-  ast::Message message_a = PositivityTest::make_message("A", {{"a", "A"}});
+TEST_P(WellFoundednessTest, TypeDependencyCycleDetection) {
+  ASSERT_NO_THROW(parse_helper_->Parse());
 
-  ast.messages.insert(
-      std::make_pair(InternedString(message_a.identifier.name), std::move(message_a)));
+  checker::PositivityChecker::Result result = checker::PositivityChecker()(*ast_);
 
-  checker::PositivityChecker::Result result = checker::PositivityChecker()(ast);
-
-  ASSERT_EQ(result.errors.size(), 1);
-  EXPECT_EQ(result.errors[0].message, "Found dependency cycle: A -> A");
+  if (std::get<1>(GetParam()).empty()) {
+    ASSERT_EQ(result.errors.size(), 0) << std::get<1>(GetParam());
+  } else {
+    ASSERT_EQ(result.errors.size(), 1);
+    EXPECT_EQ(result.errors[0].message, std::get<1>(GetParam()));
+  }
 }
 
-/**
- * @brief Test that a dependency cycle between two messages is detected.
- *
- */
-TEST(PositivityTest, CoDependency) {
-  ast::AST ast;
+INSTANTIATE_TEST_SUITE_P(
+    TypeDependencyCycleDetection,
+    WellFoundednessTest,
+    testing::Values(
+        ParamTuple(
+            "../../test/code_samples/incorrect_syntax/wf_message_self.dbuf",
+            "Found dependency cycle: A -> A"),
+        ParamTuple(
+            "../../test/code_samples/incorrect_syntax/wf_enum_self.dbuf",
+            "Found dependency cycle: A -> A"),
+        ParamTuple(
+            "../../test/code_samples/incorrect_syntax/wf_message_other.dbuf",
+            "Found dependency cycle: A -> B -> A"),
+        ParamTuple(
+            "../../test/code_samples/incorrect_syntax/wf_enum_other.dbuf",
+            "Found dependency cycle: A -> B -> A"),
+        ParamTuple(
+            "../../test/code_samples/incorrect_syntax/wf_mixed.dbuf",
+            "Found dependency cycle: A -> B -> C -> D -> A"),
+        ParamTuple("../../test/code_samples/incorrect_syntax/wf_enum_field_self.dbuf", ""),
+        ParamTuple(
+            "../../test/code_samples/incorrect_syntax/wf_mixed_field.dbuf",
+            "Found dependency cycle: A ->  C -> B -> A")));
 
-  ast::Message message_a = PositivityTest::make_message("A", {{"b", "B"}});
-  ast::Message message_b = PositivityTest::make_message("B", {{"a", "A"}});
-
-  ast.messages.insert(
-      std::make_pair(InternedString(message_a.identifier.name), std::move(message_a)));
-  ast.messages.insert(
-      std::make_pair(InternedString(message_b.identifier.name), std::move(message_b)));
-
-  checker::PositivityChecker::Result result = checker::PositivityChecker()(ast);
-
-  ASSERT_EQ(result.errors.size(), 1);
-  EXPECT_EQ(result.errors[0].message, "Found dependency cycle: A -> B -> A");
-}
-
-/**
- * @brief Test that a no cycles found in the DAG.
- *
- */
-TEST(PositivityTest, DAG) {
-  ast::AST ast;
-
-  ast::Message message_a = PositivityTest::make_message("A", {{"b", "B"}, {"c", "C"}});
-  ast::Message message_b = PositivityTest::make_message("B", {{"c", "C"}, {"d", "D"}});
-
-  ast::Message message_c = PositivityTest::make_message("C", {{"d", "D"}});
-  ast::Message message_d = PositivityTest::make_message("D", {});
-
-  ast.messages.insert(
-      std::make_pair(InternedString(message_a.identifier.name), std::move(message_a)));
-  ast.messages.insert(
-      std::make_pair(InternedString(message_b.identifier.name), std::move(message_b)));
-  ast.messages.insert(
-      std::make_pair(InternedString(message_c.identifier.name), std::move(message_c)));
-  ast.messages.insert(
-      std::make_pair(InternedString(message_d.identifier.name), std::move(message_d)));
-
-  checker::PositivityChecker::Result result = checker::PositivityChecker()(ast);
-
-  ASSERT_EQ(result.errors.size(), 0);
-}
-}; // namespace dbuf
+} // namespace dbuf

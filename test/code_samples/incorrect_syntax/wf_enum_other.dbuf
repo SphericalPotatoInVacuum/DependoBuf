@@ -1,0 +1,5 @@
+enum A (b B) {
+}
+
+enum B (a A) {
+}
