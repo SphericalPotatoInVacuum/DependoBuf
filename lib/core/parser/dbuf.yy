@@ -111,17 +111,17 @@ schema
 
 definition
   : message_definition {
-    if (ast->messages.contains($1.name)) {
-      throw syntax_error(@1, "Duplicate message definition: " + $1.name.GetString());
+    if (ast->messages.contains($1.identifier.name)) {
+      throw syntax_error(@1, "Duplicate message definition: " + $1.identifier.name.GetString());
     }
-    InternedString name($1.name);
+    InternedString name($1.identifier.name);
     ast->messages.insert(std::make_pair(name, std::move($1)));
   }
   | enum_definition {
-    if (ast->enums.contains($1.name)) {
-      throw syntax_error(@1, "Duplicate enum definition: " + $1.name.GetString());
+    if (ast->enums.contains($1.identifier.name)) {
+      throw syntax_error(@1, "Duplicate enum definition: " + $1.identifier.name.GetString());
     }
-    InternedString name($1.name);
+    InternedString name($1.identifier.name);
     ast->enums.insert(std::make_pair(name, std::move($1)));
   }
   | service_definition
