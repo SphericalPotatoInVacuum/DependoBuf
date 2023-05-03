@@ -42,6 +42,13 @@ bool InternedString::operator==(const InternedString &other) const {
   return id_ == other.id_;
 }
 
+bool InternedString::operator<(const InternedString &other) const {
+  if (id_ == kInvalidId || other.id_ == kInvalidId) {
+    throw std::runtime_error("InternedString id not initialized");
+  }
+  return GetString() < other.GetString();
+}
+
 std::unordered_map<std::string, uint64_t> InternedString::string_map_;
 std::unordered_map<uint64_t, std::reference_wrapper<const std::string>> InternedString::id_map_;
 

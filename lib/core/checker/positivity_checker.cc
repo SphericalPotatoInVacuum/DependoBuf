@@ -1,9 +1,11 @@
 #include "core/checker/positivity_checker.h"
 
+#include <map>
 #include <sstream>
 
 namespace dbuf::checker {
 
+void PositivityChecker::operator()(const ast::Star & /* star */) {}
 void PositivityChecker::operator()(const ast::Value & /* value */) {}
 
 void PositivityChecker::operator()(const ast::VarAccess & /* var_access */) {}
@@ -18,7 +20,9 @@ void PositivityChecker::operator()(const ast::BinaryExpression &expr) {
 }
 
 void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
-  dependency_graph_[current_type_].insert(type_expression.identifier.name);
+  if (add_self_ || type_expression.identifier.name != current_type_) {
+    dependency_graph_[current_type_].insert(type_expression.identifier.name);
+  }
   for (const auto &parameter : type_expression.parameters) {
     std::visit(*this, *parameter);
   }
@@ -27,8 +31,33 @@ void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
 PositivityChecker::Result PositivityChecker::operator()(const ast::AST &ast) {
   for (const auto &[_, message] : ast.messages) {
     current_type_ = message.identifier.name;
+    add_self_     = true;
     for (const auto &dep : message.type_dependencies) {
       (*this)(dep.type_expression);
+    }
+    add_self_ = false;
+    for (const auto &field : message.fields) {
+      (*this)(field.type_expression);
+    }
+  }
+
+  for (const auto &[_, enum_] : ast.enums) {
+    current_type_ = enum_.identifier.name;
+    add_self_     = true;
+    for (const auto &dep : enum_.type_dependencies) {
+      (*this)(dep.type_expression);
+    }
+    for (const auto &rule : enum_.pattern_mapping) {
+      add_self_ = true;
+      for (const auto &input : rule.inputs) {
+        std::visit(*this, input);
+      }
+      add_self_ = false;
+      for (const auto &output : rule.outputs) {
+        for (const auto &field : output.fields) {
+          (*this)(field.type_expression);
+        }
+      }
     }
   }
 
@@ -37,7 +66,7 @@ PositivityChecker::Result PositivityChecker::operator()(const ast::AST &ast) {
 
 PositivityChecker::Result PositivityChecker::TopSortGraph() const {
   std::vector<InternedString> sorted;
-  std::unordered_map<InternedString, NodeState> node_states;
+  std::map<InternedString, NodeState> node_states;
 
   std::stringstream message_stream;
   Result result;
@@ -72,7 +101,7 @@ PositivityChecker::Result PositivityChecker::TopSortGraph() const {
 std::vector<InternedString> PositivityChecker::Visit( // NOLINT(misc-no-recursion)
     const InternedString &name,
     std::vector<InternedString> &sorted,
-    std::unordered_map<InternedString, NodeState> &node_states) const {
+    std::map<InternedString, NodeState> &node_states) const {
   if (!dependency_graph_.contains(name)) {
     return {};
   }

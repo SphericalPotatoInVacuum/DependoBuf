@@ -1,13 +1,13 @@
 message A {
-  c C (Constructor {
-  })
+  c C (Constructor {})
 }
 
 enum B (a A) {
-  Constructor
+  * => {
+    Constructor {
+    }
+  }
 }
 
-message C (b B (A {
-  c C (Constructor {
-  })
-}))
+message C (b B (A {c: C (Constructor {})})) {
+}
