@@ -24,9 +24,9 @@ public:
   }
 
   template <typename T>
-  static std::pair<ast::Identifier, std::unique_ptr<ast::Expression>>
+  static std::pair<ast::Identifier, std::shared_ptr<const ast::Expression>>
   make_field_assigment(std::string &&field_name, T value) {
-    std::unique_ptr<ast::Expression> ptr = std::make_unique<ast::Expression>(
+    std::shared_ptr<const ast::Expression> ptr = std::make_unique<ast::Expression>(
         ast::Value(ast::ScalarValue<T> {{parser::location()}, value}));
     return std::make_pair(
         ast::Identifier {parser::location(), InternedString(field_name)},
@@ -48,7 +48,7 @@ public:
 
   static ast::ConstructedValue make_constructed_value(
       std::string &&constructor_identifier,
-      std::vector<std::pair<ast::Identifier, std::unique_ptr<ast::Expression>>> &&fields) {
+      std::vector<std::pair<ast::Identifier, std::shared_ptr<const ast::Expression>>> &&fields) {
     return ast::ConstructedValue {
         {parser::location()},
         ast::Identifier {{parser::location()}, InternedString(std::move(constructor_identifier))},
@@ -66,7 +66,7 @@ public:
 
   static ast::TypeExpression make_type_expression(
       std::string &&name,
-      std::vector<std::unique_ptr<ast::Expression>> &&parameters) {
+      std::vector<std::shared_ptr<const ast::Expression>> &&parameters) {
     return ast::TypeExpression {
         {parser::location()},
         {parser::location(), InternedString(std::move(name))},
@@ -302,7 +302,8 @@ TEST(NameResolutionTest, UnknownFieldOfConstructor) {
 
   std::vector<ast::TypedVariable> enum2_fields;
 
-  std::vector<std::pair<ast::Identifier, std::unique_ptr<ast::Expression>>> enum2_fields_assigment;
+  std::vector<std::pair<ast::Identifier, std::shared_ptr<const ast::Expression>>>
+      enum2_fields_assigment;
   enum2_fields_assigment.emplace_back(NameResolutionTest::make_field_assigment("field1", false));
   enum2_fields_assigment.emplace_back(
       NameResolutionTest::make_field_assigment("field2", std::string("string")));
@@ -343,7 +344,7 @@ TEST(NameResolutionTest, UnknownVariable) {
       NameResolutionTest::make_message("Vec", std::move(message_vec_dependencies), {});
   ast.messages[InternedString("Vec")] = std::move(message_vec);
 
-  std::vector<std::unique_ptr<ast::Expression>> parameters;
+  std::vector<std::shared_ptr<const ast::Expression>> parameters;
   parameters.emplace_back(
       std::make_unique<ast::Expression>(NameResolutionTest::make_var_access("a", {})));
   parameters.emplace_back(

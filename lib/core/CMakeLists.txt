@@ -2,6 +2,7 @@ add_subdirectory(ast)
 add_subdirectory(checker)
 add_subdirectory(interning)
 add_subdirectory(parser)
+add_subdirectory(substitutor)
 
 add_library(core
   driver.cc
@@ -14,4 +15,5 @@ target_link_libraries(core PUBLIC
   ast
   parser
   checker
+  substitutor
 )

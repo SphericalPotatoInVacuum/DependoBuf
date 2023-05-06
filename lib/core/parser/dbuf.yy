@@ -21,7 +21,7 @@
   namespace dbuf::parser {
     class Lexer;
 
-    using ExprPtr = std::unique_ptr<ast::Expression>;
+    using ExprPtr = std::shared_ptr<const ast::Expression>;
 
     uint64_t get_error_count();
   }
@@ -252,7 +252,7 @@ type_expr
 %nterm <ExprPtr> expression;
 expression
   : expression PLUS expression {
-    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
+    $$ = std::make_shared<const ast::Expression>(ast::BinaryExpression{
       {location(@$)},
       ast::BinaryExpressionType::Plus,
       std::move($1),
@@ -260,7 +260,7 @@ expression
     });
   }
   | expression MINUS expression {
-    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
+    $$ = std::make_shared<const ast::Expression>(ast::BinaryExpression{
       {location(@$)},
       ast::BinaryExpressionType::Minus,
       std::move($1),
@@ -268,7 +268,7 @@ expression
     });
   }
   | expression STAR expression {
-    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
+    $$ = std::make_shared<const ast::Expression>(ast::BinaryExpression{
       {location(@$)},
       ast::BinaryExpressionType::Star,
       std::move($1),
@@ -276,7 +276,7 @@ expression
     });
   }
   | expression SLASH expression {
-    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
+    $$ = std::make_shared<const ast::Expression>(ast::BinaryExpression{
       {location(@$)},
       ast::BinaryExpressionType::Slash,
       std::move($1),
@@ -284,7 +284,7 @@ expression
     });
   }
   | expression AND expression {
-    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
+    $$ = std::make_shared<const ast::Expression>(ast::BinaryExpression{
       {location(@$)},
       ast::BinaryExpressionType::And,
       std::move($1),
@@ -292,7 +292,7 @@ expression
     });
   }
   | expression OR expression {
-    $$ = std::make_unique<ast::Expression>(ast::BinaryExpression{
+    $$ = std::make_shared< const ast::Expression>(ast::BinaryExpression{
       {location(@$)},
       ast::BinaryExpressionType::Or,
       std::move($1),
@@ -300,21 +300,21 @@ expression
     });
   }
   | MINUS expression {
-    $$ = std::make_unique<ast::Expression>(ast::UnaryExpression{
+    $$ = std::make_shared<const ast::Expression>(ast::UnaryExpression{
       {location(@$)},
       ast::UnaryExpressionType::Minus,
       std::move($2)
     });
   }
   | BANG expression {
-    $$ = std::make_unique<ast::Expression>(ast::UnaryExpression{
+    $$ = std::make_shared<const ast::Expression>(ast::UnaryExpression{
       {location(@$)},
       ast::UnaryExpressionType::Bang,
       std::move($2)
     });
   }
   | type_expr {
-    $$ = std::make_unique<ast::Expression>(std::move($1));
+    $$ = std::make_shared<const ast::Expression>(std::move($1));
   }
   | primary {
     $$ = std::move($1);
@@ -324,10 +324,10 @@ expression
 %nterm <ExprPtr> primary;
 primary
   : value {
-    $$ = std::make_unique<ast::Expression>(std::move($1));
+    $$ = std::make_shared<const ast::Expression>(std::move($1));
   }
   | var_access {
-    $$ = std::make_unique<ast::Expression>(std::move($1));
+    $$ = std::make_shared<const ast::Expression>(std::move($1));
   }
   | "(" expression ")" {
     $$ = std::move($2);

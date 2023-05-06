@@ -55,7 +55,7 @@ struct VarAccess {
  */
 struct TypeExpression : ASTNode {
   Identifier identifier;
-  std::vector<std::unique_ptr<Expression>> parameters = {};
+  std::vector<std::shared_ptr<const Expression>> parameters = {};
 };
 
 /**
@@ -76,8 +76,8 @@ enum struct BinaryExpressionType { Plus, Minus, Star, Slash, And, Or };
  */
 struct BinaryExpression : ASTNode {
   BinaryExpressionType type;
-  std::unique_ptr<Expression> left;
-  std::unique_ptr<Expression> right;
+  std::shared_ptr<const Expression> left;
+  std::shared_ptr<const Expression> right;
 };
 
 /**
@@ -92,7 +92,7 @@ enum struct UnaryExpressionType { Minus, Bang };
  */
 struct UnaryExpression : ASTNode {
   UnaryExpressionType type;
-  std::unique_ptr<Expression> expression;
+  std::shared_ptr<const Expression> expression;
 };
 
 /**
@@ -101,7 +101,7 @@ struct UnaryExpression : ASTNode {
  */
 struct ConstructedValue : ASTNode {
   Identifier constructor_identifier;
-  std::vector<std::pair<Identifier, std::unique_ptr<Expression>>> fields = {};
+  std::vector<std::pair<Identifier, std::shared_ptr<const Expression>>> fields = {};
 };
 
 /**
