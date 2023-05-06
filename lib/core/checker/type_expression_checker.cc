@@ -10,8 +10,8 @@
 namespace dbuf::checker {
 
 TypeExpressionChecker::TypeExpressionChecker(
-    ast::AST &ast,
-    std::vector<InternedString> &sorted_graph)
+    const ast::AST &ast,
+    const std::vector<InternedString> &sorted_graph)
     : ast_(ast)
     , sorted_graph_(sorted_graph) {}
 
@@ -149,10 +149,10 @@ void TypeExpressionChecker::operator()(
   // Let's notice the Type(foo.bar.buzz) == Type(bar.buzz) == Type (buzz)
   // We want to check type recursively, so I add new scope -- the scope of message Type(foo)
   PushScope();
-  for (auto &dependencie : ast_.messages[message_name].type_dependencies) {
+  for (const auto &dependencie : ast_.messages.at(message_name).type_dependencies) {
     AddName(dependencie.name, dependencie.type_expression);
   }
-  for (auto &field : ast_.messages[message_name].fields) {
+  for (const auto &field : ast_.messages.at(message_name).fields) {
     AddName(field.name, field.type_expression);
     if (field.name == expected_field) {
       found = true;
@@ -222,6 +222,12 @@ void TypeExpressionChecker::operator()(
 
 bool TypeExpressionChecker::IsTypeName(InternedString name) const {
   return ast_.enums.contains(name) || ast_.messages.contains(name);
+}
+
+void TypeExpressionChecker::operator()(
+    const ast::Expression & /*expected*/,
+    const ast::Expression & /*got*/) {
+  // TODO(SphericalPotatoInVacuum): compare expressions
 }
 
 } // namespace dbuf::checker

@@ -4,7 +4,7 @@ add_library(substitutor
 
 target_include_directories(substitutor PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}
-  include  
+  include
 )
 
 target_link_libraries(substitutor PUBLIC
@@ -12,3 +12,5 @@ target_link_libraries(substitutor PUBLIC
   core
   interning
 )
+
+add_dependencies(substitutor parser)

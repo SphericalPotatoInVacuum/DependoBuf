@@ -4,6 +4,7 @@
 #include "location.hh"
 
 #include <memory>
+#include <stdexcept>
 
 namespace dbuf {
 
@@ -38,6 +39,14 @@ ast::Expression Substitutor::operator()(const ast::UnaryExpression &expression) 
   res.expression = std::make_unique<ast::Expression>(std::visit(*this, *expression.expression));
 
   return res;
+}
+
+ast::Expression Substitutor::operator()(const ast::Expression &, const ast::Expression &) {
+  throw std::runtime_error("Not implemented");
+}
+
+ast::Expression Substitutor::operator()(const ast::Expression &, const ast::VarAccess &) {
+  throw std::runtime_error("Not implemented");
 }
 
 ast::Expression
