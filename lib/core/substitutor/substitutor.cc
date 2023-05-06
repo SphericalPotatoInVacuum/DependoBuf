@@ -1,5 +1,8 @@
 #include "core/substitutor/substitutor.h"
 
+#include "core/ast/expression.h"
+#include "location.hh"
+
 namespace dbuf {
 
 void Substitutor::AddSubstitution(InternedString name, ast::Expression &&expression) {
@@ -44,14 +47,14 @@ Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue
 
   size_t id = 0;
   for (id = 0; id < substitution.fields.size(); ++id) {
-    if (substitution.fields[id].first == value.field_identifiers[0]) {
+    if (substitution.fields[id].first.name == value.field_identifiers[0].name) {
       break;
     }
   }
 
   const ast::Expression next = ast::VarAccess {
       .var_identifier    = value.field_identifiers[0],
-      .field_identifiers = std::vector<InternedString>(
+      .field_identifiers = std::vector<ast::Identifier>(
           value.field_identifiers.begin() + 1,
           value.field_identifiers.end())};
 
@@ -60,7 +63,7 @@ Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue
 
 ast::Expression
 Substitutor::operator()(const ast::VarAccess &value, const ast::VarAccess &substitution) {
-  std::vector<InternedString> fields = substitution.field_identifiers;
+  std::vector<ast::Identifier> fields = substitution.field_identifiers;
   fields.insert(fields.end(), value.field_identifiers.begin() + 1, value.field_identifiers.end());
 
   return ast::VarAccess {
@@ -69,15 +72,15 @@ Substitutor::operator()(const ast::VarAccess &value, const ast::VarAccess &subst
 }
 
 ast::Expression Substitutor::operator()(const ast::VarAccess &value) {
-  if (!substitute_.contains(value.var_identifier)) {
+  if (!substitute_.contains(value.var_identifier.name)) {
     return value;
   }
 
-  return std::visit(*this, ast::Expression(value), substitute_[value.var_identifier]);
+  return std::visit(*this, ast::Expression(value), substitute_[value.var_identifier.name]);
 }
 
 ast::Expression Substitutor::operator()(const ast::ConstructedValue &value) {
-  std::vector<std::pair<InternedString, std::shared_ptr<const ast::Expression>>> fields;
+  std::vector<std::pair<ast::Identifier, std::shared_ptr<const ast::Expression>>> fields;
   fields.reserve(value.fields.size());
   for (const auto &field : value.fields) {
     fields.emplace_back(
@@ -104,9 +107,10 @@ ast::Expression Substitutor::operator()(const ast::TypeExpression &type_expressi
     parameters.emplace_back(std::make_shared<const ast::Expression>(std::visit(*this, *parameter)));
   }
 
-  ast::TypeExpression res;
-  res.name       = type_expression.name;
-  res.parameters = std::move(parameters);
+  ast::TypeExpression res {
+      {parser::location()},
+      {parser::location(), type_expression.identifier.name},
+      std::move(parameters)};
 
   return res;
 }
