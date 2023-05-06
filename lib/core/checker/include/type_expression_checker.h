@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "core/ast/ast.h"
@@ -18,18 +17,61 @@ class TypeExpressionChecker {
   // template <typename T>
   //  void operator()(const ast::TypeExpression &, const T &) {}
 
-  explicit TypeExpressionChecker(ast::AST &ast, std::vector<InternedString> &dependency_graph_);
+  explicit TypeExpressionChecker(ast::AST &ast, std::vector<InternedString> &sorted_graph);
+
+  // The enterpoint
+  void CheckTypes() {
+    for (const auto &node : sorted_graph_) {
+      // Checking message
+      if (ast_.messages.contains(node)) {
+        // Scope of the message checked
+        PushScope();
+        // Iterator to message from ast map
+        auto it = ast_.messages.find(node);
+        // First step is to check if dependencies' types are correctly constructed
+        for (const auto &dependency : it->second.type_dependencies) {
+          (*this)(dependency.type_expression);
+
+          // After we checked the depdency we can add it to scope to be seen by other dependencies
+          AddName(dependency.name, dependency.type_expression);
+        }
+
+        // Same with fields
+        for (const auto &field : it->second.fields) {
+          (*this)(field.type_expression);
+
+          // After we checked the depdency we can add it to scope to be seen by other dependencies
+          AddName(field.name, field.type_expression);
+        }
+
+        // Clear used scope
+        PopScope();
+      } else {
+      }
+    }
+  }
 
   void operator()(const ast::TypeExpression &type_expression) {
+    // Typename should be the name of some message/enum
     if (!IsTypeName(type_expression.identifier.name)) {
       errors_.emplace_back(Error {
           .message = "Unknown typename: \"" + type_expression.identifier.name.GetString() + "\""});
-      return;
     }
 
+    // If it is a message
     auto it_message = ast_.messages.find(type_expression.identifier.name);
     if (it_message != ast_.messages.end()) {
-      (*this)(it_message->second.type_dependencies, type_expression);
+      // Number of parameters should be equal to number of dependencies of message/enum
+      if (it_message->second.type_dependencies.size() != type_expression.parameters.size()) {
+        errors_.emplace_back(Error {
+            .message = "Expected " + std::to_string(it_message->second.type_dependencies.size()) +
+                       " parameters for typename \"" + type_expression.identifier.name.GetString() +
+                       "\", but got " + std::to_string(type_expression.parameters.size())});
+        return;
+      }
+
+      // Next step is to check parameters
+      (*this)(it_message->second.type_dependencies, type_expression.parameters);
     }
 
     auto it_enum = ast_.enums.find(type_expression.identifier.name);
@@ -38,22 +80,22 @@ class TypeExpressionChecker {
     }
   }
 
-  void operator()() {
-    for (const auto &node : sorted_graph_) {
-      if (ast_.messages.contains(node)) {
-        auto it = ast_.messages.find(node);
-        for (const auto &dependency : it->second.type_dependencies) {
-          if (!ast_.messages.contains(dependency.name) && !ast_.enums.contains(dependency.name)) {
-            errors_.push_back({});
-            break;
-          }
-        }
-      } else {
-      }
+  //
+  void operator()(
+      const std::vector<ast::TypedVariable> &type_dependencies,
+      const std::vector<std::shared_ptr<const ast::Expression>> &type_parameters) {
+    substitutor_.ClearSubstitutionMap();
+    for (size_t id = 0; id < type_dependencies.size(); ++id) {
+      // Update type using already known substitutions
+      ast::Expression substituted_type = substitutor_(type_dependencies[id].type_expression);
+
+      // Compare types
+      (*this)(substituted_type, *type_parameters[id]);
+
+      // Now we can update substitutions
+      substitutor_.AddSubstitution(type_dependencies[id].name, type_parameters[id]);
     }
   }
-
-  void operator()(const ast::TypeExpression &type_expression);
 
   void operator()(const ast::TypeExpression &expected_type, const ast::VarAccess &expression);
 
@@ -76,29 +118,12 @@ class TypeExpressionChecker {
     }
   }
 
-  void operator()(
-      const std::vector<ast::TypedVariable> &type_dependencies,
-      const ast::TypeExpression &type_expression);
-
-  void operator()(const std::unordered_map<InternedString, ast::Message> &messages);
-  void operator()(const std::unordered_map<InternedString, ast::Enum> &enums);
-
-  ast::TypeExpression substitute(ast::TypeExpression type_expression) {
-    for (auto &expression : type_expression.parameters) {
-    }
-  }
-
-  ast::TypeExpression substitute(ast::Value type_expression) {
-    for (auto &expression : type_expression.parameters) {
-    }
-  }
-
 private:
   void GetConstructorToEnum();
 
   [[nodiscard]] bool IsTypeName(InternedString name) const;
 
-  void AddName(InternedString name, InternedString type);
+  void AddName(InternedString name, ast::TypeExpression type);
 
   bool IsInScope(InternedString name);
 

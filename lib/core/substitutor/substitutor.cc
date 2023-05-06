@@ -3,12 +3,23 @@
 #include "core/ast/expression.h"
 #include "location.hh"
 
+#include <memory>
+
 namespace dbuf {
 
-void Substitutor::AddSubstitution(InternedString name, ast::Expression &&expression) {
-  substitute_[name] = std::visit(*this, std::move(expression));
+// Add a new (name -> expression) substitution to substitution map
+void Substitutor::AddSubstitution(
+    InternedString name,
+    const std::shared_ptr<const ast::Expression> &expression) {
+  substitute_[name] = std::make_shared<ast::Expression>(std::visit(*this, *expression));
 }
 
+// Clear map
+void Substitutor::ClearSubstitutionMap() {
+  substitute_.clear();
+}
+
+// If we want to substitute a binary expression, we need to substitute its left and right parts
 ast::Expression Substitutor::operator()(const ast::BinaryExpression &expression) {
   ast::BinaryExpression res;
 
@@ -18,6 +29,8 @@ ast::Expression Substitutor::operator()(const ast::BinaryExpression &expression)
 
   return res;
 }
+
+// If we want to substitute an unary expression, we just need to substitute its expression part
 ast::Expression Substitutor::operator()(const ast::UnaryExpression &expression) {
   ast::UnaryExpression res;
 
@@ -27,24 +40,16 @@ ast::Expression Substitutor::operator()(const ast::UnaryExpression &expression) 
   return res;
 }
 
-ast::Expression Substitutor::operator()(const ast::Expression &, const ast::Expression &) {
-  // TODO(alisa-vernigor): add error
-  exit(1);
-  return {};
-}
-
-ast::Expression Substitutor::operator()(const ast::Expression &, const ast::VarAccess &) {
-  // TODO(alisa-vernigor): add error
-  exit(1);
-  return {};
-}
-
 ast::Expression
 Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution) {
+  // If field identifiers are empty, we have the case: n -> Succ {prev: 5}, so we just return Succ
+  // {prev: 5} as a result
   if (value.field_identifiers.empty()) {
     return substitution;
   }
 
+  // Else we have case foo -> Foo {bar: some_value} and we need to substitute foo.bar
+  // First we need to find bar field in the substitution
   size_t id = 0;
   for (id = 0; id < substitution.fields.size(); ++id) {
     if (substitution.fields[id].first.name == value.field_identifiers[0].name) {
@@ -52,6 +57,9 @@ Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue
     }
   }
 
+  // Let's notice that foo.bar.buzz.far with Foo {bar: {buzz: varible}} should return the same
+  // expression as bar.buzz with Bar {buzz: variable}. The expected result in both cases is
+  // variable.far. That means, that we can go deeper by one field each time
   const ast::Expression next = ast::VarAccess {
       .var_identifier    = value.field_identifiers[0],
       .field_identifiers = std::vector<ast::Identifier>(
@@ -61,11 +69,14 @@ Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue
   return std::visit(*this, next, *substitution.fields[id].second);
 }
 
+// Case foo -> var1.var2 for foo.bar, expected result if var1.var2.bar
 ast::Expression
 Substitutor::operator()(const ast::VarAccess &value, const ast::VarAccess &substitution) {
+  // Push substitution fields (var1.var2) first and when all fields except first (bar) of value
   std::vector<ast::Identifier> fields = substitution.field_identifiers;
   fields.insert(fields.end(), value.field_identifiers.begin() + 1, value.field_identifiers.end());
 
+  // So we return var1.var2.bar
   return ast::VarAccess {
       .var_identifier    = substitution.var_identifier,
       .field_identifiers = fields};
@@ -76,9 +87,10 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value) {
     return value;
   }
 
-  return std::visit(*this, ast::Expression(value), substitute_[value.var_identifier.name]);
+  return std::visit(*this, ast::Expression(value), *substitute_[value.var_identifier.name]);
 }
 
+// To substitute constucted value we need to subtitute all fields of constructed value
 ast::Expression Substitutor::operator()(const ast::ConstructedValue &value) {
   std::vector<std::pair<ast::Identifier, std::shared_ptr<const ast::Expression>>> fields;
   fields.reserve(value.fields.size());
@@ -89,8 +101,8 @@ ast::Expression Substitutor::operator()(const ast::ConstructedValue &value) {
   }
 
   ast::ConstructedValue res;
-  res.constructor_identifier = value.constructor_identifier;
-  res.fields                 = std::move(fields);
+  res.constructor_identifier.name = value.constructor_identifier.name;
+  res.fields                      = std::move(fields);
 
   return res;
 }
@@ -99,6 +111,7 @@ ast::Expression Substitutor::operator()(const ast::Value &value) {
   return std::visit(*this, value);
 }
 
+// To substitute type_expression we need to substitute all of its parameters
 ast::Expression Substitutor::operator()(const ast::TypeExpression &type_expression) {
   std::vector<std::shared_ptr<const ast::Expression>> parameters;
   parameters.reserve(type_expression.parameters.size());

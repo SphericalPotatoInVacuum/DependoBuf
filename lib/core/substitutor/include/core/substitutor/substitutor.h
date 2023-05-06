@@ -12,7 +12,9 @@
 namespace dbuf {
 
 struct Substitutor {
-  void AddSubstitution(InternedString name, ast::Expression &&expression);
+  void
+  AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression);
+  void ClearSubstitutionMap();
 
   template <typename T>
   ast::Expression operator()(const ast::ScalarValue<T> &value) {
@@ -40,7 +42,7 @@ struct Substitutor {
   ast::Expression operator()(const ast::TypeExpression &type_expression);
 
 private:
-  std::unordered_map<InternedString, ast::Expression> substitute_;
+  std::unordered_map<InternedString, std::shared_ptr<const ast::Expression>> substitute_;
 };
 
 } // namespace dbuf
