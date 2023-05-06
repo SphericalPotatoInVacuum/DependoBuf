@@ -5,6 +5,7 @@
 #include "core/checker/name_resolution_checker.h"
 #include "core/checker/positivity_checker.h"
 #include "core/interning/interned_string.h"
+#include "type_expression_checker.h"
 
 #include <iostream>
 
@@ -23,8 +24,10 @@ ErrorList Checker::CheckPositivity(const ast::AST &ast) {
   return {};
 }
 
-ErrorList Checker::CheckTypeResolution(const ast::AST & /*ast*/) {
-  // TODO (implement this)
+ErrorList
+Checker::CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order) {
+  TypeExpressionChecker type_expression_checker(ast, visit_order);
+  type_expression_checker.CheckTypes();
   return {};
 }
 
@@ -44,7 +47,7 @@ int Checker::CheckAll(const ast::AST &ast) {
     }
     return EXIT_FAILURE;
   }
-  CheckTypeResolution(ast);
+  CheckTypeResolution(ast, visit_order_);
 
   return EXIT_SUCCESS;
 }

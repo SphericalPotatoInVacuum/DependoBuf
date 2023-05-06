@@ -7,6 +7,7 @@
 #include "core/substitutor/substitutor.h"
 
 #include <deque>
+#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -14,10 +15,10 @@
 namespace dbuf::checker {
 
 class TypeExpressionChecker {
-  // template <typename T>
-  //  void operator()(const ast::TypeExpression &, const T &) {}
-
-  explicit TypeExpressionChecker(ast::AST &ast, std::vector<InternedString> &sorted_graph);
+public:
+  explicit TypeExpressionChecker(
+      const ast::AST &ast,
+      const std::vector<InternedString> &sorted_graph);
 
   // The enterpoint
   void CheckTypes();
@@ -26,7 +27,7 @@ class TypeExpressionChecker {
 
   template <typename T>
   void CheckTypeExpressionWithType(
-      typename std::unordered_map<dbuf::InternedString, T>::iterator it,
+      typename std::unordered_map<dbuf::InternedString, T>::const_iterator it,
       const ast::TypeExpression &type_expression) {
     // Number of parameters should be equal to number of dependencies of message/enum
     if (it->second.type_dependencies.size() != type_expression.parameters.size()) {
@@ -45,9 +46,7 @@ class TypeExpressionChecker {
       const std::vector<ast::TypedVariable> &type_dependencies,
       const std::vector<std::shared_ptr<const ast::Expression>> &type_parameters);
 
-  void operator()(const ast::Expression &expected, const ast::Expression &got) {
-    // TODO(SphericalPotatoInVacuum): compare expressions
-  }
+  void operator()(const ast::Expression &expected, const ast::Expression &got);
 
   void operator()(const ast::TypeExpression &expected_type, const ast::TypeExpression &expression);
 
@@ -110,9 +109,9 @@ private:
   }
 
   Substitutor substitutor_;
-  std::vector<InternedString> sorted_graph_;
+  const std::vector<InternedString> sorted_graph_;
   std::deque<std::unordered_map<InternedString, ast::TypeExpression>> context_;
-  ast::AST &ast_;
+  const ast::AST &ast_;
   ErrorList errors_;
   std::unordered_map<InternedString, InternedString> constructor_to_enum_;
 };
