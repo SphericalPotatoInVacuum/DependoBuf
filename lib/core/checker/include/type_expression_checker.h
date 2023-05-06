@@ -5,6 +5,7 @@
 #include "core/ast/expression.h"
 #include "core/checker/common.h"
 #include "core/interning/interned_string.h"
+#include "core/substitutor/substitutor.h"
 
 #include <deque>
 #include <string>
@@ -14,12 +15,43 @@
 namespace dbuf::checker {
 
 class TypeExpressionChecker {
-  template <typename T>
-  void operator()(const ast::TypeExpression &, const T &) {}
+  // template <typename T>
+  //  void operator()(const ast::TypeExpression &, const T &) {}
 
-  explicit TypeExpressionChecker(ast::AST &ast);
+  explicit TypeExpressionChecker(ast::AST &ast, std::vector<InternedString> &dependency_graph_);
 
-  void operator()();
+  void operator()(const ast::TypeExpression &type_expression) {
+    if (!IsTypeName(type_expression.name)) {
+      errors_.emplace_back(
+          Error {.message = "Unknown typename: \"" + type_expression.name.GetString() + "\""});
+      return;
+    }
+
+    auto it_message = ast_.messages.find(type_expression.name);
+    if (it_message != ast_.messages.end()) {
+      (*this)(it_message->second.type_dependencies, type_expression);
+    }
+
+    auto it_enum = ast_.enums.find(type_expression.name);
+    if (it_enum != ast_.enums.end()) {
+      (*this)(it_enum->second.type_dependencies, type_expression);
+    }
+  }
+
+  void operator()() {
+    for (const auto &node : sorted_graph_) {
+      if (ast_.messages.contains(node)) {
+        auto it = ast_.messages.find(node);
+        for (const auto &dependency : it->second.type_dependencies) {
+          if (!ast_.messages.contains(dependency.name) && !ast_.enums.contains(dependency.name)) {
+            errors_.push_back({});
+            break;
+          }
+        }
+      } else {
+      }
+    }
+  }
 
   void operator()(const ast::TypeExpression &type_expression);
 
@@ -50,6 +82,16 @@ class TypeExpressionChecker {
 
   void operator()(const std::unordered_map<InternedString, ast::Message> &messages);
   void operator()(const std::unordered_map<InternedString, ast::Enum> &enums);
+
+  ast::TypeExpression substitute(ast::TypeExpression type_expression) {
+    for (auto &expression : type_expression.parameters) {
+    }
+  }
+
+  ast::TypeExpression substitute(ast::Value type_expression) {
+    for (auto &expression : type_expression.parameters) {
+    }
+  }
 
 private:
   void GetConstructorToEnum();
@@ -88,7 +130,9 @@ private:
     return InternedString("String");
   }
 
-  std::deque<std::unordered_map<InternedString, InternedString>> scopes_;
+  Substitutor substitutor_;
+  std::vector<InternedString> sorted_graph_;
+  std::deque<std::unordered_map<InternedString, ast::TypeExpression>> context_;
   ast::AST &ast_;
   ErrorList errors_;
   std::unordered_map<InternedString, InternedString> constructor_to_enum_;

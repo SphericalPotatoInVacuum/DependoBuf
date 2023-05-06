@@ -26,7 +26,7 @@ struct NameResolutionChecker {
   void operator()(const ast::TypedVariable &variable, bool allow_shadowing);
 
 private:
-  using Field = std::pair<ast::Identifier, std::unique_ptr<ast::Expression>>;
+  using Field = std::pair<ast::Identifier, std::shared_ptr<const ast::Expression>>;
 
 public:
   void operator()(const Field &field);

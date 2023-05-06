@@ -9,8 +9,9 @@
 
 namespace dbuf::checker {
 
-TypeExpressionChecker::TypeExpressionChecker(ast::AST &ast)
-    : ast_(ast) {}
+TypeExpressionChecker::TypeExpressionChecker(ast::AST &ast, DependencyGraph &dependency_graph)
+    : ast_(ast)
+    , dependency_graph_(dependency_graph) {}
 
 void TypeExpressionChecker::GetConstructorToEnum() {
   for (const auto &ast_enum : ast_.enums) {
@@ -23,28 +24,28 @@ void TypeExpressionChecker::GetConstructorToEnum() {
 }
 
 void TypeExpressionChecker::PushScope() {
-  scopes_.emplace_back();
+  context_.emplace_back();
 }
 
 void TypeExpressionChecker::PopScope() {
-  if (scopes_.empty()) {
+  if (context_.empty()) {
     throw std::logic_error("Can't delete scope from empty scopes.");
   }
-  scopes_.pop_back();
+  context_.pop_back();
 }
 
 bool TypeExpressionChecker::IsInScope(InternedString name) {
-  return std::ranges::any_of(scopes_.begin(), scopes_.end(), [&name](auto &scope) {
+  return std::ranges::any_of(context_.begin(), context_.end(), [&name](auto &scope) {
     return scope.contains(name);
   });
 }
 
 void TypeExpressionChecker::AddName(InternedString name, InternedString type) {
-  if (scopes_.empty()) {
+  if (context_.empty()) {
     throw std::logic_error("Can't add name to empty scopes.");
   }
 
-  scopes_.back()[name] = type;
+  context_.back()[name] = type;
 }
 
 void TypeExpressionChecker::operator()(
@@ -61,7 +62,7 @@ void TypeExpressionChecker::operator()(
     return;
   }
 
-  InternedString message_name   = scopes_.back()[expression.var_identifier.name];
+  InternedString message_name   = context_.back()[expression.var_identifier.name];
   InternedString expected_field = expression.field_identifiers[0].name;
   bool found                    = false;
   PushScope();
@@ -147,7 +148,7 @@ void TypeExpressionChecker::operator()(
   }
 
   for (size_t id = 0; id < type_dependencies.size(); ++id) {
-    (*this)(type_dependencies[id].type_expression, type_expression.parameters[id]);
+    (*this)(type_dependencies[id].type_expression, *type_expression.parameters[id]);
   }
 }
 
