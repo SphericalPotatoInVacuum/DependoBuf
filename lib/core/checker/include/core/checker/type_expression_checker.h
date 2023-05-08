@@ -5,6 +5,7 @@
 #include "core/checker/common.h"
 #include "core/interning/interned_string.h"
 #include "core/substitutor/substitutor.h"
+#include "z3++.h"
 
 #include <deque>
 #include <iostream>
@@ -97,6 +98,7 @@ private:
   const std::vector<InternedString> sorted_graph_;
   std::deque<std::unordered_map<InternedString, ast::TypeExpression>> context_;
   const ast::AST &ast_;
+  z3::context z3_context_;
   ErrorList errors_;
   std::unordered_map<InternedString, InternedString> constructor_to_enum_;
 };

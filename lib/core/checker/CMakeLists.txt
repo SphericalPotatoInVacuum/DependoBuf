@@ -1,3 +1,12 @@
+include(FetchContent)
+
+FetchContent_Declare(
+  z3
+  GIT_REPOSITORY https://github.com/Z3Prover/z3
+  GIT_TAG        z3-4.12.1
+)
+FetchContent_MakeAvailable(z3)
+
 add_library(checker
   checker.cc
   name_resolution_checker.cc
@@ -7,9 +16,12 @@ add_library(checker
 
 target_include_directories(checker PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}
+  ${z3_SOURCE_DIR}/src/api/c++
   include
 )
 target_link_libraries(checker PUBLIC
-  ast
   substitutor
+  libz3
+  dbufAst
 )
+target_compile_options(checker PUBLIC -fpermissive)
