@@ -46,11 +46,7 @@ dbuf::parser::ParseHelper *ParserTest::parse_helper_ = nullptr;
 dbuf::ast::AST *ParserTest::ast_                     = nullptr;
 
 TEST_P(ParserTest, WorksForCorrectSyntax) {
-  try {
-    parse_helper_->Parse();
-  } catch (std::exception &e) {
-    FAIL() << "Parsing failed with exception: " << e.what();
-  }
+  ASSERT_NO_THROW(parse_helper_->Parse()) << "Parsing failed with exception";
 }
 
 INSTANTIATE_TEST_SUITE_P(

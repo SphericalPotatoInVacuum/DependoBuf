@@ -20,11 +20,30 @@
 
   namespace dbuf::parser {
     class Lexer;
+    class Parser;
 
     using ExprPtr = std::shared_ptr<const ast::Expression>;
-
-    uint64_t get_error_count();
   }
+}
+
+%code provides{
+namespace dbuf::parser {
+
+  class DbufParser : public Parser {
+  public:
+    DbufParser(Lexer *scanner, dbuf::ast::AST *ast) : Parser(scanner, ast), error_cnt_(0) {}
+
+    void error(const location_type &l, const std::string &err_message) override {
+      std::cerr << "Error: " << err_message << " at " << l << "\n";
+      error_cnt_++;
+    }
+
+    size_t GetErrorCnt() const { return error_cnt_; }
+  private:
+    size_t error_cnt_ = 0;
+  };
+
+}
 }
 
 %parse-param { Lexer *scanner }
@@ -48,16 +67,6 @@
 
 #undef yylex
 #define yylex scanner->yylex
-
-namespace dbuf::parser {
-
-  static uint64_t error_count = 0;
-
-  uint64_t get_error_count() {
-    return error_count;
-  }
-
-}
 }
 
 %define api.token.prefix {TOK_}
@@ -441,5 +450,4 @@ typed_variable
 void dbuf::parser::Parser::error(const location_type &l, const std::string &err_message)
 {
    std::cerr << "Error: " << err_message << " at " << l << "\n";
-   dbuf::parser::error_count++;
 }
