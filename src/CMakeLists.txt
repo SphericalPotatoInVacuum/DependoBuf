@@ -1,6 +1,6 @@
 add_executable(dbuf "main.cc")
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  target_compile_options(dbuf PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(dbuf PRIVATE -Werror -Wall -Wextra -Wpedantic)
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(dbuf PRIVATE -fsanitize=undefined)
   endif()
