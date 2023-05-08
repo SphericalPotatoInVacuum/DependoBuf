@@ -11,11 +11,14 @@
 
 namespace dbuf::checker {
 
-TypeExpressionChecker::TypeExpressionChecker(
-    const ast::AST &ast,
-    const std::vector<InternedString> &sorted_graph)
+TypeExpressionChecker::TypeExpressionChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph)
     : ast_(ast)
-    , sorted_graph_(sorted_graph) {}
+    , sorted_graph_(sorted_graph)
+    , z3_sorts_(
+          {{InternedString("Int"), z3_context_.int_sort()},
+           {InternedString("Unsigned"), z3_context_.int_sort()},
+           {InternedString("Book"), z3_context_.bool_sort()},
+           {InternedString("String"), z3_context_.string_sort()}}) {}
 
 void TypeExpressionChecker::BuildConstructorToEnum() {
   for (const auto &ast_enum : ast_.enums) {
@@ -39,9 +42,7 @@ void TypeExpressionChecker::PopScope() {
 }
 
 bool TypeExpressionChecker::IsInScope(InternedString name) {
-  return std::ranges::any_of(context_.begin(), context_.end(), [&name](auto &scope) {
-    return scope.contains(name);
-  });
+  return std::ranges::any_of(context_.begin(), context_.end(), [&name](auto &scope) { return scope.contains(name); });
 }
 
 void TypeExpressionChecker::CheckTypes() {
@@ -54,13 +55,24 @@ void TypeExpressionChecker::CheckTypes() {
       PushScope();
       // Iterator to message from ast map
       const ast::Message ast_message = ast_.messages.at(node);
+
+      z3_sorts_.emplace(
+          ast_message.identifier.name,
+          z3_context_.uninterpreted_sort(ast_message.identifier.name.GetString().c_str()));
+
+      std::vector<z3::sort> dependency_sorts;
+
       // First step is to check if dependencies' types are correctly constructed
       for (const auto &dependency : ast_message.type_dependencies) {
         CheckTypeExpression(dependency.type_expression);
 
         // After we checked the depdency we can add it to scope to be seen by other dependencies
         AddName(dependency.name, dependency.type_expression);
+
+        dependency_sorts.push_back(z3_sorts_.at(dependency.type_expression.identifier.name));
       }
+
+      std::vector<z3::sort> field_sorts;
 
       // Same with fields
       for (const auto &field : ast_message.fields) {
@@ -68,11 +80,25 @@ void TypeExpressionChecker::CheckTypes() {
 
         // After we checked the depdency we can add it to scope to be seen by other dependencies
         AddName(field.name, field.type_expression);
+
+        field_sorts.push_back(z3_sorts_.at(field.type_expression.identifier.name));
       }
+
+      std::vector<z3::sort> constructor_parameter_sorts(dependency_sorts);
+      constructor_parameter_sorts.insert(constructor_parameter_sorts.end(), field_sorts.begin(), field_sorts.end());
+
+      z3_constructors_.emplace(
+          ast_message.identifier.name,
+          z3_context_.function(
+              ast_message.identifier.name.GetString().c_str(),
+              static_cast<size_t>(constructor_parameter_sorts.size()),
+              constructor_parameter_sorts.data(),
+              z3_sorts_.at(ast_message.identifier.name)));
 
       // Clear used scope
       PopScope();
     } else {
+      // TODO(alisa-vernigor): Check enum
     }
   }
 }
@@ -90,8 +116,8 @@ void TypeExpressionChecker::CheckTypeExpression(const ast::TypeExpression &type_
   if (dependent_type->type_dependencies.size() != type_expression.parameters.size()) {
     errors_.emplace_back(Error {
         .message = "Expected " + std::to_string(dependent_type->type_dependencies.size()) +
-                   " parameters for typename \"" + type_expression.identifier.name.GetString() +
-                   "\", but got " + std::to_string(type_expression.parameters.size())});
+                   " parameters for typename \"" + type_expression.identifier.name.GetString() + "\", but got " +
+                   std::to_string(type_expression.parameters.size())});
     return;
   }
 
@@ -107,16 +133,13 @@ void TypeExpressionChecker::AddName(InternedString name, ast::TypeExpression typ
   context_.back()[name] = std::move(type);
 }
 
-void TypeExpressionChecker::operator()(
-    const ast::TypeExpression &expected_type,
-    const ast::ConstructedValue &value) {
+void TypeExpressionChecker::operator()(const ast::TypeExpression &expected_type, const ast::ConstructedValue &value) {
   InternedString enum_identifier = constructor_to_enum_[value.constructor_identifier.name];
 
   if (enum_identifier != expected_type.identifier.name) {
     errors_.emplace_back(Error {
-        .message = "Got value of type \"" + enum_identifier.GetString() +
-                   "\", but expected type is \"" + expected_type.identifier.name.GetString() +
-                   "\""});
+        .message = "Got value of type \"" + enum_identifier.GetString() + "\", but expected type is \"" +
+                   expected_type.identifier.name.GetString() + "\""});
     return;
   }
 
@@ -129,9 +152,9 @@ void TypeExpressionChecker::operator()(
     const ast::TypeExpression &type_expression) {
   if (type_expression.parameters.size() != type_dependencies.size()) {
     errors_.emplace_back(Error {
-        .message = "Expected " + std::to_string(type_dependencies.size()) +
-                   " parameters for typename \"" + type_expression.identifier.name.GetString() +
-                   "\", but got " + std::to_string(type_expression.parameters.size())});
+        .message = "Expected " + std::to_string(type_dependencies.size()) + " parameters for typename \"" +
+                   type_expression.identifier.name.GetString() + "\", but got " +
+                   std::to_string(type_expression.parameters.size())});
     return;
   }
 
@@ -140,9 +163,7 @@ void TypeExpressionChecker::operator()(
   }
 }
 
-void TypeExpressionChecker::operator()(
-    const ast::TypeExpression &expected_type,
-    const ast::VarAccess &expression) {
+void TypeExpressionChecker::operator()(const ast::TypeExpression &expected_type, const ast::VarAccess &expression) {
   // Case: does foo has type Foo?
   if (expression.field_identifiers.empty()) {
     // We can find foo in scope and just compare its type
@@ -175,8 +196,8 @@ void TypeExpressionChecker::operator()(
   // This case is not checked in name resolution checker, so I do it there
   if (!found) {
     errors_.emplace_back(Error {
-        .message = "Field \"" + expected_field.GetString() + "\" not found in message \"" +
-                   message_name.GetString() + "\""});
+        .message =
+            "Field \"" + expected_field.GetString() + "\" not found in message \"" + message_name.GetString() + "\""});
     return;
   }
 
@@ -198,16 +219,15 @@ void TypeExpressionChecker::CompareTypeExpressions(
     const ast::TypeExpression &expression) {
   if (expected_type.identifier.name != expression.identifier.name) {
     errors_.emplace_back(Error {
-        .message = "Got type \"" + expression.identifier.name.GetString() +
-                   "\", but expected type is \"" + expected_type.identifier.name.GetString() +
-                   "\""});
+        .message = "Got type \"" + expression.identifier.name.GetString() + "\", but expected type is \"" +
+                   expected_type.identifier.name.GetString() + "\""});
     return;
   }
 
   if (expected_type.parameters.size() != expression.parameters.size()) {
     errors_.emplace_back(Error {
-        .message = "Expected " + std::to_string(expected_type.parameters.size()) +
-                   "type parametes, but got " + std::to_string(expression.parameters.size())});
+        .message = "Expected " + std::to_string(expected_type.parameters.size()) + "type parametes, but got " +
+                   std::to_string(expression.parameters.size())});
     return;
   }
 
@@ -236,9 +256,7 @@ bool TypeExpressionChecker::IsTypeName(InternedString name) const {
   return ast_.enums.contains(name) || ast_.messages.contains(name);
 }
 
-void TypeExpressionChecker::CompareExpressions(
-    const ast::Expression & /*expected*/,
-    const ast::Expression & /*got*/) {
+void TypeExpressionChecker::CompareExpressions(const ast::Expression & /*expected*/, const ast::Expression & /*got*/) {
   // TODO(SphericalPotatoInVacuum): compare expressions
 }
 
