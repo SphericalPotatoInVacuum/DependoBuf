@@ -17,9 +17,7 @@ namespace dbuf::checker {
 
 class TypeExpressionChecker {
 public:
-  explicit TypeExpressionChecker(
-      const ast::AST &ast,
-      const std::vector<InternedString> &sorted_graph);
+  explicit TypeExpressionChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph);
 
   // The enterpoint
   void CheckTypes();
@@ -32,9 +30,7 @@ public:
 
   void CompareExpressions(const ast::Expression &expected, const ast::Expression &got);
 
-  void CompareTypeExpressions(
-      const ast::TypeExpression &expected_type,
-      const ast::TypeExpression &expression);
+  void CompareTypeExpressions(const ast::TypeExpression &expected_type, const ast::TypeExpression &expression);
 
   // Easy case: scalar values. We just need to get the name of type and comare it with the name of
   // type expression
@@ -42,9 +38,8 @@ public:
   void operator()(const ast::TypeExpression &expected_type, const ast::ScalarValue<T> &value) {
     if (expected_type.identifier.name != GetTypename(value)) {
       errors_.emplace_back(Error {
-          .message = "Got value of type \"" + GetTypename(value).GetString() +
-                     "\", but expected type is \"" + expected_type.identifier.name.GetString() +
-                     "\""});
+          .message = "Got value of type \"" + GetTypename(value).GetString() + "\", but expected type is \"" +
+                     expected_type.identifier.name.GetString() + "\""});
       return;
     }
   }
@@ -53,9 +48,7 @@ public:
 
   void operator()(const ast::TypeExpression &expected_type, const ast::VarAccess &expression);
 
-  void operator()(
-      const std::vector<ast::TypedVariable> &type_dependencies,
-      const ast::TypeExpression &type_expression);
+  void operator()(const std::vector<ast::TypedVariable> &type_dependencies, const ast::TypeExpression &type_expression);
 
 private:
   void BuildConstructorToEnum();
@@ -98,9 +91,14 @@ private:
   const std::vector<InternedString> sorted_graph_;
   std::deque<std::unordered_map<InternedString, ast::TypeExpression>> context_;
   const ast::AST &ast_;
-  z3::context z3_context_;
   ErrorList errors_;
   std::unordered_map<InternedString, InternedString> constructor_to_enum_;
+
+  z3::context z3_context_;
+  std::unordered_map<InternedString, z3::sort> z3_sorts_;                    // z3_sorts_[type] = sort
+  std::unordered_map<InternedString, z3::func_decl> z3_constructors_;        // z3_constructors_[type] = constructor
+  using FieldToAccessor = std::unordered_map<InternedString, z3::func_decl>; // FieldToAccessor[field] = accessor
+  std::unordered_map<InternedString, FieldToAccessor> z3_accessors_;         // z3_accessors_[type][field] = accessor
 };
 
 } // namespace dbuf::checker
