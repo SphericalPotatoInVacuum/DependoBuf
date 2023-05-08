@@ -13,7 +13,7 @@ public:
 
 private:
   Lexer lexer_;
-  Parser parser_;
+  DbufParser parser_;
 };
 
 } // namespace dbuf::parser

@@ -38,10 +38,6 @@ int Driver::Run(const std::string &input_filename, const std::string &output_fil
     std::cerr << "Something went wrong ¯\\_(ツ)_/¯" << std::endl;
     return EXIT_FAILURE;
   }
-  if (parser::get_error_count() > 0) {
-    std::cerr << "Compilation failed because of errors" << std::endl;
-    return EXIT_FAILURE;
-  }
 
   checker::Checker checker;
   return checker.CheckAll(ast);
