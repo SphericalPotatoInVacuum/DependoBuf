@@ -73,9 +73,8 @@ void NameResolutionChecker::operator()(const Field &field) {
 
 void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
   if (!IsInScope(value.constructor_identifier.name)) {
-    errors_.emplace_back(Error {
-        .message =
-            "Undefined constructor: \"" + value.constructor_identifier.name.GetString() + "\""});
+    errors_.emplace_back(
+        Error {.message = "Undefined constructor: \"" + value.constructor_identifier.name.GetString() + "\""});
   }
   PushScope();
 
@@ -109,8 +108,7 @@ void NameResolutionChecker::operator()(const ast::UnaryExpression &expr) {
 void NameResolutionChecker::operator()(const ast::TypeExpression &expr) {
   if (!IsInScope(expr.identifier.name)) {
     std::stringstream ms;
-    ms << "Undefined type name: \"" << expr.identifier.name.GetString() << "\" at "
-       << expr.identifier.location;
+    ms << "Undefined type name: \"" << expr.identifier.name.GetString() << "\" at " << expr.identifier.location;
     errors_.emplace_back(Error {.message = ms.str()});
   }
 
@@ -129,29 +127,22 @@ void NameResolutionChecker::operator()(const ast::VarAccess &var_access) {
 }
 
 bool NameResolutionChecker::IsInScope(InternedString name) {
-  return std::ranges::any_of(scopes_.begin(), scopes_.end(), [&name](auto &scope) {
-    return scope.contains(name);
-  });
+  return std::ranges::any_of(scopes_.begin(), scopes_.end(), [&name](auto &scope) { return scope.contains(name); });
 }
 
-void NameResolutionChecker::AddName(
-    InternedString name,
-    std::string &&identifier_type,
-    bool allow_shadowing) {
+void NameResolutionChecker::AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing) {
   if (scopes_.empty()) {
     throw std::logic_error("Can't add name to empty scopes.");
   }
 
   if ((!allow_shadowing) && IsInScope(name)) {
-    errors_.push_back(
-        {"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""});
+    errors_.push_back({"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""});
   }
 
   scopes_.back().insert(name);
 }
 
-NameResolutionChecker::ConstructorFieldsMap
-NameResolutionChecker::GetConstructorFields(const ast::AST &ast) {
+NameResolutionChecker::ConstructorFieldsMap NameResolutionChecker::GetConstructorFields(const ast::AST &ast) {
   NameResolutionChecker::ConstructorFieldsMap constructor_to_fields_names;
 
   for (const auto &ast_enum : ast.enums) {

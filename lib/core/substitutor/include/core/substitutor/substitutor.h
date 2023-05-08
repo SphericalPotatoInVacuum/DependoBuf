@@ -12,8 +12,7 @@
 namespace dbuf {
 
 struct Substitutor {
-  void
-  AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression);
+  void AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression);
   void ClearSubstitutionMap();
 
   template <typename T>
@@ -28,8 +27,7 @@ struct Substitutor {
 
   ast::Expression operator()(const ast::Expression &, const ast::VarAccess &);
 
-  ast::Expression
-  operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution);
+  ast::Expression operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution);
 
   ast::Expression operator()(const ast::VarAccess &value, const ast::VarAccess &substitution);
 

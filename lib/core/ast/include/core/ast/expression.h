@@ -121,8 +121,7 @@ using Value = std::variant<
  * a value or a variable access
  *
  */
-struct Expression
-    : std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess> {
+struct Expression : std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess> {
   using Base = std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess>;
   using Base::Base;
 };

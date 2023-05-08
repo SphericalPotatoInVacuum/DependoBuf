@@ -26,8 +26,7 @@ protected:
 
   void SetUp() override {
     input_file_.open(std::get<0>(GetParam()), std::ios_base::in);
-    ASSERT_TRUE(input_file_.is_open())
-        << "Could not open input file: " << strerror(errno) << std::endl;
+    ASSERT_TRUE(input_file_.is_open()) << "Could not open input file: " << strerror(errno) << std::endl;
 
     ast_          = new dbuf::ast::AST();
     parse_helper_ = new dbuf::parser::ParseHelper(input_file_, std::cout, ast_);
@@ -69,12 +68,8 @@ INSTANTIATE_TEST_SUITE_P(
     TypeDependencyCycleDetection,
     WellFoundednessTest,
     testing::Values(
-        ParamTuple(
-            "../../test/code_samples/incorrect_syntax/wf_message_self.dbuf",
-            "Found dependency cycle: A -> A"),
-        ParamTuple(
-            "../../test/code_samples/incorrect_syntax/wf_enum_self.dbuf",
-            "Found dependency cycle: A -> A"),
+        ParamTuple("../../test/code_samples/incorrect_syntax/wf_message_self.dbuf", "Found dependency cycle: A -> A"),
+        ParamTuple("../../test/code_samples/incorrect_syntax/wf_enum_self.dbuf", "Found dependency cycle: A -> A"),
         ParamTuple(
             "../../test/code_samples/incorrect_syntax/wf_message_other.dbuf",
             "Found dependency cycle: A -> B -> A"),
