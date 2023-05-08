@@ -4,8 +4,8 @@
 #include "core/checker/common.h"
 #include "core/checker/name_resolution_checker.h"
 #include "core/checker/positivity_checker.h"
+#include "core/checker/type_expression_checker.h"
 #include "core/interning/interned_string.h"
-#include "type_expression_checker.h"
 
 #include <iostream>
 

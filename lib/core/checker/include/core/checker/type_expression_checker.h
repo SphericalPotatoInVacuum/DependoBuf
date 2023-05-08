@@ -23,32 +23,17 @@ public:
   // The enterpoint
   void CheckTypes();
 
-  void operator()(const ast::TypeExpression &type_expression);
+  void CheckTypeExpression(const ast::TypeExpression &type_expression);
 
-  template <typename T>
-  void CheckTypeExpressionWithType(
-      typename std::unordered_map<dbuf::InternedString, T>::const_iterator it,
-      const ast::TypeExpression &type_expression) {
-    // Number of parameters should be equal to number of dependencies of message/enum
-    if (it->second.type_dependencies.size() != type_expression.parameters.size()) {
-      errors_.emplace_back(Error {
-          .message = "Expected " + std::to_string(it->second.type_dependencies.size()) +
-                     " parameters for typename \"" + type_expression.identifier.name.GetString() +
-                     "\", but got " + std::to_string(type_expression.parameters.size())});
-      return;
-    }
-
-    // Next step is to check parameters
-    (*this)(it->second.type_dependencies, type_expression.parameters);
-  }
-
-  void operator()(
+  void CheckTypeDependencies(
       const std::vector<ast::TypedVariable> &type_dependencies,
       const std::vector<std::shared_ptr<const ast::Expression>> &type_parameters);
 
-  void operator()(const ast::Expression &expected, const ast::Expression &got);
+  void CompareExpressions(const ast::Expression &expected, const ast::Expression &got);
 
-  void operator()(const ast::TypeExpression &expected_type, const ast::TypeExpression &expression);
+  void CompareTypeExpressions(
+      const ast::TypeExpression &expected_type,
+      const ast::TypeExpression &expression);
 
   // Easy case: scalar values. We just need to get the name of type and comare it with the name of
   // type expression

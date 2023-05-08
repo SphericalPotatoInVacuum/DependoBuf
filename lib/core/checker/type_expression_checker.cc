@@ -1,10 +1,12 @@
-#include "type_expression_checker.h"
+#include "core/checker/type_expression_checker.h"
 
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
+#include "core/interning/interned_string.h"
 #include "location.hh"
 
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace dbuf::checker {
@@ -51,18 +53,18 @@ void TypeExpressionChecker::CheckTypes() {
       // Scope of the message checked
       PushScope();
       // Iterator to message from ast map
-      auto it = ast_.messages.find(node);
+      const ast::Message ast_message = ast_.messages.at(node);
       // First step is to check if dependencies' types are correctly constructed
-      for (const auto &dependency : it->second.type_dependencies) {
-        (*this)(dependency.type_expression);
+      for (const auto &dependency : ast_message.type_dependencies) {
+        CheckTypeExpression(dependency.type_expression);
 
         // After we checked the depdency we can add it to scope to be seen by other dependencies
         AddName(dependency.name, dependency.type_expression);
       }
 
       // Same with fields
-      for (const auto &field : it->second.fields) {
-        (*this)(field.type_expression);
+      for (const auto &field : ast_message.fields) {
+        CheckTypeExpression(field.type_expression);
 
         // After we checked the depdency we can add it to scope to be seen by other dependencies
         AddName(field.name, field.type_expression);
@@ -75,16 +77,26 @@ void TypeExpressionChecker::CheckTypes() {
   }
 }
 
-void TypeExpressionChecker::operator()(const ast::TypeExpression &type_expression) {
-  // If it is a message
-  auto it_message = ast_.messages.find(type_expression.identifier.name);
-  if (it_message != ast_.messages.end()) {
-    CheckTypeExpressionWithType<dbuf::ast::Message>(it_message, type_expression);
+void TypeExpressionChecker::CheckTypeExpression(const ast::TypeExpression &type_expression) {
+  auto messages_it                         = ast_.messages.find(type_expression.identifier.name);
+  ast::DependentType const *dependent_type = nullptr;
+  if (messages_it != ast_.messages.end()) {
+    dependent_type = &messages_it->second;
   } else {
-    // If it is an enum
-    auto it_enum = ast_.enums.find(type_expression.identifier.name);
-    CheckTypeExpressionWithType<dbuf::ast::Enum>(it_enum, type_expression);
+    auto enums_it  = ast_.enums.find(type_expression.identifier.name);
+    dependent_type = &messages_it->second;
   }
+  // Number of parameters should be equal to number of dependencies of message/enum
+  if (dependent_type->type_dependencies.size() != type_expression.parameters.size()) {
+    errors_.emplace_back(Error {
+        .message = "Expected " + std::to_string(dependent_type->type_dependencies.size()) +
+                   " parameters for typename \"" + type_expression.identifier.name.GetString() +
+                   "\", but got " + std::to_string(type_expression.parameters.size())});
+    return;
+  }
+
+  // Next step is to check parameters
+  CheckTypeDependencies(dependent_type->type_dependencies, type_expression.parameters);
 }
 
 void TypeExpressionChecker::AddName(InternedString name, ast::TypeExpression type) {
@@ -124,7 +136,7 @@ void TypeExpressionChecker::operator()(
   }
 
   for (size_t id = 0; id < type_dependencies.size(); ++id) {
-    (*this)(type_dependencies[id].type_expression, *type_expression.parameters[id]);
+    CompareExpressions(type_dependencies[id].type_expression, *type_expression.parameters[id]);
   }
 }
 
@@ -133,8 +145,8 @@ void TypeExpressionChecker::operator()(
     const ast::VarAccess &expression) {
   // Case: does foo has type Foo?
   if (expression.field_identifiers.empty()) {
-    // We can find foo in scope and just compare it's type
-    operator()(expected_type, context_.back()[expression.var_identifier.name]);
+    // We can find foo in scope and just compare its type
+    CompareTypeExpressions(expected_type, context_.back()[expression.var_identifier.name]);
     return;
   }
   // Else we have case: does foo.bar.buzz has type Buzz?
@@ -181,7 +193,7 @@ void TypeExpressionChecker::operator()(
   PopScope();
 }
 
-void TypeExpressionChecker::operator()(
+void TypeExpressionChecker::CompareTypeExpressions(
     const ast::TypeExpression &expected_type,
     const ast::TypeExpression &expression) {
   if (expected_type.identifier.name != expression.identifier.name) {
@@ -200,11 +212,11 @@ void TypeExpressionChecker::operator()(
   }
 
   for (size_t id = 0; id < expected_type.parameters.size(); ++id) {
-    (*this)(*expected_type.parameters[id], *expression.parameters[id]);
+    CompareExpressions(*expected_type.parameters[id], *expression.parameters[id]);
   }
 }
 
-void TypeExpressionChecker::operator()(
+void TypeExpressionChecker::CheckTypeDependencies(
     const std::vector<ast::TypedVariable> &type_dependencies,
     const std::vector<std::shared_ptr<const ast::Expression>> &type_parameters) {
   substitutor_.ClearSubstitutionMap();
@@ -213,7 +225,7 @@ void TypeExpressionChecker::operator()(
     ast::Expression substituted_type = substitutor_(type_dependencies[id].type_expression);
 
     // Compare types
-    (*this)(substituted_type, *type_parameters[id]);
+    CompareExpressions(substituted_type, *type_parameters[id]);
 
     // Now we can update substitutions
     substitutor_.AddSubstitution(type_dependencies[id].name, type_parameters[id]);
@@ -224,7 +236,7 @@ bool TypeExpressionChecker::IsTypeName(InternedString name) const {
   return ast_.enums.contains(name) || ast_.messages.contains(name);
 }
 
-void TypeExpressionChecker::operator()(
+void TypeExpressionChecker::CompareExpressions(
     const ast::Expression & /*expected*/,
     const ast::Expression & /*got*/) {
   // TODO(SphericalPotatoInVacuum): compare expressions
