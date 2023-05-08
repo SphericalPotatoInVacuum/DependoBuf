@@ -23,7 +23,7 @@ BreakBeforeBraces: Attach
 BreakBeforeTernaryOperators: 'true'
 BreakConstructorInitializers: BeforeComma
 BreakInheritanceList: BeforeComma
-ColumnLimit: '100'
+ColumnLimit: '120'
 CompactNamespaces: 'false'
 Cpp11BracedListStyle: 'true'
 DerivePointerAlignment: 'false'
