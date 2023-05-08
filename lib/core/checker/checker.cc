@@ -24,8 +24,7 @@ ErrorList Checker::CheckPositivity(const ast::AST &ast) {
   return {};
 }
 
-ErrorList
-Checker::CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order) {
+ErrorList Checker::CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order) {
   TypeExpressionChecker type_expression_checker(ast, visit_order);
   type_expression_checker.CheckTypes();
   return {};

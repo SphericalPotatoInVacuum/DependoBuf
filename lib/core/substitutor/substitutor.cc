@@ -9,9 +9,7 @@
 namespace dbuf {
 
 // Add a new (name -> expression) substitution to substitution map
-void Substitutor::AddSubstitution(
-    InternedString name,
-    const std::shared_ptr<const ast::Expression> &expression) {
+void Substitutor::AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression) {
   substitute_[name] = std::make_shared<ast::Expression>(std::visit(*this, *expression));
 }
 
@@ -49,8 +47,7 @@ ast::Expression Substitutor::operator()(const ast::Expression &, const ast::VarA
   throw std::runtime_error("Not implemented");
 }
 
-ast::Expression
-Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution) {
+ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution) {
   // If field identifiers are empty, we have the case: n -> Succ {prev: 5}, so we just return Succ
   // {prev: 5} as a result
   if (value.field_identifiers.empty()) {
@@ -70,25 +67,21 @@ Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue
   // expression as bar.buzz with Bar {buzz: variable}. The expected result in both cases is
   // variable.far. That means, that we can go deeper by one field each time
   const ast::Expression next = ast::VarAccess {
-      .var_identifier    = value.field_identifiers[0],
-      .field_identifiers = std::vector<ast::Identifier>(
-          value.field_identifiers.begin() + 1,
-          value.field_identifiers.end())};
+      .var_identifier = value.field_identifiers[0],
+      .field_identifiers =
+          std::vector<ast::Identifier>(value.field_identifiers.begin() + 1, value.field_identifiers.end())};
 
   return std::visit(*this, next, *substitution.fields[id].second);
 }
 
 // Case foo -> var1.var2 for foo.bar, expected result if var1.var2.bar
-ast::Expression
-Substitutor::operator()(const ast::VarAccess &value, const ast::VarAccess &substitution) {
+ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::VarAccess &substitution) {
   // Push substitution fields (var1.var2) first and when all fields except first (bar) of value
   std::vector<ast::Identifier> fields = substitution.field_identifiers;
   fields.insert(fields.end(), value.field_identifiers.begin() + 1, value.field_identifiers.end());
 
   // So we return var1.var2.bar
-  return ast::VarAccess {
-      .var_identifier    = substitution.var_identifier,
-      .field_identifiers = fields};
+  return ast::VarAccess {.var_identifier = substitution.var_identifier, .field_identifiers = fields};
 }
 
 ast::Expression Substitutor::operator()(const ast::VarAccess &value) {
@@ -104,9 +97,7 @@ ast::Expression Substitutor::operator()(const ast::ConstructedValue &value) {
   std::vector<std::pair<ast::Identifier, std::shared_ptr<const ast::Expression>>> fields;
   fields.reserve(value.fields.size());
   for (const auto &field : value.fields) {
-    fields.emplace_back(
-        field.first,
-        std::make_shared<const ast::Expression>(std::visit(*this, *field.second)));
+    fields.emplace_back(field.first, std::make_shared<const ast::Expression>(std::visit(*this, *field.second)));
   }
 
   ast::ConstructedValue res;
