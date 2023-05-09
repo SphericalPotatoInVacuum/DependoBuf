@@ -72,6 +72,10 @@ jobs:
       with:
         path: |
           ${{github.workspace}}/build
+        key: build-${{env.BUILD_TYPE}}-${{hashFiles('**/CMakeLists.txt')}}
+        restore-keys: |
+          build-${{env.BUILD_TYPE}}-
+          build-
 
     - name: clang-tidy review
       id: review
