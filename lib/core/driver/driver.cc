@@ -1,4 +1,4 @@
-#include "core/driver.h"
+#include "core/driver/driver.h"
 
 #include "core/ast/ast.h"
 #include "core/checker/checker.h"

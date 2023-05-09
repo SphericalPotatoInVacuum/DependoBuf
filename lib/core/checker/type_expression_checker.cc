@@ -62,7 +62,7 @@ void TypeExpressionChecker::CheckTypes() {
           ast_message.identifier.name,
           z3_context_.uninterpreted_sort(ast_message.identifier.name.GetString().c_str()));
 
-      DLOG(INFO) << z3_sorts_.at(ast_message.identifier.name);
+      DLOG(INFO) << "Declared a new sort: " << z3_sorts_.at(ast_message.identifier.name);
 
       std::vector<z3::sort> dependency_sorts;
 
@@ -88,13 +88,14 @@ void TypeExpressionChecker::CheckTypes() {
 
         field_sorts.push_back(z3_sorts_.at(field.type_expression.identifier.name));
 
-        z3_accessors_.at(ast_message.identifier.name)
-            .emplace(
-                field.name,
-                z3_context_.function(
-                    field.name.GetString().c_str(),
-                    z3_sorts_.at(ast_message.identifier.name),
-                    z3_sorts_.at(field.type_expression.identifier.name)));
+        const auto [it, _] = z3_accessors_.at(ast_message.identifier.name)
+                                 .emplace(
+                                     field.name,
+                                     z3_context_.function(
+                                         field.name.GetString().c_str(),
+                                         z3_sorts_.at(ast_message.identifier.name),
+                                         z3_sorts_.at(field.type_expression.identifier.name)));
+        DLOG(INFO) << "Declared a new accessor: " << it->second;
       }
 
       std::vector<z3::sort> constructor_parameter_sorts(dependency_sorts);
@@ -108,7 +109,7 @@ void TypeExpressionChecker::CheckTypes() {
               constructor_parameter_sorts.data(),
               z3_sorts_.at(ast_message.identifier.name)));
 
-      DLOG(INFO) << constructor_it->second;
+      DLOG(INFO) << "Declared a new constructor: " << constructor_it->second;
 
       // Clear used scope
       PopScope();

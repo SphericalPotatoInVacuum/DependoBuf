@@ -3,17 +3,4 @@ add_subdirectory(checker)
 add_subdirectory(interning)
 add_subdirectory(parser)
 add_subdirectory(substitutor)
-
-add_library(core
-  driver.cc
-)
-target_include_directories(core PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  include
-)
-target_link_libraries(core PUBLIC
-  dbufAst
-  parser
-  checker
-  substitutor
-)
+add_subdirectory(driver)
