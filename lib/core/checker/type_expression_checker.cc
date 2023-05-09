@@ -3,6 +3,7 @@
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
 #include "core/interning/interned_string.h"
+#include "glog/logging.h"
 #include "location.hh"
 
 #include <string>
@@ -61,6 +62,8 @@ void TypeExpressionChecker::CheckTypes() {
           ast_message.identifier.name,
           z3_context_.uninterpreted_sort(ast_message.identifier.name.GetString().c_str()));
 
+      DLOG(INFO) << z3_sorts_.at(ast_message.identifier.name);
+
       std::vector<z3::sort> dependency_sorts;
 
       // First step is to check if dependencies' types are correctly constructed
@@ -97,13 +100,15 @@ void TypeExpressionChecker::CheckTypes() {
       std::vector<z3::sort> constructor_parameter_sorts(dependency_sorts);
       constructor_parameter_sorts.insert(constructor_parameter_sorts.end(), field_sorts.begin(), field_sorts.end());
 
-      z3_constructors_.emplace(
+      auto [constructor_it, _] = z3_constructors_.emplace(
           ast_message.identifier.name,
           z3_context_.function(
               ast_message.identifier.name.GetString().c_str(),
               static_cast<size_t>(constructor_parameter_sorts.size()),
               constructor_parameter_sorts.data(),
               z3_sorts_.at(ast_message.identifier.name)));
+
+      DLOG(INFO) << constructor_it->second;
 
       // Clear used scope
       PopScope();
