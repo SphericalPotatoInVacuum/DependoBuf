@@ -5,5 +5,5 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU
     target_compile_options(dbuf PRIVATE -fsanitize=undefined)
   endif()
 endif()
-target_link_libraries(dbuf PRIVATE core)
+target_link_libraries(dbuf PRIVATE core glog)
 target_link_options(dbuf PRIVATE -fsanitize=undefined)
