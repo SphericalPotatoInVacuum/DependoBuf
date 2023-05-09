@@ -17,6 +17,5 @@ target_include_directories(parser PUBLIC
 )
 target_link_libraries(parser PUBLIC
   dbufAst
-  core
   interning
 )
