@@ -37,6 +37,10 @@ jobs:
       with:
         path: |
           ${{github.workspace}}/build
+        key: build-${{env.BUILD_TYPE}}-${{hashFiles('**/CMakeLists.txt')}}
+        restore-keys: |
+          build-${{env.BUILD_TYPE}}-
+          build-
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
