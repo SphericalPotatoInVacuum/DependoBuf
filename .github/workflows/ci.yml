@@ -31,6 +31,13 @@ jobs:
         packages: libfl-dev clang-16 libc++-16-dev libc++abi-16-dev
         version: 1.0
 
+    - name: Cache Cmake build
+      id: cache-build
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{github.workspace}}/build
+
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
@@ -54,6 +61,13 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: recursive
+
+    - name: Cache Cmake build
+      id: cache-build
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{github.workspace}}/build
 
     - name: clang-tidy review
       id: review
