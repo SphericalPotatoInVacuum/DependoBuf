@@ -26,14 +26,3 @@ target_link_libraries(checker PUBLIC
   glog
 )
 target_compile_options(checker PUBLIC -fpermissive)
-
-add_executable(z3_example test.cc)
-target_include_directories(z3_example PUBLIC
-  ${CMAKE_CURRENT_BINARY_DIR}
-  ${z3_SOURCE_DIR}/src/api/c++
-  include
-)
-target_link_libraries(z3_example PUBLIC
-  libz3
-)
-target_compile_options(z3_example PUBLIC -fpermissive)
