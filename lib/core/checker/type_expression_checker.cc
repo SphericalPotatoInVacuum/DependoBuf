@@ -17,8 +17,9 @@ TypeExpressionChecker::TypeExpressionChecker(const ast::AST &ast, const std::vec
     , z3_sorts_(
           {{InternedString("Int"), z3_context_.int_sort()},
            {InternedString("Unsigned"), z3_context_.int_sort()},
-           {InternedString("Book"), z3_context_.bool_sort()},
-           {InternedString("String"), z3_context_.string_sort()}}) {}
+           {InternedString("Bool"), z3_context_.bool_sort()},
+           {InternedString("String"), z3_context_.string_sort()}})
+    , z3_solver_(z3_context_) {}
 
 void TypeExpressionChecker::BuildConstructorToEnum() {
   for (const auto &ast_enum : ast_.enums) {
@@ -73,6 +74,7 @@ void TypeExpressionChecker::CheckTypes() {
       }
 
       std::vector<z3::sort> field_sorts;
+      z3_accessors_.emplace(ast_message.identifier.name, TypeExpressionChecker::FieldToAccessor());
 
       // Same with fields
       for (const auto &field : ast_message.fields) {
@@ -82,6 +84,14 @@ void TypeExpressionChecker::CheckTypes() {
         AddName(field.name, field.type_expression);
 
         field_sorts.push_back(z3_sorts_.at(field.type_expression.identifier.name));
+
+        z3_accessors_.at(ast_message.identifier.name)
+            .emplace(
+                field.name,
+                z3_context_.function(
+                    field.name.GetString().c_str(),
+                    z3_sorts_.at(ast_message.identifier.name),
+                    z3_sorts_.at(field.type_expression.identifier.name)));
       }
 
       std::vector<z3::sort> constructor_parameter_sorts(dependency_sorts);
@@ -104,13 +114,19 @@ void TypeExpressionChecker::CheckTypes() {
 }
 
 void TypeExpressionChecker::CheckTypeExpression(const ast::TypeExpression &type_expression) {
+  if (type_expression.identifier.name == InternedString("Int") ||
+      type_expression.identifier.name == InternedString("Unsigned") ||
+      type_expression.identifier.name == InternedString("Bool") ||
+      type_expression.identifier.name == InternedString("String")) {
+    return;
+  }
   auto messages_it                         = ast_.messages.find(type_expression.identifier.name);
   ast::DependentType const *dependent_type = nullptr;
   if (messages_it != ast_.messages.end()) {
     dependent_type = &messages_it->second;
   } else {
     auto enums_it  = ast_.enums.find(type_expression.identifier.name);
-    dependent_type = &messages_it->second;
+    dependent_type = &enums_it->second;
   }
   // Number of parameters should be equal to number of dependencies of message/enum
   if (dependent_type->type_dependencies.size() != type_expression.parameters.size()) {

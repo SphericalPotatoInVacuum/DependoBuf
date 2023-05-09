@@ -99,6 +99,7 @@ private:
   std::unordered_map<InternedString, z3::func_decl> z3_constructors_;        // z3_constructors_[type] = constructor
   using FieldToAccessor = std::unordered_map<InternedString, z3::func_decl>; // FieldToAccessor[field] = accessor
   std::unordered_map<InternedString, FieldToAccessor> z3_accessors_;         // z3_accessors_[type][field] = accessor
+  z3::solver z3_solver_;
 };
 
 } // namespace dbuf::checker

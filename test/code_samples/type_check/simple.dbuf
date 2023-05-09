@@ -1,0 +1,11 @@
+message A (n Int) {
+}
+
+message B (a A 5) {
+  f Int
+}
+
+message C {
+  a A (1 + 3 + (4 + 5))
+  b B a
+}
