@@ -46,6 +46,13 @@ public:
     }
   }
 
+  void operator()(const ast::Expression & /*expected_type*/, const ast::Star & /*star*/);
+  void operator()(const ast::Expression & /*expected_type*/, const ast::Value & /*value*/);
+
+  void operator()(const ast::TypeExpression &expected_type, const ast::Star &star);
+
+  void operator()(const ast::TypeExpression &expected_type, const ast::Value &value);
+
   void operator()(const ast::TypeExpression &expected_type, const ast::ConstructedValue &value);
 
   void operator()(const ast::TypeExpression &expected_type, const ast::VarAccess &expression);

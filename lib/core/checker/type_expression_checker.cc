@@ -6,6 +6,7 @@
 #include "glog/logging.h"
 #include "location.hh"
 
+#include <cstddef>
 #include <string>
 #include <variant>
 #include <vector>
@@ -57,6 +58,20 @@ void TypeExpressionChecker::CheckTypes() {
   for (const auto &node : sorted_graph_) {
     std::visit(*this, ast_.types.at(node));
   }
+}
+
+void TypeExpressionChecker::operator()(const ast::Expression & /*expected_type*/, const ast::Star & /*star*/) {
+  // TODO(alisa-vernigor): return error
+}
+
+void TypeExpressionChecker::operator()(const ast::Expression & /*expected_type*/, const ast::Value & /*value*/) {
+  // TODO(alisa-vernigor): return error
+}
+
+void TypeExpressionChecker::operator()(const ast::TypeExpression & /*expected_type*/, const ast::Star & /*star*/) {}
+
+void TypeExpressionChecker::operator()(const ast::TypeExpression &expected_type, const ast::Value &value) {
+  std::visit(*this, ast::Expression(expected_type), value);
 }
 
 void TypeExpressionChecker::operator()(const ast::Message &ast_message) {
@@ -123,7 +138,93 @@ void TypeExpressionChecker::operator()(const ast::Message &ast_message) {
 }
 
 void TypeExpressionChecker::operator()(const ast::Enum &ast_enum) {
-  // TODO(alisa-vernigor): Check enum
+  // Scope of the enum checked
+  PushScope();
+
+  // First step is to check if dependencies' types are correctly constructed
+  for (const auto &dependency : ast_enum.type_dependencies) {
+    CheckTypeExpression(dependency.type_expression);
+
+    // After we checked the depdency we can add it to scope to be seen by other dependencies
+    AddName(dependency.name, dependency.type_expression);
+  }
+
+  // The next step is to check the pattern mathcing
+  for (const auto &pattern : ast_enum.pattern_mapping) {
+    // We need separate scope for each pattern
+    PushScope();
+
+    if (pattern.inputs.size() != ast_enum.type_dependencies.size()) {
+      errors_.emplace_back(Error {
+          .message = "Expected " + std::to_string(ast_enum.type_dependencies.size()) +
+                     " inputs in pattern for enum \"" + ast_enum.identifier.name.GetString() + "\", but got " +
+                     std::to_string(pattern.inputs.size())});
+      return;
+    }
+
+    for (size_t id = 0; id < pattern.inputs.size(); ++id) {
+      std::visit(*this, ast::Expression(ast_enum.type_dependencies[id].type_expression), pattern.inputs[id]);
+    }
+
+    // Now we can add names from patterns as they should be visible in outputs
+    for (size_t id = 0; id < pattern.inputs.size(); ++id) {
+      // We ignore Stars as they do not declare new names
+      if (std::holds_alternative<ast::Value>(pattern.inputs[id])) {
+        ast::Value value = std::get<ast::Value>(pattern.inputs[id]);
+
+        // We ignore ScalarValues as well
+        if (std::holds_alternative<ast::ConstructedValue>(value)) {
+          ast::ConstructedValue constructed_value = std::get<ast::ConstructedValue>(value);
+
+          // We need to find the type of the field
+          InternedString type_name = ast_enum.type_dependencies[id].name;
+          ast::Enum target_enum    = std::get<ast::Enum>(ast_.types.at(type_name));
+
+          ast::Constructor targert_constructor;
+          // Looking for the constructor
+          for (const auto &pattern : target_enum.pattern_mapping) {
+            for (const auto &output : pattern.outputs) {
+              if (output.identifier.name == constructed_value.constructor_identifier.name) {
+                targert_constructor = output;
+                break;
+              }
+            }
+          }
+
+          if (targert_constructor.fields.size() != constructed_value.fields.size()) {
+            errors_.emplace_back(Error {
+                .message = "Expected " + std::to_string(targert_constructor.fields.size()) +
+                           " fields in constructor \"" + targert_constructor.identifier.name.GetString() +
+                           "\", but got " + std::to_string(constructed_value.fields.size())});
+            return;
+          }
+
+          // Adding new variables to scope
+          for (size_t j = 0; j < targert_constructor.fields.size(); ++j) {
+            if (std::holds_alternative<ast::VarAccess>(*constructed_value.fields[j].second)) {
+              ast::VarAccess var_access = std::get<ast::VarAccess>(*constructed_value.fields[j].second);
+
+              // If new variable
+              if (var_access.field_identifiers.empty()) {
+                AddName(var_access.var_identifier.name, targert_constructor.fields[j].type_expression);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for (const auto &constructor : pattern.outputs) {
+      for (const auto &field : constructor.fields) {
+        CheckTypeExpression(field.type_expression);
+      }
+    }
+
+    PopScope();
+  }
+
+  // Clear used scope
+  PopScope();
 }
 
 void TypeExpressionChecker::CheckTypeExpression(const ast::TypeExpression &type_expression) {
