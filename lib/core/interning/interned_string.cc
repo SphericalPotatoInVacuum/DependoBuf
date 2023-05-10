@@ -49,6 +49,11 @@ bool InternedString::operator<(const InternedString &other) const {
   return GetString() < other.GetString();
 }
 
+std::ostream &operator<<(std::ostream &os, const InternedString &str) {
+  os << str.GetString();
+  return os;
+}
+
 std::unordered_map<std::string, uint64_t> InternedString::string_map_;
 std::unordered_map<uint64_t, std::reference_wrapper<const std::string>> InternedString::id_map_;
 
