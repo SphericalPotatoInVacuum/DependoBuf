@@ -47,8 +47,7 @@ struct Enum
 };
 
 struct AST {
-  std::unordered_map<InternedString, Message> messages;
-  std::unordered_map<InternedString, Enum> enums;
+  std::unordered_map<InternedString, std::variant<Message, Enum>> types = {};
 };
 
 } // namespace dbuf::ast

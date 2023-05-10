@@ -23,10 +23,14 @@ TypeExpressionChecker::TypeExpressionChecker(const ast::AST &ast, const std::vec
     , z3_solver_(z3_context_) {}
 
 void TypeExpressionChecker::BuildConstructorToEnum() {
-  for (const auto &ast_enum : ast_.enums) {
-    for (const auto &rule : ast_enum.second.pattern_mapping) {
+  for (const auto &[type_name, type_variant] : ast_.types) {
+    if (!std::holds_alternative<ast::Enum>(type_variant)) {
+      continue;
+    }
+    const auto &ast_enum = std::get<ast::Enum>(type_variant);
+    for (const auto &rule : ast_enum.pattern_mapping) {
       for (const auto &constructor : rule.outputs) {
-        constructor_to_enum_[constructor.identifier.name] = ast_enum.second.identifier.name;
+        constructor_to_enum_[constructor.identifier.name] = ast_enum.identifier.name;
       }
     }
   }
@@ -51,72 +55,75 @@ void TypeExpressionChecker::CheckTypes() {
   BuildConstructorToEnum();
 
   for (const auto &node : sorted_graph_) {
-    // Checking message
-    if (ast_.messages.contains(node)) {
-      // Scope of the message checked
-      PushScope();
-      // Iterator to message from ast map
-      const ast::Message ast_message = ast_.messages.at(node);
-
-      z3_sorts_.emplace(
-          ast_message.identifier.name,
-          z3_context_.uninterpreted_sort(ast_message.identifier.name.GetString().c_str()));
-
-      DLOG(INFO) << "Declared a new sort: " << z3_sorts_.at(ast_message.identifier.name);
-
-      std::vector<z3::sort> dependency_sorts;
-
-      // First step is to check if dependencies' types are correctly constructed
-      for (const auto &dependency : ast_message.type_dependencies) {
-        CheckTypeExpression(dependency.type_expression);
-
-        // After we checked the depdency we can add it to scope to be seen by other dependencies
-        AddName(dependency.name, dependency.type_expression);
-
-        dependency_sorts.push_back(z3_sorts_.at(dependency.type_expression.identifier.name));
-      }
-
-      std::vector<z3::sort> field_sorts;
-      z3_accessors_.emplace(ast_message.identifier.name, TypeExpressionChecker::FieldToAccessor());
-
-      // Same with fields
-      for (const auto &field : ast_message.fields) {
-        CheckTypeExpression(field.type_expression);
-
-        // After we checked the depdency we can add it to scope to be seen by other dependencies
-        AddName(field.name, field.type_expression);
-
-        field_sorts.push_back(z3_sorts_.at(field.type_expression.identifier.name));
-
-        const auto [it, _] = z3_accessors_.at(ast_message.identifier.name)
-                                 .emplace(
-                                     field.name,
-                                     z3_context_.function(
-                                         field.name.GetString().c_str(),
-                                         z3_sorts_.at(ast_message.identifier.name),
-                                         z3_sorts_.at(field.type_expression.identifier.name)));
-        DLOG(INFO) << "Declared a new accessor: " << it->second;
-      }
-
-      std::vector<z3::sort> constructor_parameter_sorts(dependency_sorts);
-      constructor_parameter_sorts.insert(constructor_parameter_sorts.end(), field_sorts.begin(), field_sorts.end());
-
-      auto [constructor_it, _] = z3_constructors_.emplace(
-          ast_message.identifier.name,
-          z3_context_.function(
-              ast_message.identifier.name.GetString().c_str(),
-              static_cast<size_t>(constructor_parameter_sorts.size()),
-              constructor_parameter_sorts.data(),
-              z3_sorts_.at(ast_message.identifier.name)));
-
-      DLOG(INFO) << "Declared a new constructor: " << constructor_it->second;
-
-      // Clear used scope
-      PopScope();
-    } else {
-      // TODO(alisa-vernigor): Check enum
-    }
+    std::visit(*this, ast_.types.at(node));
   }
+}
+
+void TypeExpressionChecker::operator()(const ast::Message &ast_message) {
+  DLOG(INFO) << "Checking message: " << ast_message.identifier.name;
+
+  // Scope of the message checked
+  PushScope();
+
+  z3_sorts_.emplace(
+      ast_message.identifier.name,
+      z3_context_.uninterpreted_sort(ast_message.identifier.name.GetString().c_str()));
+
+  DLOG(INFO) << "Declared a new sort: " << z3_sorts_.at(ast_message.identifier.name);
+
+  std::vector<z3::sort> dependency_sorts;
+
+  // First step is to check if dependencies' types are correctly constructed
+  for (const auto &dependency : ast_message.type_dependencies) {
+    CheckTypeExpression(dependency.type_expression);
+
+    // After we checked the depdency we can add it to scope to be seen by other dependencies
+    AddName(dependency.name, dependency.type_expression);
+
+    dependency_sorts.push_back(z3_sorts_.at(dependency.type_expression.identifier.name));
+  }
+
+  std::vector<z3::sort> field_sorts;
+  z3_accessors_.emplace(ast_message.identifier.name, TypeExpressionChecker::FieldToAccessor());
+
+  // Same with fields
+  for (const auto &field : ast_message.fields) {
+    CheckTypeExpression(field.type_expression);
+
+    // After we checked the depdency we can add it to scope to be seen by other dependencies
+    AddName(field.name, field.type_expression);
+
+    field_sorts.push_back(z3_sorts_.at(field.type_expression.identifier.name));
+
+    const auto [it, _] = z3_accessors_.at(ast_message.identifier.name)
+                             .emplace(
+                                 field.name,
+                                 z3_context_.function(
+                                     field.name.GetString().c_str(),
+                                     z3_sorts_.at(ast_message.identifier.name),
+                                     z3_sorts_.at(field.type_expression.identifier.name)));
+    DLOG(INFO) << "Declared a new accessor: " << it->second;
+  }
+
+  std::vector<z3::sort> constructor_parameter_sorts(dependency_sorts);
+  constructor_parameter_sorts.insert(constructor_parameter_sorts.end(), field_sorts.begin(), field_sorts.end());
+
+  auto [constructor_it, _] = z3_constructors_.emplace(
+      ast_message.identifier.name,
+      z3_context_.function(
+          ast_message.identifier.name.GetString().c_str(),
+          static_cast<size_t>(constructor_parameter_sorts.size()),
+          constructor_parameter_sorts.data(),
+          z3_sorts_.at(ast_message.identifier.name)));
+
+  DLOG(INFO) << "Declared a new constructor: " << constructor_it->second;
+
+  // Clear used scope
+  PopScope();
+}
+
+void TypeExpressionChecker::operator()(const ast::Enum &ast_enum) {
+  // TODO(alisa-vernigor): Check enum
 }
 
 void TypeExpressionChecker::CheckTypeExpression(const ast::TypeExpression &type_expression) {
@@ -126,25 +133,22 @@ void TypeExpressionChecker::CheckTypeExpression(const ast::TypeExpression &type_
       type_expression.identifier.name == InternedString("String")) {
     return;
   }
-  auto messages_it                         = ast_.messages.find(type_expression.identifier.name);
-  ast::DependentType const *dependent_type = nullptr;
-  if (messages_it != ast_.messages.end()) {
-    dependent_type = &messages_it->second;
-  } else {
-    auto enums_it  = ast_.enums.find(type_expression.identifier.name);
-    dependent_type = &enums_it->second;
-  }
+
+  auto it = ast_.types.find(type_expression.identifier.name);
+  const ast::DependentType &type =
+      std::visit([](const auto &type) { return static_cast<ast::DependentType>(type); }, it->second);
+
   // Number of parameters should be equal to number of dependencies of message/enum
-  if (dependent_type->type_dependencies.size() != type_expression.parameters.size()) {
+  if (type.type_dependencies.size() != type_expression.parameters.size()) {
     errors_.emplace_back(Error {
-        .message = "Expected " + std::to_string(dependent_type->type_dependencies.size()) +
-                   " parameters for typename \"" + type_expression.identifier.name.GetString() + "\", but got " +
+        .message = "Expected " + std::to_string(type.type_dependencies.size()) + " parameters for typename \"" +
+                   type_expression.identifier.name.GetString() + "\", but got " +
                    std::to_string(type_expression.parameters.size())});
     return;
   }
 
   // Next step is to check parameters
-  CheckTypeDependencies(dependent_type->type_dependencies, type_expression.parameters);
+  CheckTypeDependencies(type.type_dependencies, type_expression.parameters);
 }
 
 void TypeExpressionChecker::AddName(InternedString name, ast::TypeExpression type) {
@@ -199,15 +203,23 @@ void TypeExpressionChecker::operator()(const ast::TypeExpression &expected_type,
   // The field we are looking for. In case foo.bar.buzz we are looking for bar
   InternedString expected_field = expression.field_identifiers[0].name;
 
+  const auto &type = ast_.types.at(message_name);
+  if (std::holds_alternative<ast::Enum>(type)) {
+    errors_.emplace_back(
+        Error {.message = "Field access works only for messages, but \"" + message_name.GetString() + "\" is enum"});
+    return;
+  }
+  const auto &message = std::get<ast::Message>(type);
+
   bool found = false;
 
   // Let's notice the Type(foo.bar.buzz) == Type(bar.buzz) == Type (buzz)
   // We want to check type recursively, so I add new scope -- the scope of message Type(foo)
   PushScope();
-  for (const auto &dependencie : ast_.messages.at(message_name).type_dependencies) {
+  for (const auto &dependencie : message.type_dependencies) {
     AddName(dependencie.name, dependencie.type_expression);
   }
-  for (const auto &field : ast_.messages.at(message_name).fields) {
+  for (const auto &field : message.fields) {
     AddName(field.name, field.type_expression);
     if (field.name == expected_field) {
       found = true;
@@ -275,7 +287,7 @@ void TypeExpressionChecker::CheckTypeDependencies(
 }
 
 bool TypeExpressionChecker::IsTypeName(InternedString name) const {
-  return ast_.enums.contains(name) || ast_.messages.contains(name);
+  return ast_.types.contains(name);
 }
 
 void TypeExpressionChecker::CompareExpressions(const ast::Expression & /*expected*/, const ast::Expression & /*got*/) {

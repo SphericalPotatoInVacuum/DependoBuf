@@ -53,13 +53,14 @@ private:
 
   std::deque<Scope> scopes_;
 
-  ConstructorFieldsMap constructors_fields_;
+  ConstructorFieldsMap constructor_to_fields_;
 
   // private methods
   bool IsInScope(InternedString name);
   void AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing);
 
-  ConstructorFieldsMap static GetConstructorFields(const ast::AST &ast);
+  void InitConstructorFields(const ast::AST &ast);
+  void AddFields(const InternedString &constructor_name, const ast::TypeWithFields &type);
 
   void AddGlobalNames(const ast::AST &ast);
 

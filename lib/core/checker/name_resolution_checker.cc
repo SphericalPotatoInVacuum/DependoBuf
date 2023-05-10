@@ -1,5 +1,8 @@
 #include "core/checker/name_resolution_checker.h"
 
+#include "core/ast/ast.h"
+#include "core/interning/interned_string.h"
+
 #include <algorithm>
 #include <sstream>
 
@@ -8,15 +11,10 @@ namespace dbuf::checker {
 ErrorList NameResolutionChecker::operator()(const ast::AST &ast) {
   PushScope();
   AddGlobalNames(ast);
+  InitConstructorFields(ast);
 
-  constructors_fields_ = GetConstructorFields(ast);
-
-  for (const auto &[message_name, message_body] : ast.messages) {
-    (*this)(message_body);
-  }
-
-  for (const auto &[enum_name, enum_body] : ast.enums) {
-    (*this)(enum_body);
+  for (const auto &[_, type] : ast.types) {
+    std::visit(*this, type);
   }
 
   return errors_;
@@ -79,7 +77,7 @@ void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
   PushScope();
 
   for (const auto &field : value.fields) {
-    if (!constructors_fields_[value.constructor_identifier.name].contains(field.first.name)) {
+    if (!constructor_to_fields_[value.constructor_identifier.name].contains(field.first.name)) {
       errors_.emplace_back(Error {
           .message = "No field with name " + field.first.name.GetString() + " in constructor " +
                      value.constructor_identifier.name.GetString()});
@@ -142,26 +140,28 @@ void NameResolutionChecker::AddName(InternedString name, std::string &&identifie
   scopes_.back().insert(name);
 }
 
-NameResolutionChecker::ConstructorFieldsMap NameResolutionChecker::GetConstructorFields(const ast::AST &ast) {
-  NameResolutionChecker::ConstructorFieldsMap constructor_to_fields_names;
-
-  for (const auto &ast_enum : ast.enums) {
-    for (const auto &pattern : ast_enum.second.pattern_mapping) {
-      for (const auto &constructor : pattern.outputs) {
-        for (const auto &field : constructor.fields) {
-          constructor_to_fields_names[constructor.identifier.name].insert(field.name);
+void NameResolutionChecker::InitConstructorFields(const ast::AST &ast) {
+  auto visitor = [this](const auto &type) {
+    using T = std::decay_t<decltype(type)>;
+    if constexpr (std::is_same_v<T, ast::Enum>) {
+      for (const auto &pattern : type.pattern_mapping) {
+        for (const auto &constructor : pattern.outputs) {
+          AddFields(constructor.identifier.name, constructor);
         }
       }
+    } else if constexpr (std::is_same_v<T, ast::Message>) {
+      AddFields(type.identifier.name, type);
     }
+  };
+  for (const auto &[type_name, type_variant] : ast.types) {
+    std::visit(visitor, type_variant);
   }
+}
 
-  for (const auto &ast_message : ast.messages) {
-    for (const auto &field : ast_message.second.fields) {
-      constructor_to_fields_names[ast_message.first].insert(field.name);
-    }
+void NameResolutionChecker::AddFields(const InternedString &constructor_name, const ast::TypeWithFields &type) {
+  for (const auto &field : type.fields) {
+    constructor_to_fields_[constructor_name].insert(field.name);
   }
-
-  return constructor_to_fields_names;
 }
 
 void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
@@ -170,17 +170,20 @@ void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
   AddName(InternedString("Float"), "type", false);
   AddName(InternedString("Bool"), "type", false);
 
-  for (const auto &ast_message : ast.messages) {
-    AddName(ast_message.first, "message", false);
-  }
-
-  for (const auto &ast_enum : ast.enums) {
-    AddName(ast_enum.first, "enum", false);
-    for (const auto &pattern : ast_enum.second.pattern_mapping) {
-      for (const auto &constructor : pattern.outputs) {
-        AddName(constructor.identifier.name, "constructor", false);
+  auto visitor = [this](const auto &type) {
+    if constexpr (std::is_same_v<std::decay_t<decltype(type)>, ast::Message>) {
+      AddName(type.identifier.name, "message", false);
+    } else if constexpr (std::is_same_v<std::decay_t<decltype(type)>, ast::Enum>) {
+      AddName(type.identifier.name, "enum", false);
+      for (const auto &pattern : type.pattern_mapping) {
+        for (const auto &constructor : pattern.outputs) {
+          AddName(constructor.identifier.name, "constructor", false);
+        }
       }
     }
+  };
+  for (const auto &[_, type] : ast.types) {
+    std::visit(visitor, type);
   }
 }
 
