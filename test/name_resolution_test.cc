@@ -103,8 +103,8 @@ public:
 TEST(NameResolutionTest, GlobalNamesRepetition) {
   ast::AST ast;
 
-  ast::Message message_a            = NameResolutionTest::make_message("A", {}, {});
-  ast.messages[InternedString("A")] = std::move(message_a);
+  ast::Message message_a         = NameResolutionTest::make_message("A", {}, {});
+  ast.types[InternedString("A")] = std::move(message_a);
 
   ast::Constructor constructor_a = NameResolutionTest::make_constructor("A", {});
   std::vector<ast::Constructor> outputs;
@@ -114,15 +114,13 @@ TEST(NameResolutionTest, GlobalNamesRepetition) {
   patterns.emplace_back(NameResolutionTest::make_rule({}, std::move(outputs)));
 
   ast::Enum enum_a               = NameResolutionTest::make_enum("A", {}, std::move(patterns));
-  ast.enums[InternedString("A")] = std::move(enum_a);
+  ast.types[InternedString("A")] = std::move(enum_a);
 
-  std::unordered_set<std::string> expected_errors {
-      "Re-declaration of enum: \"A\"",
-      "Re-declaration of constructor: \"A\""};
+  std::unordered_set<std::string> expected_errors {"Re-declaration of constructor: \"A\""};
 
   checker::ErrorList errors = checker::NameResolutionChecker()(ast);
 
-  ASSERT_EQ(errors.size(), 2);
+  ASSERT_EQ(errors.size(), 1);
 
   for (auto &error : errors) {
     EXPECT_TRUE(expected_errors.contains(error.message));
@@ -140,7 +138,7 @@ TEST(NameResolutionTest, ConstructorRedeclaration) {
   patterns_a.emplace_back(NameResolutionTest::make_rule({}, std::move(outputs_a)));
 
   ast::Enum enum_a               = NameResolutionTest::make_enum("A", {}, std::move(patterns_a));
-  ast.enums[InternedString("A")] = std::move(enum_a);
+  ast.types[InternedString("A")] = std::move(enum_a);
 
   ast::Constructor constructor_b = NameResolutionTest::make_constructor("Constructor1", {});
   std::vector<ast::Constructor> outputs_b;
@@ -150,7 +148,7 @@ TEST(NameResolutionTest, ConstructorRedeclaration) {
   patterns_b.emplace_back(NameResolutionTest::make_rule({}, std::move(outputs_b)));
 
   ast::Enum enum_b               = NameResolutionTest::make_enum("B", {}, std::move(patterns_b));
-  ast.enums[InternedString("B")] = std::move(enum_b);
+  ast.types[InternedString("B")] = std::move(enum_b);
 
   std::unordered_set<std::string> expected_errors {"Re-declaration of constructor: \"Constructor1\""};
 
@@ -172,8 +170,8 @@ TEST(NameResolutionTest, UnknownTypename) {
   std::vector<ast::TypedVariable> fields;
   fields.emplace_back(NameResolutionTest::make_simple_typed_variable("field1", "C"));
 
-  ast::Message message_a            = NameResolutionTest::make_message("A", std::move(dependencies), std::move(fields));
-  ast.messages[InternedString("A")] = std::move(message_a);
+  ast::Message message_a         = NameResolutionTest::make_message("A", std::move(dependencies), std::move(fields));
+  ast.types[InternedString("A")] = std::move(message_a);
 
   std::unordered_set<std::string> expected_errors {
       "Undefined type name: \"B\" at 1.1",
@@ -195,8 +193,8 @@ TEST(NameResolutionTest, FieldRedeclaration) {
   message_fields.emplace_back(NameResolutionTest::make_simple_typed_variable("field1", "Int"));
   message_fields.emplace_back(NameResolutionTest::make_simple_typed_variable("field1", "Bool"));
   message_fields.emplace_back(NameResolutionTest::make_simple_typed_variable("field1", "Int"));
-  ast::Message message_a            = NameResolutionTest::make_message("A", {}, std::move(message_fields));
-  ast.messages[InternedString("A")] = std::move(message_a);
+  ast::Message message_a         = NameResolutionTest::make_message("A", {}, std::move(message_fields));
+  ast.types[InternedString("A")] = std::move(message_a);
 
   std::vector<ast::TypedVariable> constructor_fields;
   constructor_fields.emplace_back(NameResolutionTest::make_simple_typed_variable("field2", "Int"));
@@ -210,7 +208,7 @@ TEST(NameResolutionTest, FieldRedeclaration) {
   patterns.emplace_back(ast::Enum::Rule {.inputs = std::move(inputs), .outputs = std::move(outputs)});
 
   ast::Enum enum_b               = NameResolutionTest::make_enum("B", {}, std::move(patterns));
-  ast.enums[InternedString("B")] = std::move(enum_b);
+  ast.types[InternedString("B")] = std::move(enum_b);
 
   std::unordered_set<std::string> expected_errors {
       "Re-declaration of variable: \"field1\"",
@@ -237,7 +235,7 @@ TEST(NameResolutionTest, UnknownConstructor) {
 
   ast::Enum enum1 = NameResolutionTest::make_enum("A", {}, std::move(enum1_patterns));
 
-  ast.enums[InternedString("A")] = std::move(enum1);
+  ast.types[InternedString("A")] = std::move(enum1);
 
   std::vector<ast::TypedVariable> enum2_fields;
   enum2_fields.emplace_back(NameResolutionTest::make_simple_typed_variable("field1", "A"));
@@ -256,7 +254,7 @@ TEST(NameResolutionTest, UnknownConstructor) {
 
   ast::Enum enum2 = NameResolutionTest::make_enum("B", std::move(enum2_dependencies), std::move(enum2_pattern));
 
-  ast.enums[InternedString("B")] = std::move(enum2);
+  ast.types[InternedString("B")] = std::move(enum2);
 
   std::unordered_set<std::string> expected_errors {"Undefined constructor: \"Constructor2\""};
 
@@ -283,7 +281,7 @@ TEST(NameResolutionTest, UnknownFieldOfConstructor) {
 
   ast::Enum enum1 = NameResolutionTest::make_enum("A", {}, std::move(enum1_patterns));
 
-  ast.enums[InternedString("A")] = std::move(enum1);
+  ast.types[InternedString("A")] = std::move(enum1);
 
   std::vector<ast::TypedVariable> enum2_fields;
 
@@ -302,7 +300,7 @@ TEST(NameResolutionTest, UnknownFieldOfConstructor) {
 
   ast::Enum enum2 = NameResolutionTest::make_enum("B", std::move(enum2_dependencies), std::move(enum2_pattern));
 
-  ast.enums[InternedString("B")] = std::move(enum2);
+  ast.types[InternedString("B")] = std::move(enum2);
 
   std::unordered_set<std::string> expected_errors {"No field with name field2 in constructor C1"};
 
@@ -321,8 +319,8 @@ TEST(NameResolutionTest, UnknownVariable) {
   std::vector<ast::TypedVariable> message_vec_dependencies;
   message_vec_dependencies.emplace_back(NameResolutionTest::make_simple_typed_variable("i", "Int"));
   message_vec_dependencies.emplace_back(NameResolutionTest::make_simple_typed_variable("n", "Int"));
-  ast::Message message_vec = NameResolutionTest::make_message("Vec", std::move(message_vec_dependencies), {});
-  ast.messages[InternedString("Vec")] = std::move(message_vec);
+  ast::Message message_vec         = NameResolutionTest::make_message("Vec", std::move(message_vec_dependencies), {});
+  ast.types[InternedString("Vec")] = std::move(message_vec);
 
   std::vector<std::shared_ptr<const ast::Expression>> parameters;
   parameters.emplace_back(std::make_unique<ast::Expression>(NameResolutionTest::make_var_access("a", {})));
@@ -332,8 +330,8 @@ TEST(NameResolutionTest, UnknownVariable) {
   std::vector<ast::TypedVariable> message_a_fields;
   message_a_fields.emplace_back(NameResolutionTest::make_typed_variable("field1", std::move(type_expression)));
 
-  ast::Message message_a            = NameResolutionTest::make_message("A", {}, std::move(message_a_fields));
-  ast.messages[InternedString("A")] = std::move(message_a);
+  ast::Message message_a         = NameResolutionTest::make_message("A", {}, std::move(message_a_fields));
+  ast.types[InternedString("A")] = std::move(message_a);
 
   std::unordered_set<std::string> expected_errors {
       "Undefined variable: \"a\" at 1.1",

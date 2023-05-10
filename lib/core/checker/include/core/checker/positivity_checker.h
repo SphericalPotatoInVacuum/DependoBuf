@@ -28,6 +28,9 @@ public:
 
   void operator()(const ast::TypeExpression &type_expression);
 
+  void operator()(const ast::Enum &ast_enum);
+  void operator()(const ast::Message &ast_message);
+
   Result operator()(const ast::AST &ast);
 
 private:

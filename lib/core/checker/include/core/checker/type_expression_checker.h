@@ -19,8 +19,10 @@ class TypeExpressionChecker {
 public:
   explicit TypeExpressionChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph);
 
-  // The enterpoint
   void CheckTypes();
+
+  void operator()(const ast::Message &ast_message);
+  void operator()(const ast::Enum &ast_enum);
 
   void CheckTypeExpression(const ast::TypeExpression &type_expression);
 
