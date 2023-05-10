@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <limits>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -24,6 +25,7 @@ public:
 
   bool operator==(const InternedString &other) const;
   bool operator<(const InternedString &other) const;
+  friend std::ostream &operator<<(std::ostream &os, const InternedString &str);
 
 private:
   static constexpr uint64_t kInvalidId = std::numeric_limits<uint64_t>::max();
