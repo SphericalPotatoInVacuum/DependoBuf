@@ -71,7 +71,7 @@ void TypeExpressionChecker::operator()(const ast::Expression & /*expected_type*/
 void TypeExpressionChecker::operator()(const ast::TypeExpression & /*expected_type*/, const ast::Star & /*star*/) {}
 
 void TypeExpressionChecker::operator()(const ast::TypeExpression &expected_type, const ast::Value &value) {
-  std::visit(*this, ast::Expression(expected_type), value);
+  std::visit(*this, ast::Expression(expected_type), ast::Expression(value));
 }
 
 void TypeExpressionChecker::operator()(const ast::Message &ast_message) {
@@ -274,6 +274,8 @@ void TypeExpressionChecker::operator()(const ast::TypeExpression &expected_type,
   // constructor used creates the required type.
 }
 
+// Is probably unused
+/*
 void TypeExpressionChecker::operator()(
     const std::vector<ast::TypedVariable> &type_dependencies,
     const ast::TypeExpression &type_expression) {
@@ -289,6 +291,7 @@ void TypeExpressionChecker::operator()(
     CompareExpressions(type_dependencies[id].type_expression, *type_expression.parameters[id]);
   }
 }
+*/
 
 void TypeExpressionChecker::operator()(const ast::TypeExpression &expected_type, const ast::VarAccess &expression) {
   // Case: does foo has type Foo?
@@ -380,7 +383,7 @@ void TypeExpressionChecker::CheckTypeDependencies(
     ast::Expression substituted_type = substitutor_(type_dependencies[id].type_expression);
 
     // Compare types
-    CompareExpressions(substituted_type, *type_parameters[id]);
+    std::visit(*this, substituted_type, *type_parameters[id]);
 
     // Now we can update substitutions
     substitutor_.AddSubstitution(type_dependencies[id].name, type_parameters[id]);
