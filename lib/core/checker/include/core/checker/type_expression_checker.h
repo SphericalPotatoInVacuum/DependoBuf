@@ -46,6 +46,10 @@ public:
     }
   }
 
+  // This case should not be reachable
+  // TODO(alisa-vernigor): return error
+  void operator()(const ast::Expression &expected_type, const ast::Expression &star);
+
   void operator()(const ast::Expression & /*expected_type*/, const ast::Star & /*star*/);
   void operator()(const ast::Expression & /*expected_type*/, const ast::Value & /*value*/);
 
