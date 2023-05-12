@@ -374,6 +374,8 @@ void TypeExpressionChecker::CompareTypeExpressions(
   }
 }
 
+void TypeExpressionChecker::operator()(const ast::Expression &, const ast::Expression &) {}
+
 void TypeExpressionChecker::CheckTypeDependencies(
     const std::vector<ast::TypedVariable> &type_dependencies,
     const std::vector<std::shared_ptr<const ast::Expression>> &type_parameters) {
