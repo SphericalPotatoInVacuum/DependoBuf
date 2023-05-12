@@ -34,6 +34,18 @@ public:
 
   void CompareTypeExpressions(const ast::TypeExpression &expected_type, const ast::TypeExpression &expression);
 
+  // std::visit should be exhaustive, but we don't need all possible combinations
+  template <typename T, typename S>
+  void operator()(const T &, const S &) {}
+
+  // Intermidiate visit stop
+  void operator()(const ast::Expression & /*expected_type*/, const ast::Value & /*value*/);
+
+  // Is type of second arg expected type
+  void operator()(const ast::TypeExpression &expected_type, const ast::Star &star);
+  void operator()(const ast::TypeExpression &expected_type, const ast::ConstructedValue &value);
+  void operator()(const ast::TypeExpression &expected_type, const ast::VarAccess &expression);
+
   // Easy case: scalar values. We just need to get the name of type and comare it with the name of
   // type expression
   template <typename T>
@@ -45,23 +57,6 @@ public:
       return;
     }
   }
-
-  // This case should not be reachable
-  // TODO(alisa-vernigor): return error
-  void operator()(const ast::Expression &, const ast::Expression &);
-
-  void operator()(const ast::Expression & /*expected_type*/, const ast::Star & /*star*/);
-  void operator()(const ast::Expression & /*expected_type*/, const ast::Value & /*value*/);
-
-  void operator()(const ast::TypeExpression &expected_type, const ast::Star &star);
-
-  void operator()(const ast::TypeExpression &expected_type, const ast::Value &value);
-
-  void operator()(const ast::TypeExpression &expected_type, const ast::ConstructedValue &value);
-
-  void operator()(const ast::TypeExpression &expected_type, const ast::VarAccess &expression);
-
-  void operator()(const std::vector<ast::TypedVariable> &type_dependencies, const ast::TypeExpression &type_expression);
 
 private:
   void BuildConstructorToEnum();
