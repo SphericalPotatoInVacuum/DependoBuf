@@ -67,9 +67,8 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::
   // expression as bar.buzz with Bar {buzz: variable}. The expected result in both cases is
   // variable.far. That means, that we can go deeper by one field each time
   const ast::Expression next = ast::VarAccess {
-      .var_identifier = value.field_identifiers[0],
-      .field_identifiers =
-          std::vector<ast::Identifier>(value.field_identifiers.begin() + 1, value.field_identifiers.end())};
+      value.field_identifiers[0],
+      std::vector<ast::Identifier>(value.field_identifiers.begin() + 1, value.field_identifiers.end())};
 
   return std::visit(*this, next, *substitution.fields[id].second);
 }
@@ -81,7 +80,7 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::
   fields.insert(fields.end(), value.field_identifiers.begin() + 1, value.field_identifiers.end());
 
   // So we return var1.var2.bar
-  return ast::VarAccess {.var_identifier = substitution.var_identifier, .field_identifiers = fields};
+  return ast::VarAccess {substitution.var_identifier, fields};
 }
 
 ast::Expression Substitutor::operator()(const ast::VarAccess &value) {

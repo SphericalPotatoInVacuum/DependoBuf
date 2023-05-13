@@ -346,7 +346,7 @@ primary
 %nterm <ast::VarAccess> var_access;
 var_access
   : var_identifier {
-    $$ = ast::VarAccess{.var_identifier = $1};
+    $$ = ast::VarAccess{{$1}};
   }
   | var_access "." var_identifier {
     $$ = std::move($1);
