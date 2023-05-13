@@ -1,0 +1,27 @@
+enum List (n Int) {
+  0 => {
+  }
+  * => {
+    ListNode {
+      value Int
+      tail List (n - 1)
+    }
+  }
+}
+
+message A (n Int) (m Int) {
+  list List (-(n + m))
+}
+
+enum B (n Int) (m Int) (a A n m) {
+  false => {
+    FalseConstructor
+  }
+  true => {
+    TrueConstructor
+  }
+}
+
+message C (n Int) (m Int) (a A n m) {
+  field B n m A{list: a.list}
+}

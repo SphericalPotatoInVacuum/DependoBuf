@@ -25,4 +25,8 @@ target_link_libraries(checker PUBLIC
   dbufAst
   glog
 )
-target_compile_options(checker PUBLIC -fpermissive)
+target_compile_options(checker PRIVATE -Werror -Wall -Wextra -Wpedantic -Wunused -Wunreachable-code)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_compile_options(checker PRIVATE -fsanitize=undefined)
+  target_link_options(checker PRIVATE -fsanitize=undefined)
+endif()

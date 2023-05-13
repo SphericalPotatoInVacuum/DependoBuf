@@ -15,6 +15,10 @@ namespace dbuf::ast {
 struct TypedVariable : NamedType {
   TypeExpression type_expression;
 };
+inline std::ostream &operator<<(std::ostream &os, const TypedVariable &var) {
+  os << var.name << " " << var.type_expression;
+  return os;
+}
 
 struct DependentType {
   std::vector<TypedVariable> type_dependencies = {};

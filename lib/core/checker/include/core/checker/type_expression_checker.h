@@ -5,100 +5,114 @@
 #include "core/checker/common.h"
 #include "core/interning/interned_string.h"
 #include "core/substitutor/substitutor.h"
+#include "glog/logging.h"
+#include "location.hh"
 #include "z3++.h"
 
 #include <deque>
 #include <iostream>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace dbuf::checker {
 
-class TypeExpressionChecker {
+class TypeChecker {
 public:
-  explicit TypeExpressionChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph);
+  explicit TypeChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph);
 
-  void CheckTypes();
+  ErrorList CheckTypes();
 
   void operator()(const ast::Message &ast_message);
   void operator()(const ast::Enum &ast_enum);
 
-  void CheckTypeExpression(const ast::TypeExpression &type_expression);
-
-  void CheckTypeDependencies(
-      const std::vector<ast::TypedVariable> &type_dependencies,
-      const std::vector<std::shared_ptr<const ast::Expression>> &type_parameters);
-
-  void CompareExpressions(const ast::Expression &expected, const ast::Expression &got);
-
-  void CompareTypeExpressions(const ast::TypeExpression &expected_type, const ast::TypeExpression &expression);
-
-  // std::visit should be exhaustive, but we don't need all possible combinations
-  template <typename T, typename S>
-  void operator()(const T &, const S &) {}
-
-  // Intermidiate visit stop
-  void operator()(const ast::Expression & /*expected_type*/, const ast::Value & /*value*/);
-
-  // Is type of second arg expected type
-  void operator()(const ast::TypeExpression &expected_type, const ast::Star &star);
-  void operator()(const ast::TypeExpression &expected_type, const ast::ConstructedValue &value);
-  void operator()(const ast::TypeExpression &expected_type, const ast::VarAccess &expression);
-
-  // Easy case: scalar values. We just need to get the name of type and comare it with the name of
-  // type expression
-  template <typename T>
-  void operator()(const ast::TypeExpression &expected_type, const ast::ScalarValue<T> &value) {
-    if (expected_type.identifier.name != GetTypename(value)) {
-      errors_.emplace_back(Error {
-          .message = "Got value of type \"" + GetTypename(value).GetString() + "\", but expected type is \"" +
-                     expected_type.identifier.name.GetString() + "\""});
-      return;
-    }
-  }
-
 private:
-  void BuildConstructorToEnum();
+  using Scope = std::unordered_map<InternedString, ast::TypeExpression>;
 
-  [[nodiscard]] bool IsTypeName(InternedString name) const;
+  class TypeComparator {
+  public:
+    TypeComparator(const ast::Expression &expr, const ast::TypeExpression &expected, TypeChecker *checker)
+        : expr_(expr)
+        , expected_(expected)
+        , checker_(*checker) {}
+
+    void Compare();
+
+    // Expression specifications
+    std::optional<ast::TypeExpression> operator()(const ast::TypeExpression &expr);
+    std::optional<ast::TypeExpression> operator()(const ast::BinaryExpression &expr);
+    std::optional<ast::TypeExpression> operator()(const ast::UnaryExpression &expr);
+    std::optional<ast::TypeExpression> operator()(const ast::VarAccess &expr);
+    std::optional<ast::TypeExpression> operator()(const ast::Value &val);
+
+    // Value specifications
+    template <typename T>
+    std::optional<ast::TypeExpression> operator()(const ast::ScalarValue<T> &val) {
+      if (expected_.identifier.name != GetTypename(val)) {
+        AddError(&checker_.errors_) << "Got value of type \"" << GetTypename(val) << "\", but expected type is \""
+                                    << expected_.identifier.name << "\" at " << val.location;
+        return {};
+      }
+      return {expected_};
+    }
+
+    std::optional<ast::TypeExpression> operator()(const ast::ConstructedValue &val);
+
+  private:
+    const ast::Expression &expr_;
+    const ast::TypeExpression &expected_;
+    TypeChecker &checker_;
+  };
+
+  /**
+   * @brief Check that all dependencies are correctly defined
+   *
+   * @param type
+   */
+  void CheckDependencies(const ast::DependentType &type);
+  /**
+   * @brief Check that all fields are correctly defined
+   *
+   * @param type
+   */
+  void CheckFields(const ast::TypeWithFields &type);
+
+  void CheckTypeExpression(const ast::TypeExpression &type_expression);
+  bool CompareExpressions(const ast::Expression &expected, const ast::Expression &got);
+  bool CompareTypeExpressions(const ast::TypeExpression &expected_type, const ast::TypeExpression &expression);
+
+  void BuildConstructorToEnum();
 
   void AddName(InternedString name, ast::TypeExpression type);
 
-  bool IsInScope(InternedString name);
-
   void PushScope();
-
   void PopScope();
 
-  template <typename T>
-  InternedString GetTypename(const ast::ScalarValue<T> &value) {}
+  [[nodiscard]] const ast::TypeExpression &LookupName(InternedString name) const;
 
-  template <>
-  InternedString GetTypename<bool>(const ast::ScalarValue<bool> &) {
+  static InternedString GetTypename(const ast::ScalarValue<bool> &) {
     return InternedString("Bool");
   }
-  template <>
-  InternedString GetTypename<int64_t>(const ast::ScalarValue<int64_t> &) {
+  static InternedString GetTypename(const ast::ScalarValue<int64_t> &) {
     return InternedString("Int");
   }
-  template <>
-  InternedString GetTypename<uint64_t>(const ast::ScalarValue<uint64_t> &) {
+  static InternedString GetTypename(const ast::ScalarValue<uint64_t> &) {
     return InternedString("Unsigned");
   }
-  template <>
-  InternedString GetTypename<double>(const ast::ScalarValue<double> &) {
+  static InternedString GetTypename(const ast::ScalarValue<double> &) {
     return InternedString("Float");
   }
-  template <>
-  InternedString GetTypename<std::string>(const ast::ScalarValue<std::string> &) {
+  static InternedString GetTypename(const ast::ScalarValue<std::string> &) {
     return InternedString("String");
   }
 
-  Substitutor substitutor_;
-  const std::vector<InternedString> sorted_graph_;
-  std::deque<std::unordered_map<InternedString, ast::TypeExpression>> context_;
   const ast::AST &ast_;
+  const std::vector<InternedString> sorted_graph_;
+
+  Substitutor substitutor_;
+  std::deque<Scope> context_;
   ErrorList errors_;
   std::unordered_map<InternedString, InternedString> constructor_to_enum_;
 
