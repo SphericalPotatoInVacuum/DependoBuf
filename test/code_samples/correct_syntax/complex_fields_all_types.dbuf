@@ -8,7 +8,7 @@ message ComplexFieldsAllTypes {
     f5 Field5 (-n)
     b1 Bool
     b2 Bool
-    v7 Field (b1 || b2)
-    v8 Field (b1 && b2)
+    v7 Field (b1 | b2)
+    v8 Field (b1 & b2)
     v9 Field (!b1)
 }

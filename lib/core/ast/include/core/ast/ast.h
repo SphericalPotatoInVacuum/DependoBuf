@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <ostream>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -49,6 +50,17 @@ struct Enum
 
   std::vector<Rule> pattern_mapping = {};
 };
+inline std::ostream &operator<<(std::ostream &os, const std::vector<Enum::Rule::InputPattern> &inputs) {
+  bool first = true;
+  for (const auto &input : inputs) {
+    if (!first) {
+      os << ", ";
+    }
+    first = false;
+    std::visit([&os](const auto &input) { os << input; }, input);
+  }
+  return os;
+}
 
 struct AST {
   std::unordered_map<InternedString, std::variant<Message, Enum>> types = {};

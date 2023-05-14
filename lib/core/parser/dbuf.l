@@ -64,8 +64,8 @@ string_literal \"(\\.|[^\\"])*\"
 }
 
     /* One or two character tokens */
-"&&" return token::TOK_AND;
-"||" return token::TOK_OR;
+"&" return token::TOK_AND;
+"|" return token::TOK_OR;
 "!"  return token::TOK_BANG;
 
     /* Single-character tokens */

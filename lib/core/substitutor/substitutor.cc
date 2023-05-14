@@ -1,42 +1,52 @@
 #include "core/substitutor/substitutor.h"
 
 #include "core/ast/expression.h"
+#include "glog/logging.h"
 #include "location.hh"
 
+#include <cassert>
 #include <memory>
+#include <ranges>
 #include <stdexcept>
 
 namespace dbuf {
 
-// Add a new (name -> expression) substitution to substitution map
+// Add a new (name -> expression) substitution to last scope
 void Substitutor::AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression) {
-  substitute_[name] = std::make_shared<ast::Expression>(std::visit(*this, *expression));
+  assert(!substitute_.empty());
+  DLOG(INFO) << "Adding substitution: " << name << " -> " << *expression;
+  auto expr = std::make_shared<ast::Expression>(std::visit(*this, *expression));
+  DLOG(INFO) << "Added substitution: " << name << " -> " << *expr;
+  substitute_.back().insert_or_assign(name, std::move(expr));
 }
 
-// Clear map
-void Substitutor::ClearSubstitutionMap() {
-  substitute_.clear();
+// Add a new scope
+void Substitutor::PushScope() {
+  DLOG(INFO) << "Added a scope to substitutor";
+  substitute_.emplace_back();
+}
+
+void Substitutor::PopScope() {
+  assert(!substitute_.empty());
+  DLOG(INFO) << "Popped a scope from substitutor";
+  substitute_.pop_back();
 }
 
 // If we want to substitute a binary expression, we need to substitute its left and right parts
 ast::Expression Substitutor::operator()(const ast::BinaryExpression &expression) {
-  ast::BinaryExpression res;
-
-  res.type  = expression.type;
-  res.left  = std::make_unique<ast::Expression>(std::visit(*this, *expression.left));
-  res.right = std::make_unique<ast::Expression>(std::visit(*this, *expression.right));
-
-  return res;
+  return ast::BinaryExpression {
+      {expression.location},
+      expression.type,
+      std::make_unique<ast::Expression>(std::visit(*this, *expression.left)),
+      std::make_unique<ast::Expression>(std::visit(*this, *expression.right))};
 }
 
 // If we want to substitute an unary expression, we just need to substitute its expression part
 ast::Expression Substitutor::operator()(const ast::UnaryExpression &expression) {
-  ast::UnaryExpression res;
-
-  res.type       = expression.type;
-  res.expression = std::make_unique<ast::Expression>(std::visit(*this, *expression.expression));
-
-  return res;
+  return ast::UnaryExpression {
+      {expression.location},
+      expression.type,
+      std::make_unique<ast::Expression>(std::visit(*this, *expression.expression))};
 }
 
 ast::Expression Substitutor::operator()(const ast::Expression &, const ast::Expression &) {
@@ -48,8 +58,8 @@ ast::Expression Substitutor::operator()(const ast::Expression &, const ast::VarA
 }
 
 ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution) {
-  // If field identifiers are empty, we have the case: n -> Succ {prev: 5}, so we just return Succ
-  // {prev: 5} as a result
+  // If field identifiers are empty, we have the case: n -> Succ {prev: 5},
+  // so we just return Succ {prev: 5} as a result
   if (value.field_identifiers.empty()) {
     return substitution;
   }
@@ -65,7 +75,7 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::
 
   // Let's notice that foo.bar.buzz.far with Foo {bar: {buzz: varible}} should return the same
   // expression as bar.buzz with Bar {buzz: variable}. The expected result in both cases is
-  // variable.far. That means, that we can go deeper by one field each time
+  // variable.bar. That means, that we can go deeper by one field each time
   const ast::Expression next = ast::VarAccess {
       value.field_identifiers[0],
       std::vector<ast::Identifier>(value.field_identifiers.begin() + 1, value.field_identifiers.end())};
@@ -84,11 +94,14 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::
 }
 
 ast::Expression Substitutor::operator()(const ast::VarAccess &value) {
-  if (!substitute_.contains(value.var_identifier.name)) {
-    return value;
+  for (const auto &scope : std::ranges::reverse_view(substitute_)) {
+    auto it = scope.find(value.var_identifier.name);
+    if (it != scope.end()) {
+      return std::visit(*this, ast::Expression(value), *it->second);
+    }
   }
 
-  return std::visit(*this, ast::Expression(value), *substitute_[value.var_identifier.name]);
+  return value;
 }
 
 // To substitute constucted value we need to subtitute all fields of constructed value

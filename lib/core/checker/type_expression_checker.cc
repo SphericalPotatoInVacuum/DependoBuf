@@ -65,8 +65,10 @@ void TypeChecker::operator()(const ast::Enum &ast_enum) {
 
   // The next step is to check the pattern mathcing
   for (const auto &rule : ast_enum.pattern_mapping) {
+    DLOG(INFO) << "Checking rule with inputs " << rule.inputs;
     // We need separate scope for each pattern
     PushScope();
+    substitutor_.PushScope();
 
     if (rule.inputs.size() != ast_enum.type_dependencies.size()) {
       AddError(&errors_) << "Expected " << ast_enum.type_dependencies.size() << " inputs in pattern for enum \""
@@ -82,6 +84,7 @@ void TypeChecker::operator()(const ast::Enum &ast_enum) {
       }
 
       const auto &value = std::get<ast::Value>(rule.inputs[id]);
+      substitutor_.AddSubstitution(ast_enum.type_dependencies[id].name, std::make_shared<const ast::Expression>(value));
 
       // Check that value has expected type in this context
       TypeComparator(ast::Expression(value), ast_enum.type_dependencies[id].type_expression, this).Compare();
@@ -142,9 +145,11 @@ void TypeChecker::operator()(const ast::Enum &ast_enum) {
     }
 
     for (const auto &constructor : rule.outputs) {
+      DLOG(INFO) << "Checking constructor: " << constructor.identifier.name;
       CheckFields(constructor);
     }
 
+    substitutor_.PopScope();
     PopScope();
   }
 
@@ -169,9 +174,11 @@ void TypeChecker::CheckFields(const ast::TypeWithFields &type) {
   PushScope();
 
   for (const auto &field : type.fields) {
-    DLOG(INFO) << "Checking field: " << field.name;
-    CheckTypeExpression(field.type_expression);
-    AddName(field.name, field.type_expression);
+    DLOG(INFO) << "Checking field: " << field.name << " of type " << field.type_expression;
+    auto after_substitution = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
+    DLOG(INFO) << "After substitution: " << after_substitution;
+    CheckTypeExpression(after_substitution);
+    AddName(field.name, after_substitution);
   }
 
   PopScope();
@@ -201,7 +208,7 @@ void TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
   DLOG(INFO) << "Checking parameters";
 
   // Next step is to check parameters
-  substitutor_.ClearSubstitutionMap(); // TODO(alisa-vernigor): do we need to clear it?
+  substitutor_.PushScope();
   for (size_t id = 0; id < type.type_dependencies.size(); ++id) {
     DLOG(INFO) << "Comparing argument " << *type_expression.parameters[id] << " against type "
                << type.type_dependencies[id].type_expression;
@@ -216,6 +223,7 @@ void TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
     // Now we can update substitutions
     substitutor_.AddSubstitution(type.type_dependencies[id].name, type_expression.parameters[id]);
   }
+  substitutor_.PopScope();
 }
 
 bool TypeChecker::CompareExpressions(const ast::Expression & /*expected*/, const ast::Expression & /*got*/) {
@@ -267,8 +275,8 @@ void TypeChecker::AddName(InternedString name, ast::TypeExpression type) {
   if (context_.empty()) {
     throw std::logic_error("Can't add name to empty scopes.");
   }
-
-  context_.back()[name] = std::move(type);
+  context_.back().insert_or_assign(name, std::move(type));
+  DLOG(INFO) << "Added name \"" << name << "\" with type \"" << context_.back().at(name) << "\" to context";
 }
 
 void TypeChecker::PushScope() {
@@ -294,10 +302,7 @@ void TypeChecker::PopScope() {
 
 void TypeChecker::TypeComparator::Compare() {
   auto result = std::visit(*this, expr_);
-  if (!result) {
-    AddError(&checker_.errors_) << "Type mismatch in expression " << expr_;
-    DLOG(ERROR) << "Type mismatch in expression " << expr_;
-  } else {
+  if (result) {
     DLOG(INFO) << "Type of expression " << expr_ << " is " << *result;
   }
 }
@@ -310,14 +315,14 @@ std::optional<ast::TypeExpression> TypeChecker::TypeComparator::operator()(const
   auto left_type  = std::visit(*this, *expr.left);
   auto right_type = std::visit(*this, *expr.right);
   if (!left_type || !right_type) {
-    DLOG(INFO) << "Type mismatch in expression " << expr;
+    DLOG(ERROR) << "Type mismatch in expression " << expr;
     return {};
   }
   if (!checker_.CompareTypeExpressions(*left_type, *right_type)) {
-    DLOG(INFO) << "Type mismatch in expression " << expr;
+    DLOG(ERROR) << "Type mismatch in expression " << expr;
     return {};
   }
-  DLOG(INFO) << "In expression " << expr << " types are equal to " << *left_type;
+  DLOG(INFO) << "Expression " << expr << " should be of type " << *left_type;
   if (expr.type == ast::BinaryExpressionType::Plus) {
     if (left_type->identifier.name == InternedString("Int") ||
         left_type->identifier.name == InternedString("Unsigned") ||
@@ -348,7 +353,7 @@ std::optional<ast::TypeExpression> TypeChecker::TypeComparator::operator()(const
       return left_type;
     }
   }
-  DLOG(INFO) << "Invalid operator use in expression " << expr;
+  DLOG(ERROR) << "Invalid operator use in expression " << expr;
   AddError(&checker_.errors_) << "Operator \"" << static_cast<char>(expr.type) << "\""
                               << " is not supported by type " << left_type->identifier.name << "\" at "
                               << expr.location;

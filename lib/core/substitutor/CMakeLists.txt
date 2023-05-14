@@ -9,6 +9,7 @@ target_include_directories(substitutor PUBLIC
 
 target_link_libraries(substitutor PUBLIC
   dbufAst
+  glog
   interning
 )
 

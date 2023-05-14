@@ -83,8 +83,8 @@ namespace dbuf::parser {
   SLASH "/"
 ;
 %token
-  AND "&&"
-  OR "||"
+  AND "&"
+  OR "|"
   BANG "!"
 ;
 %token
@@ -103,8 +103,8 @@ namespace dbuf::parser {
 %token <uint64_t> UINT_LITERAL
 %token <std::string> STRING_LITERAL
 
-%left "||" "-" "+"
-%left "&&" "*" "/"
+%left "|" "-" "+"
+%left "&" "*" "/"
 %precedence "!"
 
 %start schema
