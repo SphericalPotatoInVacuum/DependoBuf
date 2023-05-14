@@ -26,11 +26,12 @@ struct Substitutor {
   ast::Expression operator()(const ast::Expression &, const ast::Expression &);
 
   ast::Expression operator()(const ast::Expression &, const ast::VarAccess &);
-
   ast::Expression operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution);
-
   ast::Expression operator()(const ast::VarAccess &value, const ast::VarAccess &substitution);
-
+  template <typename T>
+  ast::Expression operator()(const ast::VarAccess & /*value*/, const ast::ScalarValue<T> &substitution) {
+    return substitution;
+  }
   ast::Expression operator()(const ast::VarAccess &value);
 
   ast::Expression operator()(const ast::ConstructedValue &value);
