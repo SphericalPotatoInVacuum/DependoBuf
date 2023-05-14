@@ -33,7 +33,7 @@ public:
   }
 
   static ast::VarAccess make_var_access(std::string &&var_identifier, std::vector<std::string> &&field_identifiers) {
-    ast::VarAccess result {{parser::location(), InternedString(std::move(var_identifier))}};
+    ast::VarAccess result {{{parser::location()}, InternedString(std::move(var_identifier))}};
 
     std::vector<ast::Identifier> fields(field_identifiers.size());
     for (auto &&field_identifier : field_identifiers) {

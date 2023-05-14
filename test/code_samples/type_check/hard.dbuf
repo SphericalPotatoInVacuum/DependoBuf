@@ -1,5 +1,7 @@
 enum List (n Int) {
   0 => {
+    ListEnd {
+    }
   }
   * => {
     ListNode {
@@ -14,11 +16,23 @@ message A (n Int) (m Int) {
 }
 
 enum B (n Int) (m Int) (a A n m) {
-  false => {
-    FalseConstructor
+  *, *, * => {
+    BCons {
+      list List (n + m)
+    }
   }
-  true => {
-    TrueConstructor
+}
+
+enum TestSubstitution (n Int) (m Int) {
+  5, 5 => {
+    ListOfLengthTen {
+      arr List (n + m)
+    }
+  }
+  *, * => {
+    ListOfLengthN {
+      arr List n
+    }
   }
 }
 
