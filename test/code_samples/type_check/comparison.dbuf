@@ -1,0 +1,21 @@
+message A {
+  a Int
+  b Int
+}
+
+enum B (a A) {
+  * => {
+    BCons {
+      field Int
+    }
+  }
+}
+
+message C (b B A{a: 5, b: 6}) {
+  c Int
+}
+
+message D {
+  b B A{a: 5, b: 6}
+  c C b
+}

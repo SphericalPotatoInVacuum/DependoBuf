@@ -136,7 +136,17 @@ struct ConstructedValue : ASTNode {
   std::vector<std::pair<Identifier, std::shared_ptr<const Expression>>> fields = {};
 };
 inline std::ostream &operator<<(std::ostream &os, const ConstructedValue &val) {
-  os << val.constructor_identifier.name << "{}";
+  os << val.constructor_identifier.name << "{";
+  bool first = true;
+  for (const auto &[field_identifier, field_value] : val.fields) {
+    if (first) {
+      first = false;
+    } else {
+      os << ", ";
+    }
+    os << field_identifier.name << ": " << *field_value;
+  }
+  os << "}";
   return os;
 }
 

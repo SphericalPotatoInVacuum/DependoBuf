@@ -6,6 +6,7 @@
 #include "core/interning/interned_string.h"
 #include "glog/logging.h"
 #include "location.hh"
+#include "z3++.h"
 
 #include <cstddef>
 #include <optional>
@@ -19,13 +20,7 @@ namespace dbuf::checker {
 
 TypeChecker::TypeChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph)
     : ast_(ast)
-    , sorted_graph_(sorted_graph)
-    , z3_sorts_(
-          {{InternedString("Int"), z3_context_.int_sort()},
-           {InternedString("Unsigned"), z3_context_.int_sort()},
-           {InternedString("Bool"), z3_context_.bool_sort()},
-           {InternedString("String"), z3_context_.string_sort()}})
-    , z3_solver_(z3_context_) {}
+    , sorted_graph_(sorted_graph) {}
 
 ErrorList TypeChecker::CheckTypes() {
   BuildConstructorToEnum();
@@ -41,7 +36,7 @@ void TypeChecker::operator()(const ast::Message &ast_message) {
   DLOG(INFO) << "Checking message: " << ast_message.identifier.name;
 
   // Scope of the message checked
-  PushScope();
+  auto scope = Scope(&context_);
 
   // First step is to check if dependencies' types are correctly constructed
   CheckDependencies(ast_message);
@@ -49,8 +44,44 @@ void TypeChecker::operator()(const ast::Message &ast_message) {
   // Same with fields
   CheckFields(ast_message);
 
-  // Clear used scope
-  PopScope();
+  // Create a z3 datatype for this message
+
+  z3::symbol name_symbol = z3_stuff_.context_.str_symbol(ast_message.identifier.name.GetString().c_str());
+
+  z3::constructors cs(z3_stuff_.context_);
+  z3_stuff_.sorts_.emplace(ast_message.identifier.name, z3_stuff_.context_.datatype_sort(name_symbol));
+
+  z3::symbol recognizer_symbol =
+      z3_stuff_.context_.str_symbol(("is_" + ast_message.identifier.name.GetString()).c_str());
+  std::vector<z3::symbol> accessor_names;
+  std::vector<z3::sort> accessor_sorts;
+
+  for (const auto &field : ast_message.fields) {
+    accessor_names.push_back(z3_stuff_.context_.str_symbol(field.name.GetString().c_str()));
+    accessor_sorts.push_back(z3_stuff_.sorts_.at(field.type_expression.identifier.name));
+  }
+
+  cs.add(name_symbol, recognizer_symbol, ast_message.fields.size(), accessor_names.data(), accessor_sorts.data());
+
+  z3_stuff_.sorts_.at(ast_message.identifier.name) = z3_stuff_.context_.datatype(name_symbol, cs);
+  DLOG(INFO) << "Created a message sort: " << z3_stuff_.sorts_.at(ast_message.identifier.name);
+
+  // Declare a constructor and accessors for this message
+  z3::func_decl message_constructor(z3_stuff_.context_);
+  z3::func_decl is_message_constructor_recognizer(z3_stuff_.context_);
+  z3::func_decl_vector field_accessors(z3_stuff_.context_);
+
+  // Query them from the constructors
+  cs.query(0, message_constructor, is_message_constructor_recognizer, field_accessors);
+
+  z3_stuff_.constructors_.emplace(ast_message.identifier.name, message_constructor);
+  DLOG(INFO) << "Constructor: " << message_constructor;
+
+  z3_stuff_.accessors_.emplace(ast_message.identifier.name, Z3stuff::FieldToAccessor());
+  for (size_t i = 0; i < ast_message.fields.size(); ++i) {
+    z3_stuff_.accessors_.at(ast_message.identifier.name).emplace(ast_message.fields[i].name, field_accessors[i]);
+    DLOG(INFO) << "Accessor for field " << ast_message.fields[i].name << ": " << field_accessors[i];
+  }
 
   DLOG(INFO) << "Finished checking message: " << ast_message.identifier.name;
 }
@@ -58,7 +89,7 @@ void TypeChecker::operator()(const ast::Message &ast_message) {
 void TypeChecker::operator()(const ast::Enum &ast_enum) {
   DLOG(INFO) << "Checking enum: " << ast_enum.identifier.name;
   // Scope of the enum checked
-  PushScope();
+  auto scope = Scope(&context_);
 
   // First step is to check if dependencies' types are correctly constructed
   CheckDependencies(ast_enum);
@@ -67,7 +98,7 @@ void TypeChecker::operator()(const ast::Enum &ast_enum) {
   for (const auto &rule : ast_enum.pattern_mapping) {
     DLOG(INFO) << "Checking rule with inputs " << rule.inputs;
     // We need separate scope for each pattern
-    PushScope();
+    auto scope = Scope(&context_);
     substitutor_.PushScope();
 
     if (rule.inputs.size() != ast_enum.type_dependencies.size()) {
@@ -139,7 +170,7 @@ void TypeChecker::operator()(const ast::Enum &ast_enum) {
 
         // If new variable
         if (var_access.field_identifiers.empty()) {
-          AddName(var_access.var_identifier.name, type_with_fields.fields[j].type_expression);
+          scope.AddName(var_access.var_identifier.name, type_with_fields.fields[j].type_expression);
         }
       }
     }
@@ -150,38 +181,85 @@ void TypeChecker::operator()(const ast::Enum &ast_enum) {
     }
 
     substitutor_.PopScope();
-    PopScope();
   }
 
-  // Clear used scope
-  PopScope();
+  // Create a z3 sort for this enum
+
+  z3::constructors cs(z3_stuff_.context_);
+  z3::symbol name_symbol = z3_stuff_.context_.str_symbol(ast_enum.identifier.name.GetString().c_str());
+  z3_stuff_.sorts_.emplace(ast_enum.identifier.name, z3_stuff_.context_.datatype_sort(name_symbol));
+
+  for (const auto &rule : ast_enum.pattern_mapping) {
+    for (const auto &constructor : rule.outputs) {
+      std::vector<z3::symbol> accessor_names;
+      std::vector<z3::sort> accessor_sorts;
+
+      for (const auto &field : constructor.fields) {
+        accessor_names.push_back(z3_stuff_.context_.str_symbol(field.name.GetString().c_str()));
+        accessor_sorts.push_back(z3_stuff_.sorts_.at(field.type_expression.identifier.name));
+      }
+
+      cs.add(
+          z3_stuff_.context_.str_symbol(constructor.identifier.name.GetString().c_str()),
+          z3_stuff_.context_.str_symbol(("is_" + constructor.identifier.name.GetString()).c_str()),
+          accessor_names.size(),
+          accessor_names.data(),
+          accessor_sorts.data());
+    }
+  }
+
+  z3_stuff_.sorts_.at(ast_enum.identifier.name) = z3_stuff_.context_.datatype(name_symbol, cs);
+  DLOG(INFO) << "Created enum datatype: " << z3_stuff_.sorts_.at(ast_enum.identifier.name);
+
+  size_t constructor_idx = 0;
+  for (const auto &rule : ast_enum.pattern_mapping) {
+    for (const auto &constructor : rule.outputs) {
+      z3::func_decl z3_constructor(z3_stuff_.context_);
+      z3::func_decl is_z3_constructor_recognizer(z3_stuff_.context_);
+      z3::func_decl_vector field_accessors(z3_stuff_.context_);
+
+      cs.query(constructor_idx, z3_constructor, is_z3_constructor_recognizer, field_accessors);
+
+      z3_stuff_.constructors_.emplace(constructor.identifier.name, z3_constructor);
+      DLOG(INFO) << "Constructor \"" << constructor.identifier.name << "\": " << z3_constructor;
+
+      z3_stuff_.accessors_.emplace(constructor.identifier.name, Z3stuff::FieldToAccessor());
+      for (size_t i = 0; i < constructor.fields.size(); ++i) {
+        z3_stuff_.accessors_.at(constructor.identifier.name).emplace(constructor.fields[i].name, field_accessors[i]);
+        DLOG(INFO) << "Accessor for field " << constructor.fields[i].name << ": " << field_accessors[i];
+      }
+
+      ++constructor_idx;
+    }
+  }
+
   DLOG(INFO) << "Finished checking enum: " << ast_enum.identifier.name;
 }
 
 void TypeChecker::CheckDependencies(const ast::DependentType &type) {
+  Scope &scope = *context_.back();
   DLOG(INFO) << "Checking dependencies";
   for (const auto &dependency : type.type_dependencies) {
     DLOG(INFO) << "Checking dependency: " << dependency;
     CheckTypeExpression(dependency.type_expression);
 
     // After we checked the depdency we can add it to scope to be seen by other dependencies
-    AddName(dependency.name, dependency.type_expression);
+    scope.AddName(dependency.name, dependency.type_expression);
   }
+  DLOG(INFO) << "Finished checking dependencies";
 }
 
 void TypeChecker::CheckFields(const ast::TypeWithFields &type) {
   DLOG(INFO) << "Checking fields";
-  PushScope();
+  Scope scope(&context_);
 
   for (const auto &field : type.fields) {
     DLOG(INFO) << "Checking field: " << field.name << " of type " << field.type_expression;
     auto after_substitution = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
     DLOG(INFO) << "After substitution: " << after_substitution;
     CheckTypeExpression(after_substitution);
-    AddName(field.name, after_substitution);
+    scope.AddName(field.name, after_substitution);
   }
-
-  PopScope();
 }
 
 void TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression) {
@@ -226,9 +304,25 @@ void TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
   substitutor_.PopScope();
 }
 
-bool TypeChecker::CompareExpressions(const ast::Expression & /*expected*/, const ast::Expression & /*got*/) {
-  // TODO(SphericalPotatoInVacuum): compare expressions
-  return true;
+bool TypeChecker::CompareExpressions(const ast::Expression &expected, const ast::Expression &got) {
+  DLOG(INFO) << "Comparing expressions " << expected << " and " << got;
+  z3_stuff_.solver_.push();
+
+  ExpressionToZ3 converter {z3_stuff_};
+  z3::expr expected_z3_expr = converter(expected);
+  DLOG(INFO) << "Expected z3 expr: " << expected_z3_expr;
+  z3::expr got_z3_expr = converter(got);
+  DLOG(INFO) << "Got z3 expr: " << got_z3_expr;
+
+  z3_stuff_.solver_.add(expected_z3_expr != got_z3_expr);
+
+  bool result = z3_stuff_.solver_.check() == z3::unsat;
+
+  z3_stuff_.solver_.pop();
+
+  DLOG(INFO) << "Equal? " << result;
+
+  return result;
 }
 
 bool TypeChecker::CompareTypeExpressions(
@@ -271,29 +365,15 @@ void TypeChecker::BuildConstructorToEnum() {
   }
 }
 
-void TypeChecker::AddName(InternedString name, ast::TypeExpression type) {
-  if (context_.empty()) {
-    throw std::logic_error("Can't add name to empty scopes.");
-  }
-  context_.back().insert_or_assign(name, std::move(type));
-  DLOG(INFO) << "Added name \"" << name << "\" with type \"" << context_.back().at(name) << "\" to context";
+void TypeChecker::Scope::AddName(InternedString name, ast::TypeExpression type) {
+  vars_.insert_or_assign(name, std::move(type));
+  DLOG(INFO) << "Added name \"" << name << "\" with type \"" << vars_.at(name) << "\" to context";
 }
 
-void TypeChecker::PushScope() {
-  context_.emplace_back();
-}
-
-void TypeChecker::PopScope() {
-  if (context_.empty()) {
-    throw std::logic_error("Can't delete scope from empty scopes.");
-  }
-  context_.pop_back();
-}
-
-[[nodiscard]] const ast::TypeExpression &TypeChecker::LookupName(InternedString name) const {
-  for (const auto &scope : std::ranges::reverse_view(context_)) {
-    auto it = scope.find(name);
-    if (it != scope.end()) {
+[[nodiscard]] const ast::TypeExpression &TypeChecker::Scope::LookupName(InternedString name) const {
+  for (const auto &scope : std::ranges::reverse_view(ctx_)) {
+    auto it = scope->vars_.find(name);
+    if (it != scope->vars_.end()) {
       return it->second;
     }
   }
@@ -378,11 +458,12 @@ std::optional<ast::TypeExpression> TypeChecker::TypeComparator::operator()(const
   return {};
 }
 std::optional<ast::TypeExpression> TypeChecker::TypeComparator::operator()(const ast::VarAccess &expr) {
+  const Scope &outer_scope = *checker_.context_.back();
   DLOG(INFO) << "Checking var access: " << expr;
   // Case: does foo has type Foo?
   if (expr.field_identifiers.empty()) {
     // We can find foo in scope and just compare its type
-    if (checker_.CompareTypeExpressions(expected_, checker_.LookupName(expr.var_identifier.name))) {
+    if (checker_.CompareTypeExpressions(expected_, outer_scope.LookupName(expr.var_identifier.name))) {
       return {expected_};
     }
     return {};
@@ -390,7 +471,7 @@ std::optional<ast::TypeExpression> TypeChecker::TypeComparator::operator()(const
   // Else we have case: does foo.bar.buzz has type Buzz?
 
   // First lets find typename of foo. We have foo in scope, so we can get it from there
-  InternedString message_name = checker_.LookupName(expr.var_identifier.name).identifier.name;
+  InternedString message_name = outer_scope.LookupName(expr.var_identifier.name).identifier.name;
   // The field we are looking for. In case foo.bar.buzz we are looking for bar
   InternedString expected_field = expr.field_identifiers[0].name;
 
@@ -405,12 +486,12 @@ std::optional<ast::TypeExpression> TypeChecker::TypeComparator::operator()(const
 
   // Let's notice the Type(foo.bar.buzz) == Type(bar.buzz) == Type (buzz)
   // We want to check type recursively, so I add new scope -- the scope of message Type(foo)
-  checker_.PushScope();
+  Scope scope(&checker_.context_);
   for (const auto &dependencie : message.type_dependencies) {
-    checker_.AddName(dependencie.name, dependencie.type_expression);
+    scope.AddName(dependencie.name, dependencie.type_expression);
   }
   for (const auto &field : message.fields) {
-    checker_.AddName(field.name, field.type_expression);
+    scope.AddName(field.name, field.type_expression);
     if (field.name == expected_field) {
       found = true;
       break;
@@ -433,8 +514,6 @@ std::optional<ast::TypeExpression> TypeChecker::TypeComparator::operator()(const
 
   (*this)(var_access);
 
-  checker_.PopScope();
-
   return {expected_};
 };
 
@@ -444,6 +523,7 @@ std::optional<ast::TypeExpression> TypeChecker::TypeComparator::operator()(const
 
 std::optional<ast::TypeExpression> TypeChecker::TypeComparator::operator()(const ast::ConstructedValue &val) {
   const InternedString &enum_identifier = checker_.constructor_to_enum_.at(val.constructor_identifier.name);
+  // TODO(bug): Constructed value can also be a message, not only enum
 
   if (enum_identifier != expected_.identifier.name) {
     AddError(&checker_.errors_) << "Got value of type \"" << enum_identifier << "\", but expected type is \""
