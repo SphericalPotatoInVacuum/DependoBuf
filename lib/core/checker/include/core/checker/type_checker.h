@@ -3,6 +3,7 @@
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
 #include "core/checker/common.h"
+#include "core/checker/expression_comparator.h"
 #include "core/interning/interned_string.h"
 #include "core/substitutor/substitutor.h"
 #include "glog/logging.h"
