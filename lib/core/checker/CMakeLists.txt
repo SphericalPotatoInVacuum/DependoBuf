@@ -32,14 +32,3 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_compile_options(checker PRIVATE -fsanitize=undefined)
   target_link_options(checker PRIVATE -fsanitize=undefined)
 endif()
-
-add_executable(z3_example test.cc)
-target_include_directories(z3_example PUBLIC
-  ${CMAKE_CURRENT_BINARY_DIR}
-  ${z3_SOURCE_DIR}/src/api/c++
-  include
-)
-target_link_libraries(z3_example PUBLIC
-  libz3
-)
-target_compile_options(z3_example PUBLIC -fpermissive)
