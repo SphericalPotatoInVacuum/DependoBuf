@@ -1,4 +1,4 @@
-#include "core/checker/type_expression_checker.h"
+#include "core/checker/type_checker.h"
 
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
