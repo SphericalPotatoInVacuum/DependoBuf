@@ -19,3 +19,20 @@ message D {
   b B A{a: 5, b: 6}
   c C b
 }
+
+message Pop {
+  a Int
+}
+
+message Foo (p Pop) {
+}
+
+message Kek (k Pop) (f Foo Pop{a: k.a}) {
+  c Int
+}
+
+message Lol {
+  d Pop
+  e Foo d
+  g Kek d e
+}
