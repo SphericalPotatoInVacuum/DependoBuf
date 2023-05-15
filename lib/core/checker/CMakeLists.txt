@@ -11,7 +11,7 @@ add_library(checker
   checker.cc
   name_resolution_checker.cc
   positivity_checker.cc
-  type_expression_checker.cc
+  type_checker.cc
 )
 
 target_include_directories(checker PUBLIC
