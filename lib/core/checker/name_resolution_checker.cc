@@ -2,6 +2,7 @@
 
 #include "core/ast/ast.h"
 #include "core/interning/interned_string.h"
+#include "glog/logging.h"
 
 #include <algorithm>
 #include <sstream>
@@ -129,9 +130,7 @@ bool NameResolutionChecker::IsInScope(InternedString name) {
 }
 
 void NameResolutionChecker::AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing) {
-  if (scopes_.empty()) {
-    throw std::logic_error("Can't add name to empty scopes.");
-  }
+  DCHECK(!scopes_.empty());
 
   if ((!allow_shadowing) && IsInScope(name)) {
     errors_.push_back({"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""});
@@ -192,9 +191,7 @@ void NameResolutionChecker::PushScope() {
 }
 
 void NameResolutionChecker::PopScope() {
-  if (scopes_.empty()) {
-    throw std::logic_error("Can't delete scope from empty scopes.");
-  }
+  DCHECK(!scopes_.empty());
   scopes_.pop_back();
 }
 

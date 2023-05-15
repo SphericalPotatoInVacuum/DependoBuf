@@ -47,8 +47,6 @@ struct ExpressionToZ3 {
       return left && right;
     case ast::BinaryExpressionType::Or:
       return left || right;
-    default:
-      throw std::runtime_error("Unknown binary expression type");
     }
   }
 
@@ -59,13 +57,11 @@ struct ExpressionToZ3 {
       return -expr;
     case ast::UnaryExpressionType::Bang:
       return !expr;
-    default:
-      throw std::runtime_error("Unknown unary expression type");
     }
   }
 
   z3::expr operator()(const ast::VarAccess & /*var_access*/) {
-    throw std::runtime_error("Var access is not directly convertible to Z3 expressions");
+    DLOG(FATAL) << "Not implemented";
   }
 
   z3::expr operator()(const ast::ScalarValue<bool> &value) {
@@ -89,7 +85,7 @@ struct ExpressionToZ3 {
   }
 
   z3::expr operator()(const ast::TypeExpression & /*type_expression*/) {
-    throw std::runtime_error("Type expressions are not directly convertible to Z3 expressions");
+    DLOG(FATAL) << "Tried to convert type expression to z3 expression, which is not supported";
   }
 
   z3::expr operator()(const ast::ConstructedValue &value) {
