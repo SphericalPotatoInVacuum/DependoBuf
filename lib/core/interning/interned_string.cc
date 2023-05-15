@@ -1,5 +1,7 @@
 #include "core/interning/interned_string.h"
 
+#include "glog/logging.h"
+
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -19,23 +21,18 @@ InternedString::InternedString(std::string &&str) {
 }
 
 uint64_t InternedString::GetId() const {
-  if (id_ == kInvalidId) {
-    throw std::runtime_error("InternedString id not initialized");
-  }
+  DCHECK(id_ != kInvalidId) << "InternedString id not initialized";
 
   return id_;
 }
 
 const std::string &InternedString::GetString() const {
-  if (id_ == kInvalidId) {
-    throw std::runtime_error("InternedString id not initialized");
-  }
+  DCHECK(id_ != kInvalidId) << "InternedString id not initialized";
 
   auto iter = id_map_.find(id_);
-  if (iter != id_map_.end()) {
-    return iter->second;
-  }
-  throw std::runtime_error("InternedString id not found in id_map");
+  DCHECK(iter != id_map_.end()) << "InternedString id not found in id_map";
+
+  return iter->second;
 }
 
 bool InternedString::operator==(const InternedString &other) const {
@@ -43,9 +40,8 @@ bool InternedString::operator==(const InternedString &other) const {
 }
 
 bool InternedString::operator<(const InternedString &other) const {
-  if (id_ == kInvalidId || other.id_ == kInvalidId) {
-    throw std::runtime_error("InternedString id not initialized");
-  }
+  DCHECK(id_ != kInvalidId && other.id_ != kInvalidId) // NOLINT(readability-simplify-boolean-expr)
+      << "InternedString id not initialized";
   return GetString() < other.GetString();
 }
 

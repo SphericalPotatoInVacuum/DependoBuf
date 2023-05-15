@@ -49,7 +49,7 @@ public:
     DLOG(INFO) << "Added a scope to type checker";
   }
   ~Scope() {
-    assert(this == ctx_.back());
+    DCHECK(this == ctx_.back());
     ctx_.pop_back();
     DLOG(INFO) << "Popped a scope from type checker";
   }
@@ -69,7 +69,7 @@ public:
         return it->second;
       }
     }
-    throw std::runtime_error("Can't find name \"" + name.GetString() + "\"");
+    DLOG(FATAL) << "Can't find name \"" << name.GetString() << "\"";
   }
 
 private:

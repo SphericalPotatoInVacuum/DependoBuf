@@ -13,7 +13,7 @@ namespace dbuf {
 
 // Add a new (name -> expression) substitution to last scope
 void Substitutor::AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression) {
-  assert(!substitute_.empty());
+  DCHECK(!substitute_.empty());
   DLOG(INFO) << "Adding substitution: " << name << " -> " << *expression;
   auto expr = std::make_shared<ast::Expression>(std::visit(*this, *expression));
   DLOG(INFO) << "Added substitution: " << name << " -> " << *expr;
@@ -27,7 +27,7 @@ void Substitutor::PushScope() {
 }
 
 void Substitutor::PopScope() {
-  assert(!substitute_.empty());
+  DCHECK(!substitute_.empty());
   DLOG(INFO) << "Popped a scope from substitutor";
   substitute_.pop_back();
 }
@@ -47,14 +47,6 @@ ast::Expression Substitutor::operator()(const ast::UnaryExpression &expression) 
       {expression.location},
       expression.type,
       std::make_unique<ast::Expression>(std::visit(*this, *expression.expression))};
-}
-
-ast::Expression Substitutor::operator()(const ast::Expression &, const ast::Expression &) {
-  throw std::runtime_error("Not implemented");
-}
-
-ast::Expression Substitutor::operator()(const ast::Expression &, const ast::VarAccess &) {
-  throw std::runtime_error("Not implemented");
 }
 
 ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution) {

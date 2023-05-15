@@ -3,6 +3,7 @@
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
 #include "core/interning/interned_string.h"
+#include "glog/logging.h"
 
 #include <deque>
 #include <memory>
@@ -26,17 +27,12 @@ struct Substitutor {
   ast::Expression operator()(const ast::BinaryExpression &expression);
   ast::Expression operator()(const ast::UnaryExpression &expression);
 
-  ast::Expression operator()(const ast::Expression &, const ast::Expression &);
-
-  ast::Expression operator()(const ast::Expression &, const ast::VarAccess &);
   ast::Expression operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution);
   ast::Expression operator()(const ast::VarAccess &value, const ast::VarAccess &substitution);
   template <typename T>
   ast::Expression operator()(const ast::VarAccess &value, const ast::ScalarValue<T> &substitution) {
-    if (value.field_identifiers.empty()) {
-      return substitution;
-    }
-    throw std::runtime_error("Field access on scalar value");
+    DCHECK(value.field_identifiers.empty()) << "Field access on scalar value";
+    return substitution;
   }
   ast::Expression operator()(const ast::VarAccess &value, const ast::Value &substitution) {
     return std::visit(*this, ast::Expression(value), substitution);
