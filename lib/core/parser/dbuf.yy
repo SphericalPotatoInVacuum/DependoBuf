@@ -125,12 +125,18 @@ definition
     }
     InternedString name($1.identifier.name);
     ast->types.insert(std::make_pair(name, std::move($1)));
+    ast->constructor_to_type.emplace(name, name);
   }
   | enum_definition {
     if (ast->types.contains($1.identifier.name)) {
       throw syntax_error(@1, "Duplicate type definition: " + $1.identifier.name.GetString());
     }
     InternedString name($1.identifier.name);
+    for (const auto &rule : $1.pattern_mapping) {
+      for (const auto &constructor : rule.outputs) {
+        ast->constructor_to_type.emplace(constructor.identifier.name, name);
+      }
+    }
     ast->types.insert(std::make_pair(name, std::move($1)));
   }
   | service_definition
