@@ -50,6 +50,12 @@ struct Enum
 
   std::vector<Rule> pattern_mapping = {};
 };
+
+inline std::ostream &operator<<(std::ostream &os, const Enum::Rule::InputPattern &pattern) {
+  std::visit([&os](const auto &input) { os << input; }, pattern);
+  return os;
+}
+
 inline std::ostream &operator<<(std::ostream &os, const std::vector<Enum::Rule::InputPattern> &inputs) {
   bool first = true;
   for (const auto &input : inputs) {
@@ -57,7 +63,7 @@ inline std::ostream &operator<<(std::ostream &os, const std::vector<Enum::Rule::
       os << ", ";
     }
     first = false;
-    std::visit([&os](const auto &input) { os << input; }, input);
+    os << input;
   }
   return os;
 }
