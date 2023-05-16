@@ -3,7 +3,10 @@
 #include "core/ast/ast.h"
 #include "core/checker/common.h"
 #include "glog/logging.h"
+#include "location.hh"
 #include "z3++.h"
+
+#include <sstream>
 
 namespace dbuf::checker {
 
@@ -30,6 +33,9 @@ struct Z3stuff {
 
 struct ExpressionToZ3 {
   Z3stuff &z3_stuff;
+  const ast::AST &ast;
+  std::deque<Scope *> &context;
+  std::unordered_map<InternedString, z3::expr> var_to_expr = {};
 
   z3::expr operator()(const ast::BinaryExpression &binary_expression) {
     z3::expr left  = std::visit(*this, *binary_expression.left);
@@ -60,8 +66,35 @@ struct ExpressionToZ3 {
     }
   }
 
-  z3::expr operator()(const ast::VarAccess & /*var_access*/) {
-    DLOG(FATAL) << "Not implemented";
+  z3::expr operator()(const ast::VarAccess &var_access) {
+    DLOG(INFO) << "Creating z3 expr for VarAccess " << var_access;
+    // Create a new empty var_access to gradually build a new one
+    ast::VarAccess new_access {var_access.var_identifier, {}};
+    // Try to find the symbol in the context
+    auto it = var_to_expr.find(var_access.var_identifier.name);
+    if (it == var_to_expr.end()) {
+      DLOG(INFO) << "No symbol found for base \"" << new_access << "\", creating new one";
+      // if not found, need to create one
+      const auto [it2, _] = var_to_expr.emplace(
+          var_access.var_identifier.name,
+          z3_stuff.context_.constant(
+              var_access.var_identifier.name.GetString().c_str(),
+              z3_stuff.sorts_.at(GetVarAccessType(new_access, ast, &context).identifier.name)));
+      it = it2;
+    }
+    z3::expr expr = it->second; // z3 symbol corresponding to the var_access base
+
+    for (const auto &field : var_access.field_identifiers) {
+      DLOG(INFO) << "Adding accessor " << field.name << "to current expr " << expr;
+      // Try to find the accessor in the context
+      const auto &type     = GetVarAccessType(new_access, ast, &context);
+      const auto &accessor = z3_stuff.accessors_.at(type.identifier.name).at(field.name);
+      expr                 = accessor(expr);
+      DLOG(INFO) << "Current expr is " << expr;
+      // Update the new_access
+      new_access.field_identifiers.push_back(ast::Identifier {{parser::location()}, {field.name}});
+    }
+    return expr;
   } // NOLINT(clang-diagnostic-return-type)
 
   z3::expr operator()(const ast::ScalarValue<bool> &value) {
@@ -101,7 +134,11 @@ struct ExpressionToZ3 {
   }
 };
 
-[[nodiscard]] std::optional<Error>
-CompareExpressions(const ast::Expression &expected, const ast::Expression &got, Z3stuff &z3_stuff);
+[[nodiscard]] std::optional<Error> CompareExpressions(
+    const ast::Expression &expected,
+    const ast::Expression &got,
+    Z3stuff &z3_stuff,
+    const ast::AST &ast,
+    std::deque<Scope *> &context);
 
 } // namespace dbuf::checker

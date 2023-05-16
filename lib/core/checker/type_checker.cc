@@ -86,40 +86,6 @@ void TypeChecker::operator()(const ast::Message &ast_message) {
   DLOG(INFO) << "Finished checking message: " << ast_message.identifier.name;
 }
 
-// Find type of foo.bar.buzz
-ast::TypeExpression TypeChecker::GetVarAccessType(const ast::VarAccess &var_access) {
-  // Get Type (Foo) of the head (foo)
-  ast::TypeExpression head_type = context_.back()->LookupName(var_access.var_identifier.name);
-
-  // If no field identifiers
-  if (var_access.field_identifiers.empty()) {
-    return head_type;
-  }
-
-  // Find Foo message
-  const auto &head_message = std::get<ast::Message>(ast_.types.at(head_type.identifier.name));
-  // Looking for head+1 (bar) id in Foo field
-  size_t id;
-  for (id = 0; id < head_message.fields.size(); ++id) {
-    if (head_message.fields[id].name == var_access.field_identifiers[0].name) {
-      break;
-    }
-  }
-
-  // Add head+1 (bar) to scope of message Foo
-  auto scope = Scope(&context_);
-  scope.AddName(var_access.field_identifiers[0].name, head_message.fields[id].type_expression);
-
-  // Building new VarAccess (bar.buzz)
-  ast::VarAccess new_var_access = ast::VarAccess {
-      .var_identifier = var_access.field_identifiers[0],
-      .field_identifiers =
-          std::vector<ast::Identifier>(var_access.field_identifiers.begin() + 1, var_access.field_identifiers.end())};
-
-  // TypeOf(foo.bar.buzz) == TypeOf(bar.buzz from Foo), where TypeOf(foo) == Foo
-  return GetVarAccessTypeName(new_var_access);
-}
-
 void TypeChecker::operator()(const ast::Enum &ast_enum) {
   DLOG(INFO) << "Checking enum: " << ast_enum.identifier.name;
   // Scope of the enum checked
@@ -153,8 +119,9 @@ void TypeChecker::operator()(const ast::Enum &ast_enum) {
       substitutor_.AddSubstitution(ast_enum.type_dependencies[id].name, std::make_shared<const ast::Expression>(value));
 
       // Check that value has expected type in this context
-      auto type_err = TypeComparator(ast_enum.type_dependencies[id].type_expression, ast_, &context_, &z3_stuff_)
-                          .Compare(ast::Expression(value));
+      auto type_err =
+          TypeComparator(ast_enum.type_dependencies[id].type_expression, ast_, &context_, &substitutor_, &z3_stuff_)
+              .Compare(ast::Expression(value));
       if (type_err) {
         errors_.emplace_back(*type_err);
         return;
@@ -333,13 +300,14 @@ void TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
     DLOG(INFO) << "Comparing argument " << *type_expression.parameters[id] << " against type "
                << type.type_dependencies[id].type_expression;
     // Update type using already known substitutions
+    DLOG(INFO) << "Type before substitution: " << type.type_dependencies[id].type_expression;
     ast::TypeExpression substituted_type =
         std::get<ast::TypeExpression>(substitutor_(type.type_dependencies[id].type_expression));
     DLOG(INFO) << "Type after substitution: " << substituted_type;
 
     // Check that parameter hase exprected type
-    auto type_err =
-        TypeComparator(substituted_type, ast_, &context_, &z3_stuff_).Compare(*type_expression.parameters[id]);
+    auto type_err = TypeComparator(substituted_type, ast_, &context_, &substitutor_, &z3_stuff_)
+                        .Compare(*type_expression.parameters[id]);
     if (type_err) {
       errors_.emplace_back(*type_err);
       return;

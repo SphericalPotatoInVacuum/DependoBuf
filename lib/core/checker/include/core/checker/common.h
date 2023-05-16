@@ -70,11 +70,46 @@ public:
       }
     }
     DLOG(FATAL) << "Can't find name \"" << name.GetString() << "\"";
-  }
+  } // NOLINT(clang-diagnostic-return-type)
 
 private:
   std::unordered_map<InternedString, ast::TypeExpression> vars_;
   std::deque<Scope *> &ctx_;
 };
+
+// Find type of foo.bar.buzz
+inline ast::TypeExpression
+GetVarAccessType(const ast::VarAccess &var_access, const ast::AST &ast, std::deque<Scope *> *context_ptr) {
+  // Get Type (Foo) of the head (foo)
+  ast::TypeExpression head_type = context_ptr->back()->LookupName(var_access.var_identifier.name);
+
+  // If no field identifiers
+  if (var_access.field_identifiers.empty()) {
+    return head_type;
+  }
+
+  // Find Foo message
+  const auto &head_message = std::get<ast::Message>(ast.types.at(head_type.identifier.name));
+  // Looking for head+1 (bar) id in Foo field
+  size_t id;
+  for (id = 0; id < head_message.fields.size(); ++id) {
+    if (head_message.fields[id].name == var_access.field_identifiers[0].name) {
+      break;
+    }
+  }
+
+  // Add head+1 (bar) to scope of message Foo
+  auto scope = Scope(context_ptr);
+  scope.AddName(var_access.field_identifiers[0].name, head_message.fields[id].type_expression);
+
+  // Building new VarAccess (bar.buzz)
+  ast::VarAccess new_var_access = ast::VarAccess {
+      .var_identifier = var_access.field_identifiers[0],
+      .field_identifiers =
+          std::vector<ast::Identifier>(var_access.field_identifiers.begin() + 1, var_access.field_identifiers.end())};
+
+  // TypeOf(foo.bar.buzz) == TypeOf(bar.buzz from Foo), where TypeOf(foo) == Foo
+  return GetVarAccessType(new_var_access, ast, context_ptr);
+}
 
 } // namespace dbuf::checker

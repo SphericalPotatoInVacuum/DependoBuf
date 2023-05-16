@@ -45,5 +45,20 @@ message G (f F E{ dField: D{ intField: 10, stringField: "hello" }, boolField: tr
 }
 
 message H {
-  g G FCons{ intField: 10 }
+  g G FCons2{ intField: 10 }
+}
+
+enum I (d D) {
+  D{ intField: intField, stringField: strinfField } => {
+    ICons{
+      intField Int
+    }
+  }
+}
+
+message J (i I D{ intField: 10, stringField: "hello" }) {
+}
+
+message K {
+  j J ICons{ intField: 10 }
 }

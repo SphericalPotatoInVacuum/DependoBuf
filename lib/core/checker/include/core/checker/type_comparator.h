@@ -1,7 +1,9 @@
 #pragma once
 #include "core/ast/ast.h"
+#include "core/ast/expression.h"
 #include "core/checker/common.h"
 #include "core/checker/expression_comparator.h"
+#include "core/substitutor/substitutor.h"
 
 #include <optional>
 
@@ -13,10 +15,12 @@ public:
       const ast::TypeExpression &expected,
       const ast::AST &ast,
       std::deque<Scope *> *context_ptr,
+      Substitutor *substitutor_ptr,
       Z3stuff *z3_stuff_ptr)
       : expected_(expected)
       , ast_(ast)
       , context_(*context_ptr)
+      , substitutor_(*substitutor_ptr)
       , z3_stuff_(*z3_stuff_ptr) {}
 
   [[nodiscard]] std::optional<Error> Compare(const ast::Expression &expr);
@@ -45,9 +49,10 @@ private:
   const ast::TypeExpression &expected_;
   const ast::AST &ast_;
   std::deque<Scope *> &context_;
+  Substitutor &substitutor_;
   Z3stuff &z3_stuff_;
 
-  [[nodiscard]] static std::optional<Error> CompareTypeExpressions(
+  [[nodiscard]] std::optional<Error> CompareTypeExpressions(
       const ast::TypeExpression &expected_type,
       const ast::TypeExpression &expression,
       Z3stuff &z3_stuff) {
@@ -64,7 +69,8 @@ private:
     }
 
     for (size_t id = 0; id < expected_type.parameters.size(); ++id) {
-      auto error = CompareExpressions(*expected_type.parameters[id], *expression.parameters[id], z3_stuff);
+      auto error =
+          CompareExpressions(*expected_type.parameters[id], *expression.parameters[id], z3_stuff, ast_, context_);
       if (error) {
         return Error(
             CreateError() << "Type parameter " << id << " mismatch: " << error->message << " at "
@@ -74,6 +80,8 @@ private:
 
     return {};
   }
+
+  std::optional<Error> CheckConstructedValue(const ast::ConstructedValue &val, const ast::TypeWithFields &constructor);
 
   static InternedString GetTypename(const ast::ScalarValue<bool> &) {
     return InternedString("Bool");
