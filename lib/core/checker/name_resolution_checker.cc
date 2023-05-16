@@ -1,11 +1,13 @@
 #include "core/checker/name_resolution_checker.h"
 
 #include "core/ast/ast.h"
+#include "core/ast/expression.h"
 #include "core/interning/interned_string.h"
 #include "glog/logging.h"
 
 #include <algorithm>
 #include <sstream>
+#include <variant>
 
 namespace dbuf::checker {
 
@@ -45,9 +47,12 @@ void NameResolutionChecker::operator()(const ast::Enum &ast_enum) {
 
 void NameResolutionChecker::operator()(const ast::Enum::Rule &rule) {
   PushScope();
+  accept_aliases_ = true;
   for (const auto &input : rule.inputs) {
     std::visit(*this, input);
   }
+  accept_aliases_ = false;
+
   for (const auto &output : rule.outputs) {
     (*this)(output);
   }
@@ -66,6 +71,11 @@ void NameResolutionChecker::operator()(const ast::TypedVariable &variable, bool 
 }
 
 void NameResolutionChecker::operator()(const Field &field) {
+  if (accept_aliases_ && std::holds_alternative<ast::VarAccess>(*field.second) &&
+      std::get<ast::VarAccess>(*field.second).field_identifiers.empty()) {
+    AddName(std::get<ast::VarAccess>(*field.second).var_identifier.name, "variable", true);
+    return;
+  }
   std::visit(*this, *field.second);
   AddName(field.first.name, "field", true);
 }
