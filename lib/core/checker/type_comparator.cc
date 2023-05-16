@@ -43,18 +43,6 @@ struct Matcher {
     return std::visit(*this, arg, pattern);
   }
 
-  // Scalar value only matches the same scalar value
-  template <typename T>
-  bool operator()(const ast::ScalarValue<T> &arg, const ast::ScalarValue<T> &pattern) {
-    DLOG(INFO) << "Matching scalar value " << arg.value << " against " << pattern.value;
-    return arg.value == pattern.value;
-  }
-  template <typename T, typename U>
-  bool operator()(const T &arg, const ast::ScalarValue<U> &pattern) {
-    DLOG(INFO) << "Tried to match " << arg << " against ScalarValue " << pattern;
-    return false;
-  }
-
   bool operator()(const ast::ConstructedValue &arg, const ast::ConstructedValue &pattern) {
     DLOG(INFO) << "Matching constructed value " << arg << " against " << pattern;
     if (arg.constructor_identifier.name != pattern.constructor_identifier.name) {
@@ -67,8 +55,8 @@ struct Matcher {
       const auto &[field_name, pattern_field] = pattern.fields[i];
       const auto &[_, arg_field]              = arg.fields[i];
       DLOG(INFO) << "Matching field " << field_name.name;
-      // TODO(bug): CompareExpressions should only be called if the fields can't be matches using matcher methods
-      if (CompareExpressions(*pattern_field, *arg_field, z3_stuff).has_value()) {
+      if (!std::visit(*this, *arg_field, *pattern_field)) {
+        DLOG(INFO) << *arg_field << " didn't match " << *pattern_field << " in field " << field_name.name;
         return false;
       }
     }
@@ -78,6 +66,18 @@ struct Matcher {
   bool operator()(const T &arg, const ast::ConstructedValue &pattern) {
     DLOG(INFO) << "Tried to match " << arg << " against ConstructedValue " << pattern;
     return false;
+  }
+  template <typename T>
+  bool operator()(const ast::ConstructedValue &arg, const T &pattern) {
+    DLOG(INFO) << "Tried to match ConstructedValue " << arg << " against " << pattern;
+    return false;
+  }
+
+  template <typename T, typename U>
+  bool operator()(const T &arg, const U &pattern) {
+    // CompareExpressions returns std::optional<Error> if the expressions don't match
+    // so if there is no value then the expressions match
+    return !CompareExpressions(pattern, arg, z3_stuff).has_value();
   }
 };
 
@@ -93,6 +93,7 @@ std::optional<Error> TypeComparator::Compare(const ast::Expression &expr) {
 
 std::optional<Error> TypeComparator::operator()(const ast::TypeExpression &) {
   DLOG(FATAL) << "TypeExpression should not be compared";
+  return {};
 }
 std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &expr) {
   DLOG(INFO) << "Checking binary expression " << expr;
