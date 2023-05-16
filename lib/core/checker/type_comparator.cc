@@ -2,11 +2,84 @@
 
 #include "core/ast/expression.h"
 #include "core/checker/common.h"
+#include "core/checker/expression_comparator.h"
+#include "core/interning/interned_string.h"
+#include "core/substitutor/substitutor.h"
 #include "glog/logging.h"
 
 #include <optional>
+#include <variant>
 
 namespace dbuf::checker {
+
+struct Matcher {
+  Z3stuff &z3_stuff;
+
+  bool operator()(const ast::Expression &arg, const ast::Enum::Rule::InputPattern &pattern) {
+    bool matches = std::visit(*this, arg, pattern);
+    DLOG(INFO) << arg << (matches ? " matches " : " does not match ") << pattern;
+    return matches;
+  }
+
+  // Anything matches the star
+  template <typename T>
+  bool operator()(const T &arg, const ast::Star & /*star*/) {
+    DLOG(INFO) << "Matching " << arg << " against Star";
+    return true;
+  }
+
+  // Anything matches the var access
+  template <typename T>
+  bool operator()(const T &arg, const ast::VarAccess &pattern) {
+    DLOG(INFO) << "Matching " << arg << " against VarAccess " << pattern;
+    return true;
+  }
+
+  bool operator()(const ast::Expression &arg, const ast::Value &pattern) {
+    return std::visit(*this, arg, pattern);
+  }
+
+  bool operator()(const ast::Value &arg, const ast::Value &pattern) {
+    return std::visit(*this, arg, pattern);
+  }
+
+  // Scalar value only matches the same scalar value
+  template <typename T>
+  bool operator()(const ast::ScalarValue<T> &arg, const ast::ScalarValue<T> &pattern) {
+    DLOG(INFO) << "Matching scalar value " << arg.value << " against " << pattern.value;
+    return arg.value == pattern.value;
+  }
+  template <typename T, typename U>
+  bool operator()(const T &arg, const ast::ScalarValue<U> &pattern) {
+    DLOG(INFO) << "Tried to match " << arg << " against ScalarValue " << pattern;
+    return false;
+  }
+
+  bool operator()(const ast::ConstructedValue &arg, const ast::ConstructedValue &pattern) {
+    DLOG(INFO) << "Matching constructed value " << arg << " against " << pattern;
+    if (arg.constructor_identifier.name != pattern.constructor_identifier.name) {
+      return false;
+    }
+    if (arg.fields.size() != pattern.fields.size()) {
+      return false;
+    }
+    for (size_t i = 0; i < arg.fields.size(); ++i) {
+      const auto &[field_name, pattern_field] = pattern.fields[i];
+      const auto &[_, arg_field]              = arg.fields[i];
+      DLOG(INFO) << "Matching field " << field_name.name;
+      // TODO(bug): CompareExpressions should only be called if the fields can't be matches using matcher methods
+      if (CompareExpressions(*pattern_field, *arg_field, z3_stuff).has_value()) {
+        return false;
+      }
+    }
+    return true;
+  }
+  template <typename T>
+  bool operator()(const T &arg, const ast::ConstructedValue &pattern) {
+    DLOG(INFO) << "Tried to match " << arg << " against ConstructedValue " << pattern;
+    return false;
+  }
+};
 
 std::optional<Error> TypeComparator::Compare(const ast::Expression &expr) {
   auto result = std::visit(*this, expr);
@@ -149,18 +222,46 @@ std::optional<Error> TypeComparator::operator()(const ast::Value &val) {
 }
 
 std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val) {
-  const InternedString &enum_identifier = ast_.constructor_to_type.at(val.constructor_identifier.name);
-  // TODO(bug): Constructed value can also be a message, not only enum
+  const InternedString &type_name = ast_.constructor_to_type.at(val.constructor_identifier.name);
 
-  if (enum_identifier != expected_.identifier.name) {
+  if (type_name != expected_.identifier.name) {
+    DLOG(ERROR) << "Invalid type of constructed value " << val << " expected " << expected_.identifier.name << " got "
+                << type_name << " at " << val.location;
     return Error(
-        CreateError() << "Got value of type \"" << enum_identifier << "\", but expected type is \""
+        CreateError() << "Got value of type \"" << type_name << "\", but expected type is \""
                       << expected_.identifier.name << "\" at " << val.location);
-    return {};
   }
 
-  // TODO(alisa-vernigor): The pattern matching problem must be solved to check that the
-  // constructor used creates the required type.
-  return {};
+  // If the base type is correct then we have two cases:
+  // 1. The value is a message. No extra work needed
+  if (std::holds_alternative<ast::Message>(ast_.types.at(type_name))) {
+    DLOG(INFO) << "Constructed value " << val << " has correct message type " << type_name;
+    return {};
+  }
+  DLOG(INFO) << "Constructed value " << val << " has an enum type " << type_name
+             << ", checking constructor availability";
+  const auto &ast_enum = std::get<ast::Enum>(ast_.types.at(type_name));
+  // 2. The value is an enum. Then we need to check that the constructor can be used after pattern matching
+  // the arguments that were passed in our expected type expression
+  // To do this we need to iterate through rules and find the one that can be satisfied or throw an error if none can
+  DLOG(INFO) << "Matching expression " << expected_ << " against enum " << type_name;
+  for (const auto &rule : ast_enum.pattern_mapping) {
+    DLOG(INFO) << "Trying input patterns " << rule.inputs;
+    bool matches = true;
+    for (size_t i = 0; i < rule.inputs.size() && matches; ++i) {
+      matches &= Matcher {z3_stuff_}(*expected_.parameters[i], rule.inputs[i]);
+    }
+    if (matches) {
+      for (const auto &constructor : rule.outputs) {
+        if (constructor.identifier.name == val.constructor_identifier.name) {
+          return {};
+        }
+      }
+    }
+  }
+  return Error(
+      CreateError() << "Constructor \"" << val.constructor_identifier.name << "\" cannot be used in this context at "
+                    << val.location);
 }
+
 } // namespace dbuf::checker
