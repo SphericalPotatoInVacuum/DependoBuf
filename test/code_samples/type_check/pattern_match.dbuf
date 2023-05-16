@@ -1,0 +1,49 @@
+enum A (n Int) {
+  5 => {
+    Cons{
+      intField Int
+    }
+  }
+  * => {
+    Nil{
+    }
+  }
+}
+
+message B (a A 5) {
+}
+
+message C {
+  field B Cons{ intField: 10 }
+}
+
+
+message D {
+  intField Int
+  stringField String
+}
+
+message E {
+  dField D
+  boolField Bool
+}
+
+enum F (e E) {
+  E{ dField: D{ intField: 10, stringField: "world" }, boolField: true } => {
+    FCons{
+      intField Int
+    }
+  }
+  E{ dField: n, boolField: true } => {
+    FCons2{
+      intField Int
+    }
+  }
+}
+
+message G (f F E{ dField: D{ intField: 10, stringField: "hello" }, boolField: true }) {
+}
+
+message H {
+  g G FCons{ intField: 10 }
+}
