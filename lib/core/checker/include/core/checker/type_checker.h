@@ -45,6 +45,8 @@ private:
 
   void CheckTypeExpression(const ast::TypeExpression &type_expression);
 
+  ast::TypeExpression GetVarAccessTypeName(const ast::VarAccess &var_access);
+
   const ast::AST &ast_;
   const std::vector<InternedString> sorted_graph_;
 
