@@ -79,7 +79,7 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::
 ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::VarAccess &substitution) {
   // Push substitution fields (var1.var2) first and when all fields except first (bar) of value
   std::vector<ast::Identifier> fields = substitution.field_identifiers;
-  fields.insert(fields.end(), value.field_identifiers.begin() + 1, value.field_identifiers.end());
+  fields.insert(fields.end(), value.field_identifiers.begin(), value.field_identifiers.end());
 
   // So we return var1.var2.bar
   return ast::VarAccess {substitution.var_identifier, fields};
