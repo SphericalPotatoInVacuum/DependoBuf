@@ -33,12 +33,17 @@ struct Identifiable {
  * @tparam T The type of the value
  */
 template <typename T>
-struct ScalarValue : ASTNode {
+struct ScalarValue : ASTNode { // NOLINT(bugprone-exception-escape)
   T value = {};
 };
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const ScalarValue<T> &val) {
   os << val.value;
+  return os;
+}
+template <>
+inline std::ostream &operator<<(std::ostream &os, const ScalarValue<std::string> &val) {
+  os << "\"" << val.value << "\"";
   return os;
 }
 

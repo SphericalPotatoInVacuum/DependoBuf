@@ -14,9 +14,7 @@ CompareExpressions(const ast::Expression &expected, const ast::Expression &got, 
 
   ExpressionToZ3 converter {z3_stuff};
   z3::expr expected_z3_expr = converter(expected);
-  DLOG(INFO) << "Expected z3 expr: " << expected_z3_expr;
-  z3::expr got_z3_expr = converter(got);
-  DLOG(INFO) << "Got z3 expr: " << got_z3_expr;
+  z3::expr got_z3_expr      = converter(got);
 
   z3_stuff.solver_.add(expected_z3_expr != got_z3_expr);
 
@@ -24,7 +22,7 @@ CompareExpressions(const ast::Expression &expected, const ast::Expression &got, 
 
   z3_stuff.solver_.pop();
 
-  DLOG(INFO) << "Equal? " << equal;
+  DLOG(INFO) << "Expressions " << expected << " and " << got << " are " << (equal ? "equal" : "not equal");
 
   if (!equal) {
     return Error(CreateError() << "Expressions " << expected << " and " << got << " are not equal");

@@ -39,7 +39,10 @@ string_literal \"(\\.|[^\\"])*\"
 
     /* Literals */
 {string_literal} {
-  lval->emplace<std::string>(yytext);
+  std::string str(yytext);
+  // Remove the double quotes
+  str = str.substr(1, str.size() - 2);
+  lval->emplace<std::string>(str);
   return token::TOK_STRING_LITERAL;
 }
 {lc_letter}{ident_char}* {

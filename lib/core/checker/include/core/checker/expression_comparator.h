@@ -62,7 +62,7 @@ struct ExpressionToZ3 {
 
   z3::expr operator()(const ast::VarAccess & /*var_access*/) {
     DLOG(FATAL) << "Not implemented";
-  }
+  } // NOLINT(clang-diagnostic-return-type)
 
   z3::expr operator()(const ast::ScalarValue<bool> &value) {
     return z3_stuff.context_.bool_val(value.value);
@@ -86,7 +86,7 @@ struct ExpressionToZ3 {
 
   z3::expr operator()(const ast::TypeExpression & /*type_expression*/) {
     DLOG(FATAL) << "Tried to convert type expression to z3 expression, which is not supported";
-  }
+  } // NOLINT(clang-diagnostic-return-type)
 
   z3::expr operator()(const ast::ConstructedValue &value) {
     z3::expr_vector args(z3_stuff.context_);
