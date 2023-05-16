@@ -55,6 +55,9 @@ private:
 
   ConstructorFieldsMap constructor_to_fields_;
 
+  // For pattern matching only. Case: Succ {prev: n}, where n is alias
+  bool accept_aliases_ {false};
+
   // private methods
   bool IsInScope(InternedString name);
   void AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing);
