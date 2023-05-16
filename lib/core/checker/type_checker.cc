@@ -87,7 +87,7 @@ void TypeChecker::operator()(const ast::Message &ast_message) {
 }
 
 // Find type of foo.bar.buzz
-ast::TypeExpression TypeChecker::GetVarAccessTypeName(const ast::VarAccess &var_access) {
+ast::TypeExpression TypeChecker::GetVarAccessType(const ast::VarAccess &var_access) {
   // Get Type (Foo) of the head (foo)
   ast::TypeExpression head_type = context_.back()->LookupName(var_access.var_identifier.name);
 
