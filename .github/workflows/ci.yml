@@ -85,7 +85,7 @@ jobs:
         clang_tidy_version: 16
         cmake_command: >
           cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} &&
-          cmake --build ${{github.workspace}}/build --target parser
+          cmake --build ${{github.workspace}}/build --target dbuf
         build_dir: ${{github.workspace}}/build
         config_file: .clang-tidy
         include: '*.h,*.cc'
