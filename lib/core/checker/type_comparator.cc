@@ -200,7 +200,6 @@ std::optional<Error> TypeComparator::operator()(const ast::VarAccess &expr) {
   const auto &type = ast_.types.at(message_name);
   if (std::holds_alternative<ast::Enum>(type)) {
     return Error(CreateError() << "Field access works only for messages, but \"" << message_name << "\" is enum");
-    return {};
   }
   const auto &message = std::get<ast::Message>(type);
 
@@ -233,9 +232,7 @@ std::optional<Error> TypeComparator::operator()(const ast::VarAccess &expr) {
     var_access.field_identifiers.push_back(expr.field_identifiers[id]);
   }
 
-  (*this)(var_access);
-
-  return {};
+  return (*this)(var_access);
 };
 
 std::optional<Error> TypeComparator::operator()(const ast::Value &val) {
