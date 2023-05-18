@@ -13,19 +13,14 @@
 
 namespace dbuf {
 
-int Driver::Run(const std::string &input_filename, const std::string &output_filename) {
+int Driver::Run(const std::string &input_filename) {
   std::ifstream in_file(input_filename);
   if (!in_file.good()) {
     return EXIT_FAILURE;
   }
 
-  std::ofstream out_file(output_filename);
-  if (!out_file.good()) {
-    return EXIT_FAILURE;
-  }
-
   ast::AST ast;
-  parser::ParseHelper parse_helper(in_file, std::cout, &ast);
+  parser::ParseHelper parse_helper(in_file, std::cerr, &ast);
   try {
     parse_helper.Parse();
   } catch (const parser::Parser::syntax_error &err) {

@@ -40,11 +40,8 @@ struct Matcher {
     return true;
   }
 
-  bool operator()(const ast::Expression &arg, const ast::Value &pattern) {
-    return std::visit(*this, arg, pattern);
-  }
-
   bool operator()(const ast::Value &arg, const ast::Value &pattern) {
+    DLOG(INFO) << "Matching Value " << arg << " against Value" << pattern;
     return std::visit(*this, arg, pattern);
   }
 
@@ -74,6 +71,7 @@ struct Matcher {
   }
   template <>
   bool operator()(const ast::VarAccess &arg, const ast::ConstructedValue &pattern) {
+    DLOG(INFO) << "Matching VarAccess " << arg << " against ConstructedValue " << pattern;
     const auto &type_variant = ast.types.at(GetVarAccessType(arg, ast, &context).identifier.name);
     if (std::holds_alternative<ast::Enum>(type_variant)) {
       return false;
@@ -98,6 +96,7 @@ struct Matcher {
   bool operator()(const T &arg, const U &pattern) {
     // CompareExpressions returns std::optional<Error> if the expressions don't match
     // so if there is no value then the expressions match
+    DLOG(INFO) << "Matching " << arg << " against " << pattern << " using CompareExpressions";
     return !CompareExpressions(pattern, arg, z3_stuff, ast, context).has_value();
   }
 };

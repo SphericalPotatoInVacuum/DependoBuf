@@ -32,7 +32,7 @@ protected:
 dbuf::Driver *CompileTest::driver_ = nullptr;
 
 TEST_P(CompileTest, WorksForCorrectSyntax) {
-  ASSERT_EQ(driver_->Run(GetParam().path().string(), "logs"), 0) << "Parsing failed with exception";
+  ASSERT_EQ(driver_->Run(GetParam().path().string()), 0) << "Parsing failed with exception";
 }
 
 INSTANTIATE_TEST_SUITE_P(
