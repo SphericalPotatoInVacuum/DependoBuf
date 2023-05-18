@@ -6,7 +6,7 @@ namespace dbuf {
 
 class Driver {
 public:
-  static int Run(const std::string &input_file, const std::string &output_file);
+  static int Run(const std::string &input_file);
 };
 
 } // namespace dbuf
