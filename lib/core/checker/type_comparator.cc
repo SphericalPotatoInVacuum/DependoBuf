@@ -113,8 +113,7 @@ std::optional<Error> TypeComparator::Compare(const ast::Expression &expr) {
 }
 
 std::optional<Error> TypeComparator::operator()(const ast::TypeExpression &) {
-  DLOG(FATAL) << "TypeExpression should not be compared";
-  return {};
+  LOG(FATAL) << "TypeExpression should not be compared";
 }
 std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &expr) {
   DLOG(INFO) << "Checking binary expression " << expr;
