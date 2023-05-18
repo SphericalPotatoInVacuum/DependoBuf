@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/ast/ast.h"
+#include "core/ast/expression.h"
 #include "core/interning/interned_string.h"
 #include "glog/logging.h"
 
@@ -69,8 +70,8 @@ public:
         return it->second;
       }
     }
-    DLOG(FATAL) << "Can't find name \"" << name.GetString() << "\"";
-  } // NOLINT(clang-diagnostic-return-type)
+    LOG(FATAL) << "Can't find name \"" << name.GetString() << "\"";
+  }
 
 private:
   std::unordered_map<InternedString, ast::TypeExpression> vars_;

@@ -118,8 +118,8 @@ struct ExpressionToZ3 {
   }
 
   z3::expr operator()(const ast::TypeExpression & /*type_expression*/) {
-    DLOG(FATAL) << "Tried to convert type expression to z3 expression, which is not supported";
-  } // NOLINT(clang-diagnostic-return-type)
+    LOG(FATAL) << "Tried to convert type expression to z3 expression, which is not supported";
+  }
 
   z3::expr operator()(const ast::ConstructedValue &value) {
     z3::expr_vector args(z3_stuff.context_);
