@@ -44,8 +44,7 @@ namespace dbuf::parser {
     DbufParser(Lexer *scanner, dbuf::ast::AST *ast) : Parser(scanner, ast), error_cnt_(0) {}
 
     void error(const location_type &l, const std::string &err_message) override {
-      std::cerr << "Error: " << err_message << " at " << l << "
-";
+      std::cerr << "Error: " << err_message << " at " << l << std::endl;
       error_cnt_++;
     }
 
@@ -466,6 +465,5 @@ typed_variable
 
 void dbuf::parser::Parser::error(const location_type &l, const std::string &err_message)
 {
-   std::cerr << "Error: " << err_message << " at " << l << "
-";
+   std::cerr << "Error: " << err_message << " at " << l << std::endl;
 }
