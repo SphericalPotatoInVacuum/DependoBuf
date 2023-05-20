@@ -15,8 +15,7 @@ void ParseHelper::Parse() {
   parser_.set_debug_level(0);
   const int accept(0);
   if (parser_.parse() != accept || parser_.GetErrorCnt() > 0) {
-    throw "Parse failed!
-";
+    throw "Parse failed!";
   }
 }
 } // namespace dbuf::parser
