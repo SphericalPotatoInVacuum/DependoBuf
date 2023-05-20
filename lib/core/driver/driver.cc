@@ -40,7 +40,7 @@ int Driver::Run(const std::string &input_filename) {
     std::cerr << "Parsing error: " << err << std::endl;
     return EXIT_FAILURE;
   } catch (...) {
-    std::cerr << "Something went wrong ¯\_(ツ)_/¯" << std::endl;
+    std::cerr << "Something went wrong ¯\\_(ツ)_/¯" << std::endl;
     return EXIT_FAILURE;
   }
 

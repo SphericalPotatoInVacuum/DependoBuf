@@ -33,7 +33,7 @@ lc_letter [a-z]
 uc_letter [A-Z]
 digit     [0-9]
 ident_char [a-zA-Z0-9]
-string_literal \"(\.|[^\"])*\"
+string_literal \"(\\.|[^\\"])*\"
 
 %%
 
@@ -94,9 +94,8 @@ string_literal \"(\.|[^\"])*\"
 "*"  return token::TOK_STAR;
 ":"  return token::TOK_COLON;
 
-[ 	] /* spaces */
-"
-" {
+[ \t] /* spaces */
+"\n" {
   loc->lines();
   return token::TOK_NL;
 }
