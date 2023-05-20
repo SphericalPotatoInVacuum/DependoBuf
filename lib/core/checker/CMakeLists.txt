@@ -7,7 +7,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(z3)
 
-add_library(checker
+add_library(checker STATIC
   checker.cc
   name_resolution_checker.cc
   positivity_checker.cc

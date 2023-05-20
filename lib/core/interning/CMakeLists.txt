@@ -1,4 +1,4 @@
-add_library(interning
+add_library(interning STATIC
   interned_string.cc
 )
 
