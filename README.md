@@ -23,7 +23,7 @@ To work with DBuf, a DBuf "compiler" is used. It's currently focused on checking
 
 ## ⚙ Installation
 
-At this time, precompiled builds of DependoBuf are not yet available. However, you can easily use DependoBuf by [building it from the source](#3-building-from-source) or by [using the provided Docker image](#5-using-docker).
+At this time, precompiled builds of DependoBuf are not yet available. However, you can easily use DependoBuf by [building it from the source](#-building-from-source) or by [using the provided Docker image](#-using-docker).
 
 ## 🛠 Building from Source
 
