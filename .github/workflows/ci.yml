@@ -1,6 +1,12 @@
 on:
   pull_request:
     branches: [ "main" ]
+    paths:
+      - "src/**"
+      - "lib/**"
+      - "test/**"
+      - "CMakeLists.txt"
+      - ".clang-*"
 
 
 env:
