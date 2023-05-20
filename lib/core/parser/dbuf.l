@@ -1,3 +1,13 @@
+/*
+This file is part of DependoBuf project.
+
+Copyright (C) 2023 Alexander Bogdanov, Alice Vernigor
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+*/
 %{
 #include "core/parser/lexer.h"
 
@@ -23,7 +33,7 @@ lc_letter [a-z]
 uc_letter [A-Z]
 digit     [0-9]
 ident_char [a-zA-Z0-9]
-string_literal \"(\\.|[^\\"])*\"
+string_literal \"(\.|[^\"])*\"
 
 %%
 
@@ -84,8 +94,9 @@ string_literal \"(\\.|[^\\"])*\"
 "*"  return token::TOK_STAR;
 ":"  return token::TOK_COLON;
 
-[ \t] /* spaces */
-"\n" {
+[ 	] /* spaces */
+"
+" {
   loc->lines();
   return token::TOK_NL;
 }
