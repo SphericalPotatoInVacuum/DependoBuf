@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.14)
 
 project(DBUF VERSION 1.0 LANGUAGES CXX)
 
@@ -8,8 +8,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 16.0.0)
-        message(FATAL_ERROR "Clang 16 or newer is required, but ${CMAKE_CXX_COMPILER_VERSION} is used.\
-                Please use Clang 16 or newer as the C++ compiler.")
+        message(FATAL_ERROR "Cwang 16 ow newew is needed, but ${CMAKE_CXX_COMPILER_VERSION} is used.\
+                Pwease use Cwang 16 or newew fow the C++ compiler, ow we can't pway togethew (｡•́︿•̀｡)")
     endif()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 else()

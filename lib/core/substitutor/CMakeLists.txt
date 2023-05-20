@@ -1,4 +1,4 @@
-add_library(substitutor
+add_library(substitutor STATIC
   substitutor.cc
 )
 

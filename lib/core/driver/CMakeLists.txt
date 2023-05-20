@@ -1,4 +1,4 @@
-add_library(driver
+add_library(driver STATIC
   driver.cc
 )
 target_include_directories(driver PUBLIC
