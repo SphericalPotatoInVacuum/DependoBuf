@@ -73,7 +73,7 @@ To build the project you can use the `build.sh` script. It has the following arg
 
 After you've installed DependoBuf, you can use the `dbuf` command-line tool to validate your files. `dbuf` accepts a single argument: the path to the file you want to parse.
 
-```
+```bash
 dbuf myfile.dbuf
 ```
 
@@ -83,7 +83,7 @@ In this command, `myfile.dbuf` is the file you want `dbuf` to parse.
 
 Here's an example output of `dbuf` when encountering errors:
 
-```
+```bash
 $ dbuf myfile.dbuf
 Got value of type "Float", but expected type is "Int" at 5.7-9
 ```
@@ -99,7 +99,7 @@ The image is available on Docker Hub under the name `sphericalpotatoinvacuum:dbu
 To run `DependoBuf` on a file using our Docker image, use the following command:
 
 ```bash
-docker run -v $(pwd):$(pwd) -w $(pwd) sphericalpotatoinvacuum:dbuf myfile.dbuf
+docker run -it -v $(pwd):$(pwd) -w $(pwd) sphericalpotatoinvacuum:dbuf myfile.dbuf
 ```
 
 This command mounts your current directory (`$(pwd)`) into the Docker container and sets it as the working directory. This means that `DependoBuf` can access and interact with your files just like it would if it were running directly on your local machine.
