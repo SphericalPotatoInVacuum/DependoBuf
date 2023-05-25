@@ -1,5 +1,5 @@
 message SimpleFields {
-    i Int
-    b Bool
-    s String
+    i Int;
+    b Bool;
+    s String;
 }

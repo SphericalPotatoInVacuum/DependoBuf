@@ -1,24 +1,23 @@
 enum List (n Int) {
   0 => {
-    ListEnd {
-    }
+    ListEnd
   }
   * => {
     ListNode {
-      value Int
-      tail List (n - 1)
+      value Int;
+      tail List (n - 1);
     }
   }
 }
 
 message A (n Int) (m Int) {
-  list List (-(n + m))
+  list List (-(n + m));
 }
 
 enum B (n Int) (m Int) (a A n m) {
   *, *, * => {
     BCons {
-      list List (n + m)
+      list List (n + m);
     }
   }
 }
@@ -26,16 +25,16 @@ enum B (n Int) (m Int) (a A n m) {
 enum TestSubstitution (n Int) (m Int) {
   5, 5 => {
     ListOfLengthTen {
-      arr List (n + m)
+      arr List (n + m);
     }
   }
   *, * => {
     ListOfLengthN {
-      arr List n
+      arr List n;
     }
   }
 }
 
 message C (n Int) (m Int) (a A n m) {
-  field B n m A{list: a.list}
+  field B n m A{list: a.list};
 }

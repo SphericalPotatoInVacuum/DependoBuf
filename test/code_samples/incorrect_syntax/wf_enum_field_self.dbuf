@@ -3,8 +3,8 @@ enum List (n Uint32) {
   }
   * => {
     ListNode {
-      value Int32
-      tail List (n - 1)
+      value Int32;
+      tail List (n - 1);
     }
   }
 }

@@ -1,38 +1,38 @@
 message A {
-  a Int
-  b Int
+  a Int;
+  b Int;
 }
 
 enum B (a A) {
   * => {
     BCons {
-      field Int
+      field Int;
     }
   }
 }
 
 message C (b B A{a: 5, b: 6}) {
-  c Int
+  c Int;
 }
 
 message D {
-  b B A{a: 5, b: 6}
-  c C b
+  b B A{a: 5, b: 6};
+  c C b;
 }
 
 message Pop {
-  a Int
+  a Int;
 }
 
 message Foo (p Pop) {
 }
 
 message Kek (k Pop) (f Foo Pop{a: k.a}) {
-  c Int
+  c Int;
 }
 
 message Lol {
-  d Pop
-  e Foo d
-  g Kek d e
+  d Pop;
+  e Foo d;
+  g Kek d e;
 }

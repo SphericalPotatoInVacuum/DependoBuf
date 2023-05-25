@@ -1,5 +1,5 @@
 message A {
-  c C (Constructor {})
+  c C (Constructor {});
 }
 
 enum B (a A) {

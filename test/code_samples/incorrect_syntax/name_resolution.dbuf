@@ -1,0 +1,19 @@
+message A (a B) (a B) {
+  field1 Vec a b;
+  field1 C;
+}
+
+enum Enum (c C) (c C) {
+  *, Constructor1{} => {
+    Constructor1 {
+      field1 Enum a c;
+      field1 A c;
+    }
+  }
+  *, Constructor2{} => {
+    A {
+    }
+  }
+  *, A{field1: 5, field2: field1} => {
+  }
+}

@@ -1,31 +1,31 @@
 message IntDependency (n Int64) {
-  zero IntDependency 0
-  positiveWoSign IntDependency 100
-  positiveWiSign IntDependency +100
-  negativeWiSign IntDependency -100
-  maxInt IntDependency 9223372036854775807
-  minInt IntDependency -9223372036854775808
+  zero IntDependency 0;
+  positiveWoSign IntDependency 100;
+  positiveWiSign IntDependency +100;
+  negativeWiSign IntDependency -100;
+  maxInt IntDependency 9223372036854775807;
+  minInt IntDependency -9223372036854775808;
 }
 
 message UintDependency (n Uint64) {
-  zero UintDependency 0u
-  notZero UintDependency 100u
-  maxUint UintDependency 18446744073709551615u
+  zero UintDependency 0u;
+  notZero UintDependency 100u;
+  maxUint UintDependency 18446744073709551615u;
 }
 
 message StringDependency (s String) {
-  empty StringDependency ""
-  notEmpty StringDependency "hello"
+  empty StringDependency "";
+  notEmpty StringDependency "hello";
 }
 
 message BoolDependency (b Bool) {
-  trueField BoolDependency true
-  falseField BoolDependency false
+  trueField BoolDependency true;
+  falseField BoolDependency false;
 }
 
 message FloatDependency (f Float32) {
-  zero FloatDependency 0.0
-  positiveWoSign FloatDependency 100.0
-  positiveWiSign FloatDependency +100.0
-  negativeWiSign FloatDependency -100.0
+  zero FloatDependency 0.0;
+  positiveWoSign FloatDependency 100.0;
+  positiveWiSign FloatDependency +100.0;
+  negativeWiSign FloatDependency -100.0;
 }

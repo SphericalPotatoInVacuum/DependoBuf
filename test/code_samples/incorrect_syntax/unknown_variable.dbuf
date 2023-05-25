@@ -2,5 +2,5 @@ message Vec (i Int) (n Int) {
 }
 
 message A {
-  field1 Vec a b
+  field1 Vec a b;
 }

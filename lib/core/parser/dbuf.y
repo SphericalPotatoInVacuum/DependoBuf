@@ -82,7 +82,7 @@ namespace dbuf::parser {
 %define api.token.prefix {TOK_}
 
 %token END 0 "end of file"
-%token NL
+%token SEMICOLON ";"
 %token <std::string> LC_IDENTIFIER UC_IDENTIFIER
 %token MESSAGE ENUM IMPL SERVICE RPC RETURNS
 %token FALSE TRUE
@@ -125,7 +125,6 @@ schema
   : %empty
   | schema definition
   | schema error
-  | schema NL
   ;
 
 definition
@@ -170,8 +169,8 @@ enum_definition
 
 %nterm <ast::Enum> dependent_enum;
 dependent_enum
-  : ENUM type_identifier type_dependencies "{" NL mapping_rules "}" NL {
-    $$ = ast::Enum{{$2}, {std::move($3)}, {std::move($6)}};
+  : ENUM type_identifier type_dependencies "{" mapping_rules "}" {
+    $$ = ast::Enum{{$2}, {std::move($3)}, {std::move($5)}};
   }
   ;
 
@@ -232,7 +231,7 @@ input_pattern
 
 %nterm <std::vector<ast::Constructor>> constructors_block;
 constructors_block
-  : "{" NL constructor_declarations "}" NL { $$ = std::move($3); };
+  : "{" constructor_declarations "}" { $$ = std::move($2); };
 
 %nterm <std::vector<ast::Constructor>> constructor_declarations;
 constructor_declarations
@@ -243,21 +242,21 @@ constructor_declarations
     $$ = std::move($1);
     $$.emplace_back(ast::Constructor{{$2}, {std::move($3)}});
   }
-  | constructor_declarations constructor_identifier NL {
+  | constructor_declarations constructor_identifier {
     $$ = std::move($1);
     $$.emplace_back(ast::Constructor{{$2}, {}});
   }
   ;
 
 %nterm <std::vector<ast::TypedVariable>> fields_block;
-fields_block : "{" NL field_declarations "}" NL { $$ = std::move($3); }; ;
+fields_block : "{" field_declarations "}" { $$ = std::move($2); }; ;
 
 %nterm <std::vector<ast::TypedVariable>> field_declarations;
 field_declarations
   : %empty {
     $$ = std::vector<ast::TypedVariable>();
   }
-  | field_declarations typed_variable NL {
+  | field_declarations typed_variable SEMICOLON {
     $$ = std::move($1);
     $$.emplace_back(std::move($2));
   }
@@ -442,12 +441,12 @@ service_definition
   : SERVICE service_identifier rpc_block
   ;
 rpc_block
-  : "{" NL rpc_declarations "}" NL
+  : "{" rpc_declarations "}"
   ;
 rpc_declarations
   : %empty
   | RPC rpc_identifier "(" arguments ")"
-    RETURNS "(" type_expr ")" NL
+    RETURNS "(" type_expr ")"
   ;
 arguments
   : %empty
