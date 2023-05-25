@@ -2,10 +2,10 @@ message A (n Int) {
 }
 
 message B (a A 5) {
-  f Int
+  f Int;
 }
 
 message C {
-  a A (1 + 3 + (5 - 4))
-  b B a
+  a A (1 + 3 + (5 - 4));
+  b B a;
 }

@@ -1,7 +1,7 @@
 enum FieldsDependOnDependencies (n Nat) (b Bool) {
     * => {
         FieldsDependOnDependencies {
-            v Vec n b
+            v Vec n b;
         }
     }
 }

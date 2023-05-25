@@ -1,6 +1,6 @@
 enum A {
   C1 {
-    field1 Bool
+    field1 Bool;
   }
 }
 

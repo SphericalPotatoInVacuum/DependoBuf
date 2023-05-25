@@ -1,0 +1,16 @@
+enum A {
+  Cons
+}
+
+message B {
+  intField Int;
+  enumField A;
+}
+
+message C (n Int) {
+}
+
+message D {
+  b B;
+  c C b.intField;
+}

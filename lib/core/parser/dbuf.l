@@ -93,11 +93,11 @@ string_literal \"(\\.|[^\\"])*\"
 "/"  return token::TOK_SLASH;
 "*"  return token::TOK_STAR;
 ":"  return token::TOK_COLON;
+";"  return token::TOK_SEMICOLON;
 
 [ \t] /* spaces */
 "\n" {
   loc->lines();
-  return token::TOK_NL;
 }
 
 . {
