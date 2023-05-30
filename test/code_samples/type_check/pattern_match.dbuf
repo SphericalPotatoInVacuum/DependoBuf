@@ -9,11 +9,10 @@ enum A (n Int) {
   }
 }
 
-message B (a A 5) {
-}
+message B (a A 5) {}
 
 message C {
-  field B Cons{ intField: 10 };
+  field B Cons{intField: 10};
 }
 
 
@@ -28,36 +27,36 @@ message E {
 }
 
 enum F (e E) {
-  E{ dField: D{ intField: 10, stringField: "world" }, boolField: true } => {
+  E{dField: D{intField: 10, stringField: "world"}, boolField: true} => {
     FCons{
       intField Int;
     }
   }
-  E{ dField: n, boolField: true } => {
+  E{dField: n, boolField: true} => {
     FCons2{
       intField Int;
     }
   }
 }
 
-message G (f F E{ dField: D{ intField: 10, stringField: "hello" }, boolField: true }) {
+message G (f F E{dField: D{intField: 10, stringField: "hello"}, boolField: true}) {
 }
 
 message H {
-  g G FCons2{ intField: 10 };
+  g G FCons2{intField: 10};
 }
 
 enum I (d D) {
-  D{ intField: intField, stringField: strinfField } => {
+  D{intField: intField, stringField: strinfField} => {
     ICons{
       intField Int;
     }
   }
 }
 
-message J (i I D{ intField: 10, stringField: "hello" }) {
+message J (i I D{intField: 10, stringField: "hello"}) {
 }
 
 message K {
-  j J ICons{ intField: 10 };
+  j J ICons{intField: 10};
 }

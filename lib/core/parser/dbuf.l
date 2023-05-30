@@ -38,14 +38,14 @@ string_literal \"(\\.|[^\\"])*\"
 %%
 
     /* Keywords */
-"message"/[^{ident_char}]   return token::TOK_MESSAGE;
-"service"/[^{ident_char}]   return token::TOK_SERVICE;
-"rpc"/[^{ident_char}]       return token::TOK_RPC;
-"false"/[^{ident_char}]     return token::TOK_FALSE;
-"true"/[^{ident_char}]      return token::TOK_TRUE;
-"enum"/[^{ident_char}]      return token::TOK_ENUM;
-"=>"                         return token::TOK_IMPL;
-"returns"/[^{ident_char}]   return token::TOK_RETURNS;
+"message" return token::TOK_MESSAGE;
+"service" return token::TOK_SERVICE;
+"rpc"     return token::TOK_RPC;
+"false"   return token::TOK_FALSE;
+"true"    return token::TOK_TRUE;
+"enum"    return token::TOK_ENUM;
+"=>"      return token::TOK_IMPL;
+"returns" return token::TOK_RETURNS;
 
     /* Literals */
 {string_literal} {
