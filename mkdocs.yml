@@ -1,8 +1,21 @@
 site_name: DependoBuf
-repo_url: https://github.com/sphericalpotatoinvacuum/DependoBuf
 repo_name: DependoBuf
-edit_uri: edit/main/docs/
+repo_url: https://github.com/sphericalpotatoinvacuum/DependoBuf
+edit_uri_template: 'blob/main/docs/{path}'
 copyright: Copyright &copy; 2023 Alexander Bogdanov, Alice Vernigor
+
+nav:
+- Introduction: index.md
+- Lexical Structure:
+  - lexical-structure/index.md
+  - lexical-structure/notation.md
+  - lexical-structure/keywords.md
+  - lexical-structure/identifiers.md
+  - lexical-structure/values.md
+- expressions.md
+- messages.md
+- enums.md
+
 theme:
   name: material
   icon:
@@ -33,14 +46,12 @@ theme:
     - navigation.path
     - navigation.top
     - navigation.indexes
+    - content.code.annotate
 
 extra_javascript:
-  - javascripts/katex.js
-  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.js
-  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/contrib/auto-render.min.js
-
-extra_css:
-  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.css
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 markdown_extensions:
   - admonition
@@ -55,6 +66,8 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
