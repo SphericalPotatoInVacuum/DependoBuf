@@ -57,7 +57,7 @@ git clone --recurse-submodules https://github.com/SphericalPotatoInVacuum/Depend
 Navigate to the project directory and initialize the submodules:
 
 ```
-cd DependiBuf
+cd DependoBuf
 ```
 
 ### Building the project
