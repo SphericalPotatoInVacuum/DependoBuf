@@ -33,26 +33,26 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Cache Cmake build
-      id: cache-build
-      uses: actions/cache@v3
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@v1.2
       with:
-        path: |
-          ${{github.workspace}}/build
-        key: build-${{env.BUILD_TYPE}}-${{hashFiles('**/CMakeLists.txt')}}
+        key: build-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
         restore-keys: |
-          build-${{env.BUILD_TYPE}}-
-          build-
+          build-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+          build-${{ env.BUILD_TYPE }}-
 
     - name: clang-tidy review
       id: review
       uses: ZedThree/clang-tidy-review@v0.17.0
       with:
-        apt_packages: libfl-dev,flex,bison,clang-16,libc++-16-dev,libc++abi-16-dev
+        apt_packages: libfl-dev,flex,bison,clang-16,libc++-16-dev,libc++abi-16-dev,ccache
         clang_tidy_version: 16
         cmake_command: >
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} &&
-          cmake --build ${{github.workspace}}/build --target dbuf
+          ccache --set-config=cache_dir=/github/workspace/.ccache &&
+          ccache -p &&
+          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache &&
+          cmake --build ${{github.workspace}}/build --target dbuf &&
+          ccache -s
         build_dir: ${{github.workspace}}/build
         config_file: .clang-tidy
         include: '*.h,*.cc'
