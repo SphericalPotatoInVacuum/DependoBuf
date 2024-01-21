@@ -1,7 +1,6 @@
 FROM ghcr.io/sphericalpotatoinvacuum/dbufbuilder:latest as builder
 
 ARG BUILD_TYPE=Release
-ARG JOBS=1
 ENV CC=clang-16
 ENV CXX=clang++-16
 
@@ -13,13 +12,13 @@ COPY src src
 
 COPY CMakeLists.txt ./
 
-RUN mkdir build
-RUN cmake -B build -S . -G "Ninja" \
+RUN mkdir build && \
+    cmake -B build -S . -G "Ninja" \
     -DZ3_BUILD_LIBZ3_SHARED=FALSE \
     -DBUILD_SHARED_LIBS=FALSE \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
-    -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++"
-RUN cmake --build build --parallel $JOBS --config $BUILD_TYPE
+    -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++" && \
+    cmake --build build --parallel $JOBS --config $BUILD_TYPE
 
 WORKDIR /dbuf/build/test
 RUN ctest -C $BUILD_TYPE
