@@ -32,7 +32,7 @@ namespace dbuf::checker {
 
 class TypeChecker {
 public:
-  explicit TypeChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph);
+  explicit TypeChecker(const ast::AST &ast, std::vector<InternedString> sorted_graph);
 
   ErrorList CheckTypes();
 
@@ -60,7 +60,7 @@ private:
   const ast::AST &ast_;
   const std::vector<InternedString> sorted_graph_;
 
-  Substitutor substitutor_;
+  std::deque<SubstitutorScope *> substitutor_context_;
   std::deque<Scope *> context_;
   ErrorList errors_;
 

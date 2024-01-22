@@ -25,12 +25,12 @@ public:
       const ast::TypeExpression &expected,
       const ast::AST &ast,
       std::deque<Scope *> *context_ptr,
-      Substitutor *substitutor_ptr,
+      std::deque<SubstitutorScope *> *substitutor_context_ptr,
       Z3stuff *z3_stuff_ptr)
       : expected_(expected)
       , ast_(ast)
       , context_(*context_ptr)
-      , substitutor_(*substitutor_ptr)
+      , substitutor_context_(*substitutor_context_ptr)
       , z3_stuff_(*z3_stuff_ptr) {}
 
   [[nodiscard]] std::optional<Error> Compare(const ast::Expression &expr);
@@ -59,7 +59,7 @@ private:
   const ast::TypeExpression &expected_;
   const ast::AST &ast_;
   std::deque<Scope *> &context_;
-  Substitutor &substitutor_;
+  std::deque<SubstitutorScope *> &substitutor_context_;
   Z3stuff &z3_stuff_;
 
   [[nodiscard]] std::optional<Error> CompareTypeExpressions(
