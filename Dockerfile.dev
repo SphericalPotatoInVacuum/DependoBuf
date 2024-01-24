@@ -15,6 +15,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     openssh-client \
     clang-tidy-16 \
+    clang-format-16 \
     clangd-16
 
 # Create the user
