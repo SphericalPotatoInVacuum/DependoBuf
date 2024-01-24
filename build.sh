@@ -1,76 +1,132 @@
 #!/bin/bash
 
-# Name of the script
-SCRIPT_NAME=$(basename $0)
-
 # Define a function for displaying usage information
 usage() {
-    echo "Usage: $0 [-t] [-i] [-j N] [-h]"
-    echo "    -t: Run tests after building"
-    echo "    -i: Install after building"
-    echo "    -j N: Use N jobs for make (default 1)"
-    echo "    -h: Show this help message"
-    exit 1
+    echo "Usage: $0 [init|format|build|lint|test|install|all]" \
+         "\n  init:    Initialize the repository by fetching submodules." \
+         "\n  format:  Run clang-format on all C++ files in the repository." \
+         "\n  build:   Build the project. Options: -d|--debug, -c|--ccache." \
+         "\n  lint:    Run clang-tidy on all C++ files in the repository." \
+         "\n  test:    Run the unit tests." \
+         "\n  all:     Run all of the above." \
+         "\n  install: Install the project."
 }
 
-# Parse command line options
-RUN_TESTS=0
-INSTALL=0
-JOBS=1
-DEBUG=0
-while getopts "tij:hd" opt; do
-    case ${opt} in
-        t)
-            RUN_TESTS=1
+do_init() {
+    echo "Ensuring that submodules are up to date."
+    git submodule update --init --recursive || { echo "Failed to initialize submodules."; return 1; }
+}
+
+get_cpp_files() {
+    find lib/core/ test/ -type f \( -name '*.cc' -o -name '*.h' \) -print0
+}
+
+get_cc_files() {
+    find lib/core/ test/ -type f -name '*.cc' -print0
+}
+
+do_format() {
+    echo "Running clang-format."
+    get_cpp_files | xargs -0 clang-format-16 -style='file:.clang-format' -i || { echo "clang-format failed."; return 1; }
+}
+
+do_build() {
+    echo "Building project."
+    export CC=clang-16
+    export CXX=clang++-16
+
+    local debug=false
+    local optimize=false
+    local ccache=false
+    local ccache_flags=""
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -d | --debug)
+                debug=true
+                ;;
+            -c | --ccache)
+                ccache=true
+                ;;
+            *)
+                echo "Unknown option: $1"
+                return 1
+                ;;
+        esac
+        shift
+    done
+
+    local build_type=$([ "$debug" = true ] && echo "Debug" || echo "Release")
+    [ "$ccache" = true ] && ccache_flags="-DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                                          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+
+    mkdir -p build
+    cmake -S . -B build -G "Ninja" \
+          -DZ3_BUILD_LIBZ3_SHARED=FALSE \
+          -DBUILD_SHARED_LIBS=FALSE \
+          -DCMAKE_BUILD_TYPE="$build_type" \
+          $ccache_flags || { echo "CMake configuration failed."; return 1; }
+    cmake --build build --config "$build_type" \
+    || { echo "Build failed."; return 1; }
+}
+
+do_lint() {
+    echo "Running clang-tidy."
+    get_cc_files | xargs -0 clang-tidy-16 --config-file=.clang-tidy -p ./build \
+    || { echo "clang-tidy found errors or warnings. Please fix before committing."; return 1; }
+}
+
+do_test() {
+    echo "Running unit tests."
+    if ! (cd build/test && ./dbufTests); then
+        echo "Tests failed."
+        return 1
+    fi
+}
+
+do_install() {
+    echo "Installing project."
+    sudo cmake --install build || { echo "Installation failed."; return 1; }
+}
+
+do_all() {
+    do_init || return 1
+    do_format || return 1
+    shift
+    do_build "$@" || return 1
+    do_lint || return 1
+    do_test || return 1
+}
+
+if [[ $# -eq 0 ]]; then
+    do_all
+else
+    case "$1" in
+        init)
+            do_init
             ;;
-        i)
-            INSTALL=1
+        format)
+            do_format
             ;;
-        j)
-            JOBS=${OPTARG}
+        build)
+            shift
+            do_build "$@"
             ;;
-        d)
-            DEBUG=1
+        lint)
+            do_lint
             ;;
-        h)
-            usage
+        test)
+            do_test
+            ;;
+        install)
+            do_install
+            ;;
+        all)
+            do_all
             ;;
         *)
+            echo "Unknown command: $1"
             usage
             ;;
     esac
-done
-shift $((OPTIND -1))
-
-# Ensuring that submodules are initialized
-echo "Ensuring that submodules are up to date. Running 'git submodule update --init --recursive'"
-git submodule update --init --recursive
-
-BUILD_TYPE="Release"
-
-if [ $DEBUG -eq 1 ]; then
-    BUILD_TYPE="Debug"
 fi
-
-# Build the project
-echo "Building the project"
-mkdir -p build
-echo "Generating build files"
-cmake -S . -B build -G "Ninja" -DZ3_BUILD_LIBZ3_SHARED=FALSE -DBUILD_SHARED_LIBS=FALSE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
-echo "Building the project"
-cmake --build build --parallel $JOBS --config $BUILD_TYPE
-
-# Conditionally run tests
-if [ $RUN_TESTS -eq 1 ]; then
-    echo "Running tests..."
-    cd build/test && ./dbufTests || cd ../..
-fi
-
-# Conditionally install the project system-wide
-if [ $INSTALL -eq 1 ]; then
-    echo "Installing the project system-wide..."
-    sudo cmake --install build --config $BUILD_TYPE
-fi
-
-# Finish
-echo "Done."
