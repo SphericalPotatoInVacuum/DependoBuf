@@ -63,9 +63,7 @@ cmake --build build --parallel $JOBS --config $BUILD_TYPE
 # Conditionally run tests
 if [ $RUN_TESTS -eq 1 ]; then
     echo "Running tests..."
-    cd test
-    ./dbufTests
-    cd ..
+    cd build/test && ./dbufTests || cd ../..
 fi
 
 # Conditionally install the project system-wide
