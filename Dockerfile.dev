@@ -27,10 +27,5 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 USER $USERNAME
 
-# Configure SSH
-RUN mkdir -p /home/dev/.ssh && \
-    sudo chown -R dev /home/dev/.ssh && \
-    sudo chmod 700 /home/dev/.ssh
-
 # Set the default entrypoint
 ENTRYPOINT ["/bin/bash"]
