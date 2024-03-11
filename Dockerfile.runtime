@@ -1,4 +1,7 @@
-FROM ghcr.io/sphericalpotatoinvacuum/dbufbuilder:latest as builder
+ARG REGISTRY=ghcr.io
+ARG BASE_IMAGE=sphericalpotatoinvacuum/dbufbuilder:latest
+
+FROM $REGISTRY/$BASE_IMAGE as builder
 
 ARG BUILD_TYPE=Release
 ENV CC=clang-16
@@ -18,7 +21,7 @@ RUN mkdir build && \
     -DBUILD_SHARED_LIBS=FALSE \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
     -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++" && \
-    cmake --build build --parallel $JOBS --config $BUILD_TYPE
+    cmake --build build --config $BUILD_TYPE
 
 WORKDIR /dbuf/build/test
 RUN ctest -C $BUILD_TYPE
