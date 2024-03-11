@@ -1,5 +1,4 @@
-# Use Ubuntu 22.04 as the base image
-FROM sphericalpotatoinvacuum/dbufbuilder as builder
+FROM ghcr.io/sphericalpotatoinvacuum/dbufbuilder as builder
 
 ARG USERNAME=dev
 ARG USER_UID=1000
