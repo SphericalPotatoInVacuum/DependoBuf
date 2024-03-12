@@ -124,7 +124,7 @@ jobs:
       - name: Read metadata from file
         id: read_metadata
         run: |
-          METADATA=$(cat docker_metadata.json)
+          METADATA=$(cat /tmp/builder_metadata.json)
           echo "::set-output name=metadata::$METADATA"
 
       - name: Build and push Docker image
