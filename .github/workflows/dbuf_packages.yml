@@ -28,7 +28,7 @@ env:
 
 jobs:
   builder:
-    name: Build and push Docker builder image
+    name: Builder image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,7 +61,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufbuilder
 
       - name: Save metadata to file
-        run: echo "${{ steps.meta.outputs.json }}" > builder_metadata.json
+        run: echo "${{ steps.meta.outputs.json }}" > /tmp/builder_metadata.json
 
       - name: Upload metadata as artifact
         uses: actions/upload-artifact@v2
@@ -82,7 +82,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   runtime:
-    name: Build and push Docker runtime image
+    name: Runtime image
     runs-on: ubuntu-latest
     permissions:
       contents: read
