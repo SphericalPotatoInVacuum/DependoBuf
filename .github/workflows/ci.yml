@@ -37,13 +37,14 @@ jobs:
       with:
         submodules: recursive
 
-    - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2
+    - name: cache
+      uses: actions/cache@v4
       with:
-        key: build-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+        path: ${{ github.workspace }}/.ccache
+        key: ccache-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
         restore-keys: |
-          build-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
-          build-${{ env.BUILD_TYPE }}-
+          ccache-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+          ccache-${{ env.BUILD_TYPE }}-
 
     - name: clang-tidy review
       id: review

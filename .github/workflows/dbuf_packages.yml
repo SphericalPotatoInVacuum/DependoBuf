@@ -35,6 +35,8 @@ jobs:
       contents: read
       packages: write
       id-token: write
+    outputs:
+      metadata: ${{ steps.metadata.outputs.json }}
 
     steps:
       - name: Lowercase the image prefix
@@ -56,22 +58,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract Docker metadata
-        id: meta
+        id: metadata
         uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
         with:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value={{date 'YYYYMMDD'}}.{{sha}},enable=${{ github.event_name == 'pull_request' }}
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufbuilder
-
-      - name: Save metadata to file
-        run: echo '${{ steps.meta.outputs.json }}' > /tmp/builder_metadata.json
-
-      - name: Upload metadata as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: builder-metadata
-          path: /tmp/builder_metadata.json
 
       - name: Build and push Docker image
         id: build-and-push
@@ -80,8 +73,8 @@ jobs:
           context: .
           file: Dockerfile.builder
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -103,13 +96,14 @@ jobs:
         with:
           submodules: recursive
 
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2
+      - name: cache
+        uses: actions/cache@v4
         with:
-          key: build-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
           restore-keys: |
-            build-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
-            build-${{ env.BUILD_TYPE }}-
+            ccache-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+            ccache-${{ env.BUILD_TYPE }}-
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
@@ -130,18 +124,6 @@ jobs:
             type=raw,value={{date 'YYYYMMDD'}}.{{sha}},enable=${{ github.event_name == 'pull_request' }}
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbuf
 
-      - name: Download builder image metadata artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: builder-metadata
-          path: /tmp
-
-      - name: Read metadata from file
-        id: read_metadata
-        run: |
-          METADATA=$(cat /tmp/builder_metadata.json)
-          echo "metadata=$METADATA" >> $GITHUB_OUTPUT
-
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
@@ -149,7 +131,7 @@ jobs:
           context: .
           build-args: |
             REGISTRY=${{ env.REGISTRY }}
-            BASE_IMAGE=${{ fromJson(steps.read_metadata.outputs.metadata).tags[0] }}
+            BASE_IMAGE=${{ fromJson(needs.builder.outputs.metadata).tags[0] }}
           file: Dockerfile.runtime
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -194,18 +176,6 @@ jobs:
             type=raw,value={{date 'YYYYMMDD'}}.{{sha}},enable=${{ github.event_name == 'pull_request' }}
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufdev
 
-      - name: Download builder image metadata artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: builder-metadata
-          path: /tmp
-
-      - name: Read metadata from file
-        id: read_metadata
-        run: |
-          METADATA=$(cat /tmp/builder_metadata.json)
-          echo "metadata=$METADATA" >> $GITHUB_OUTPUT
-
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
@@ -213,7 +183,7 @@ jobs:
           context: .
           build-args: |
             REGISTRY=${{ env.REGISTRY }}
-            BASE_IMAGE=${{ fromJson(steps.read_metadata.outputs.metadata).tags[0] }}
+            BASE_IMAGE=${{ fromJson(needs.builder.outputs.metadata).tags[0] }}
           file: Dockerfile.dev
           push: true
           tags: ${{ steps.meta.outputs.tags }}
