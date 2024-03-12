@@ -1,4 +1,7 @@
-FROM ghcr.io/sphericalpotatoinvacuum/dbufbuilder as builder
+ARG REGISTRY=ghcr.io
+ARG BASE_IMAGE=sphericalpotatoinvacuum/dbufbuilder:latest
+
+FROM $REGISTRY/$BASE_IMAGE as builder
 
 ARG USERNAME=dev
 ARG USER_UID=1000
