@@ -47,6 +47,9 @@ jobs:
 
     - name: clang-tidy review
       id: review
+      env:
+        CC: clang-16
+        CXX: clang++-16
       uses: ZedThree/clang-tidy-review@v0.17.0
       with:
         apt_packages: libfl-dev,flex,bison,clang-16,libc++-16-dev,libc++abi-16-dev,ccache
