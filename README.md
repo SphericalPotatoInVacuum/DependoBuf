@@ -62,12 +62,14 @@ cd DependoBuf
 
 ### Building the project
 
-To build the project you can use the `build.sh` script. It has the following arguments:
-- `-h`: prints the help message
-- `-t`: runs tests after building
-- `-d`: builds in debug mode (default is release)
-- `-i`: installs the dbuf tool after building
-- `-j <n>`: builds with n threads (default is 1)
+To build the project you can use the `build.sh` script. It has the following subcommands:
+- `init`: pulls submodules
+- `format`: formats the code using clang-format-16
+- `build`: builds the project
+- `lint`: runs clang-tidy-16 on the code
+- `test`: runs the tests
+- `all`: runs all of the above commands (also the default command)
+- `install`: installs the dbuf tool
 
 ## 📖 Usage
 

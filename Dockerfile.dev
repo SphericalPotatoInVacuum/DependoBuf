@@ -1,0 +1,31 @@
+FROM ghcr.io/sphericalpotatoinvacuum/dbufbuilder as builder
+
+ARG USERNAME=dev
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Set environment variables for non-interactive installation
+ENV DEBIAN_FRONTEND=noninteractive \
+    CC=clang-16 \
+    CXX=clang++-16
+
+# Update and install necessary packages in one layer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    openssh-client \
+    clang-tidy-16 \
+    clang-format-16 \
+    clangd-16
+
+# Create the user
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && apt-get update \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+USER $USERNAME
+
+# Set the default entrypoint
+ENTRYPOINT ["/bin/bash"]
