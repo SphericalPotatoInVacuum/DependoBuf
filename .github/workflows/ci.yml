@@ -56,7 +56,9 @@ jobs:
         clang_tidy_version: 16
         cmake_command: >
           ccache --set-config=cache_dir=/github/workspace/.ccache &&
-          ccache -p &&
+          ccache --set-config=base_dir=/github/workspace &&
+          ccache --set-config=sloppiness=file_macro,time_macros &&
+          ccache --set-config=no_hashdir=true &&
           cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache &&
           cmake --build ${{github.workspace}}/build --target dbuf &&
           ccache -s

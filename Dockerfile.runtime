@@ -7,6 +7,11 @@ ARG BUILD_TYPE=Release
 ENV CC=clang-16
 ENV CXX=clang++-16
 
+ENV CCACHE_BASEDIR=/dbuf
+ENV CCACHE_DIR=/dbuf/.ccache
+ENV CCACHE_SLOPPINESS=file_macro,time_macros
+ENV CCACHE_NOHASHDIR=true
+
 WORKDIR /dbuf
 
 COPY lib lib
@@ -16,8 +21,7 @@ COPY .ccach[e] .ccache
 
 COPY CMakeLists.txt ./
 
-RUN ccache --set-config=cache_dir=/dbuf/.ccache && \
-    mkdir build && \
+RUN mkdir build && \
     cmake -B build -S . -G "Ninja" \
     -DZ3_BUILD_LIBZ3_SHARED=FALSE \
     -DBUILD_SHARED_LIBS=FALSE \
