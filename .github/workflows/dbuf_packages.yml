@@ -60,6 +60,15 @@ jobs:
             type=raw,value={{date 'YYYYMMDD'}}.{{sha}},enable=${{ github.event_name == 'pull_request' }}
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufbuilder
 
+      - name: Save metadata to file
+        run: echo "${{ steps.meta.outputs.json }}" > builder_metadata.json
+
+      - name: Upload metadata as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: docker-metadata
+          path: /tmp/builder_metadata.json
+
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
@@ -71,13 +80,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=docker,dest=/tmp/docker-output.json
-
-      - name: Upload builder image digest as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: image-digest
-          path: /tmp/docker-output.json
 
   runtime:
     name: Build and push Docker runtime image
@@ -113,17 +115,17 @@ jobs:
             type=raw,value={{date 'YYYYMMDD'}}.{{sha}},enable=${{ github.event_name == 'pull_request' }}
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbuf
 
-      - name: Download builder image digest artifact
+      - name: Download builder image metadata artifact
         uses: actions/download-artifact@v2
         with:
-          name: image-digest
+          name: builder-metadata
           path: /tmp
 
-      - name: Load builder image digest
-        id: image_digest
+      - name: Read metadata from file
+        id: read_metadata
         run: |
-          DIGEST=$(jq -r '.[].digest' /tmp/docker-output.json)
-          echo "DIGEST=${DIGEST}" >> $GITHUB_ENV
+          METADATA=$(cat docker_metadata.json)
+          echo "::set-output name=metadata::$METADATA"
 
       - name: Build and push Docker image
         id: build-and-push
@@ -132,7 +134,7 @@ jobs:
           context: .
           build-args: |
             REGISTRY=${{ env.REGISTRY }}
-            BASE_IMAGE=${{ env.IMAGE_PREFIX }}dbufbuilder@${{ env.DIGEST }}
+            BASE_IMAGE=${{ env.IMAGE_PREFIX }}dbufbuilder:${{ fromJson(steps.read_metadata.outputs.metadata).tags[0] }}
           file: Dockerfile.runtime
           push: true
           tags: ${{ steps.meta.outputs.tags }}
