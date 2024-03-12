@@ -61,7 +61,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufbuilder
 
       - name: Save metadata to file
-        run: echo "${{ steps.meta.outputs.json }}" > /tmp/builder_metadata.json
+        run: echo '${{ steps.meta.outputs.json }}' > /tmp/builder_metadata.json
 
       - name: Upload metadata as artifact
         uses: actions/upload-artifact@v2
@@ -125,7 +125,7 @@ jobs:
         id: read_metadata
         run: |
           METADATA=$(cat /tmp/builder_metadata.json)
-          echo "::set-output name=metadata::$METADATA"
+          echo "metadata=$METADATA" >> $GITHUB_OUTPUT
 
       - name: Build and push Docker image
         id: build-and-push
