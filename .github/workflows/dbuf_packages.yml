@@ -140,7 +140,7 @@ jobs:
           context: .
           build-args: |
             REGISTRY=${{ env.REGISTRY }}
-            BASE_IMAGE=${{ env.IMAGE_PREFIX }}dbufbuilder:${{ fromJson(steps.read_metadata.outputs.metadata).tags[0] }}
+            BASE_IMAGE=${{ fromJson(steps.read_metadata.outputs.metadata).tags[0] }}
           file: Dockerfile.runtime
           push: true
           tags: ${{ steps.meta.outputs.tags }}
