@@ -17,8 +17,8 @@ COPY CMakeLists.txt ./
 
 RUN --mount=type=bind,source=.ccache,target=/dbuf/.ccache,rw \
     export CCACHE_SLOPPINESS=time_macros,file_macro && \
-    export CCACHE_BASEDIR=$(pwd) && \
-    export CCACHE_DIR=$(pwd)/.ccache && \
+    export CCACHE_BASEDIR=/dbuf && \
+    export CCACHE_DIR=/dbuf/.ccache && \
     export CCACHE_NOHASHDIR=true && \
     mkdir build && \
     cmake -B build -S . -G "Ninja" \
