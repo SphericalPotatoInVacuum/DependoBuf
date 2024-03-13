@@ -104,7 +104,7 @@ jobs:
           echo "ref=${{ github.event_name == 'pull_request' && github.event.number || github.ref }}" >> $GITHUB_OUTPUT
 
       - name: cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.ccache
           key: ccache-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.ref }}-${{ steps.vars.outputs.sha_short }}-${{ steps.vars.outputs.date }}
@@ -131,11 +131,14 @@ jobs:
             type=raw,value={{date 'YYYYMMDD'}}.{{sha}},enable=${{ github.event_name == 'pull_request' }}
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbuf
 
+      - name: Ensure .ccache directory exists
+        run: mkdir -p ${{ github.workspace }}/.ccache
+
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
         with:
-          context: .
+          context: ${{ github.workspace }}
           build-args: |
             REGISTRY=${{ env.REGISTRY }}
             BASE_IMAGE=${{ fromJson(needs.builder.outputs.metadata).tags[0] }}
