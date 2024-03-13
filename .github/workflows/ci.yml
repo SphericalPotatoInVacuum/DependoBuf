@@ -39,15 +39,19 @@ jobs:
 
     - name: Set outputs
       id: vars
-      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      run: |
+        echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
 
     - name: cache
       uses: actions/cache@v4
+      env:
+        REF: ${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
       with:
         path: ${{ github.workspace }}/.ccache
-        key: ccache-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}-${{ steps.vars.outputs.sha_short }}
+        key: ccache-${{ env.BUILD_TYPE }}-${{ github.env.REF }}-${{ steps.vars.outputs.sha_short }}-${{ steps.vars.outputs.date }}
         restore-keys: |
-          ccache-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+          ccache-${{ env.BUILD_TYPE }}-${{ github.env.REF }}
           ccache-${{ env.BUILD_TYPE }}-
 
     - name: clang-tidy review
