@@ -47,6 +47,10 @@ do_build() {
                 ;;
             -c | --ccache)
                 ccache=true
+                export CCACHE_SLOPPINESS=time_macros,file_macro
+                export CCACHE_BASEDIR=$(pwd)
+                export CCACHE_DIR=$(pwd)/.ccache
+                export CCACHE_NOHASHDIR=true
                 ;;
             *)
                 echo "Unknown option: $1"
