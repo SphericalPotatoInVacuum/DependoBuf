@@ -15,7 +15,7 @@ COPY src src
 
 COPY CMakeLists.txt ./
 
-RUN --mount=type=bind,source=.ccache,target=/dbuf/.ccache,rw \
+RUN --mount=type=cache,target=/dbuf/.ccache \
     export CCACHE_SLOPPINESS=time_macros,file_macro && \
     export CCACHE_BASEDIR=/dbuf && \
     export CCACHE_DIR=/dbuf/.ccache && \
@@ -28,7 +28,8 @@ RUN --mount=type=bind,source=.ccache,target=/dbuf/.ccache,rw \
     -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++" \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && \
-    cmake --build build --config $BUILD_TYPE
+    cmake --build build --config $BUILD_TYPE && \
+    ccache --show-stats
 
 WORKDIR /dbuf/build/test
 RUN ctest -C $BUILD_TYPE
