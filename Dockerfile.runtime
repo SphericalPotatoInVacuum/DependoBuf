@@ -15,7 +15,8 @@ COPY src src
 
 COPY CMakeLists.txt ./
 
-RUN mkdir build && \
+RUN --mount=type=bind,source=.ccache,target=/dbuf/.ccache,rw \
+    mkdir build && \
     cmake -B build -S . -G "Ninja" \
     -DZ3_BUILD_LIBZ3_SHARED=FALSE \
     -DBUILD_SHARED_LIBS=FALSE \

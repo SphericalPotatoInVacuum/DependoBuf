@@ -1,16 +1,6 @@
 name: Run code checks
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/ci.yml"
-      - "lib/**"
-      - "src/**"
-      - "test/**"
-      - "CMakeLists.txt"
-      - ".clang-*"
   pull_request:
     branches:
       - main
@@ -48,10 +38,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ github.workspace }}/.ccache
-        key: ccache-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.ref }}-${{ steps.vars.outputs.sha_short }}-${{ steps.vars.outputs.date }}
+        key: ccache-tidy-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.ref }}-${{ steps.vars.outputs.sha_short }}-${{ steps.vars.outputs.date }}
         restore-keys: |
-          ccache-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.ref }}
-          ccache-${{ env.BUILD_TYPE }}-
+          ccache-tidy-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.ref }}-
+          ccache-tidy-${{ env.BUILD_TYPE }}-
 
     - name: clang-tidy review
       id: review

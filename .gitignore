@@ -9,4 +9,5 @@
 
 # cmake
 build
-.ccache
+.ccache/*
+!.ccache/.gitkeep
