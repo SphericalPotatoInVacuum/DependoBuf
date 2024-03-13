@@ -96,13 +96,20 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Set outputs
+        id: vars
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "ref=${{ github.event_name == 'pull_request' && github.event.number || github.ref }}" >> $GITHUB_OUTPUT
+
       - name: cache
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/.ccache
-          key: ccache-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+          key: ccache-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.ref }}-${{ steps.vars.outputs.sha_short }}-${{ steps.vars.outputs.date }}
           restore-keys: |
-            ccache-${{ env.BUILD_TYPE }}-${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+            ccache-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.ref }}
             ccache-${{ env.BUILD_TYPE }}-
 
       - name: Set up Docker Buildx
