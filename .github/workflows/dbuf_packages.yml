@@ -131,10 +131,11 @@ jobs:
             ccache-build-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.ref }}-
             ccache-build-${{ env.BUILD_TYPE }}-
 
-      - name: inject ccache into docker
+      - name: Inject ccache into docker cache
         uses: reproducible-containers/buildkit-cache-dance@v2.1.2
         with:
           cache-source: ccache
+          cache-target: /dbuf/.ccache
 
       - name: Build and push Docker image
         id: build-and-push
