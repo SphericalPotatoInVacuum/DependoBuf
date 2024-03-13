@@ -59,23 +59,24 @@ jobs:
       env:
         CC: clang-16
         CXX: clang++-16
+        CCACHE_BASEDIR: /github/workspace
+        CCACHE_DIR: /github/workspace/.ccache
+        CCACHE_SLOPPINESS: file_macro,time_macros
+        CCACHE_NOHASHDIR: true
       uses: ZedThree/clang-tidy-review@v0.17.0
       with:
         apt_packages: libfl-dev,flex,bison,clang-16,libc++-16-dev,libc++abi-16-dev,ccache
         clang_tidy_version: 16
         cmake_command: >
-          export CCACHE_BASEDIR=${{github.workspace}} &&
-          export CCACHE_DIR=${{github.workspace}}/.ccache &&
-          export CCACHE_SLOPPINESS=file_macro,time_macros &&
-          export CCACHE_NOHASHDIR=true &&
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache &&
-          cmake --build ${{github.workspace}}/build --target dbuf &&
+          cmake -B /github/workspace/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache &&
+          cmake --build /github/workspace/build --target dbuf &&
           ccache -s
-        build_dir: ${{github.workspace}}/build
+        build_dir: /github/workspace/build
         config_file: .clang-tidy
         include: '*.h,*.cc'
 
     - if: steps.review.outputs.total_comments > 0
+      name: Fail if there are requested changes
       run: exit 1
 
   format:
