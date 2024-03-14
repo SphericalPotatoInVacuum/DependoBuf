@@ -26,6 +26,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/${{ github.event_name == 'pull_request' && 'custom-' || '' }}
   BUILD_TYPE: Release
+  PLATFORM_PAIR: linux/amd64
 
 jobs:
   builder:
@@ -45,8 +46,11 @@ jobs:
           - linux/arm64
 
     steps:
-      - name: Lowercase the image prefix
-        run: echo "IMAGE_PREFIX=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - name: Prepare
+        run: |
+          echo "IMAGE_PREFIX=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -86,8 +90,8 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufbuilder,push=true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
 
   runtime:
     name: Runtime image
@@ -105,8 +109,11 @@ jobs:
           - linux/arm64
 
     steps:
-      - name: Lowercase the image prefix
-        run: echo "IMAGE_PREFIX=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - name: Prepare
+        run: |
+          echo "IMAGE_PREFIX=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -170,8 +177,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbuf,push=true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
 
   dev:
     name: Development image
@@ -189,8 +196,11 @@ jobs:
           - linux/arm64
 
     steps:
-      - name: Lowercase the image prefix
-        run: echo "IMAGE_PREFIX=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+      - name: Prepare
+        run: |
+          echo "IMAGE_PREFIX=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -232,5 +242,5 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufdev,push=true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
