@@ -82,10 +82,10 @@ jobs:
           context: .
           file: Dockerfile.builder
           push: true
-          provenance: false
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufbuilder,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -166,10 +166,10 @@ jobs:
             BASE_IMAGE=${{ fromJson(needs.builder.outputs.metadata).tags[0] }}
           file: Dockerfile.runtime
           push: true
-          provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbuf,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -228,9 +228,9 @@ jobs:
             BASE_IMAGE=${{ fromJson(needs.builder.outputs.metadata).tags[0] }}
           file: Dockerfile.dev
           push: true
-          provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufdev,push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha
           cache-to: type=gha,mode=max
