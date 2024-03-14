@@ -1,7 +1,6 @@
-ARG REGISTRY=ghcr.io
-ARG BASE_IMAGE=sphericalpotatoinvacuum/dbufbuilder:latest
+ARG BASE_IMAGE=ghcr.io/sphericalpotatoinvacuum/dbufbuilder:latest
 
-FROM $REGISTRY/$BASE_IMAGE as builder
+FROM $BASE_IMAGE as builder
 
 ARG BUILD_TYPE=Release
 ENV CC=clang-16

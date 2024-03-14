@@ -162,7 +162,6 @@ jobs:
         with:
           context: .
           build-args: |
-            REGISTRY=${{ env.REGISTRY }}
             BASE_IMAGE=${{ fromJson(needs.builder.outputs.metadata).tags[0] }}
           file: Dockerfile.runtime
           push: true
@@ -224,7 +223,6 @@ jobs:
         with:
           context: .
           build-args: |
-            REGISTRY=${{ env.REGISTRY }}
             BASE_IMAGE=${{ fromJson(needs.builder.outputs.metadata).tags[0] }}
           file: Dockerfile.dev
           push: true
