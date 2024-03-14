@@ -1,4 +1,4 @@
-FROM --platform=$TARGETPLATFORM ubuntu:22.04 as builder
+FROM ubuntu:22.04 as builder
 
 # Set environment variables for non-interactive installation and use clang-16
 ENV DEBIAN_FRONTEND=noninteractive \

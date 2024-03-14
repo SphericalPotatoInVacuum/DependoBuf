@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=ghcr.io/sphericalpotatoinvacuum/dbufbuilder:latest
 
-FROM --platform=$TARGETPLATFORM $BASE_IMAGE as builder
+FROM $BASE_IMAGE as builder
 
 ARG BUILD_TYPE=Release
 ENV CC=clang-16
@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/dbuf/.ccache \
 WORKDIR /dbuf/build/test
 RUN ctest -C $BUILD_TYPE
 
-FROM --platform=$TARGETPLATFORM scratch as runner
+FROM scratch as runner
 
 WORKDIR /dbuf
 COPY --from=builder /dbuf/build/src/dbuf ./
