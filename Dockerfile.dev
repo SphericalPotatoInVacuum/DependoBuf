@@ -1,6 +1,6 @@
 ARG BASE_IMAGE=ghcr.io/sphericalpotatoinvacuum/dbufbuilder:latest
 
-FROM $BASE_IMAGE as builder
+FROM --platform=$TARGETPLATFORM $BASE_IMAGE as builder
 
 ARG USERNAME=dev
 ARG USER_UID=1000
