@@ -95,15 +95,15 @@ jobs:
 
       - name: Export digest
         run: |
-          mkdir -p /tmp/digests/${{env.BUILDER_IMAGE_NAME}}/${{ env.PLATFORM_PAIR }}
+          mkdir -p /tmp/digests/${{env.BUILDER_IMAGE_NAME}}/
           digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${{env.BUILDER_IMAGE_NAME}}/${{ env.PLATFORM_PAIR }}/${digest#sha256:}"
+          touch "/tmp/digests/${{env.BUILDER_IMAGE_NAME}}/${digest#sha256:}"
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{env.BUILDER_IMAGE_NAME}}-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/*
+          path: /tmp/digests/${{env.BUILDER_IMAGE_NAME}}/*
           if-no-files-found: error
           retention-days: 1
 
@@ -141,11 +141,11 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: digests-${{env.BUILDER_IMAGE_NAME}}-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/${{env.BUILDER_IMAGE_NAME}}/${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/${{env.BUILDER_IMAGE_NAME}}
 
       - name: Get builder image digest
         run: |
-          builder_digest=$(ls /tmp/digests/${{env.BUILDER_IMAGE_NAME}}/${{ env.PLATFORM_PAIR }})
+          builder_digest=$(ls /tmp/digests/${{env.BUILDER_IMAGE_NAME}})
           echo "BUILDER_DIGEST=$builder_digest" >> $GITHUB_ENV
 
       - name: Checkout repository
@@ -213,7 +213,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{env.RUNTIME_IMAGE_NAME}}-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/*
+          path: /tmp/digests/${{env.RUNTIME_IMAGE_NAME}}/*
           if-no-files-found: error
           retention-days: 1
 
@@ -249,11 +249,11 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: digests-${{env.BUILDER_IMAGE_NAME}}-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/${{env.BUILDER_IMAGE_NAME}}/${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/${{env.BUILDER_IMAGE_NAME}}
 
       - name: Get builder image digest
         run: |
-          builder_digest=$(ls /tmp/digests/${{env.BUILDER_IMAGE_NAME}}/${{ env.PLATFORM_PAIR }})
+          builder_digest=$(ls /tmp/digests/${{env.BUILDER_IMAGE_NAME}}
           echo "BUILDER_DIGEST=$builder_digest" >> $GITHUB_ENV
 
       - name: Checkout repository
@@ -298,15 +298,15 @@ jobs:
 
       - name: Export digest
         run: |
-          mkdir -p /tmp/digests/${{env.DEV_IMAGE_NAME}}/${{ env.PLATFORM_PAIR }}
+          mkdir -p /tmp/digests/${{env.DEV_IMAGE_NAME}}
           digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${{env.DEV_IMAGE_NAME}}/${{ env.PLATFORM_PAIR }}/${digest#sha256:}"
+          touch "/tmp/digests/${{env.DEV_IMAGE_NAME}}/${digest#sha256:}"
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{env.DEV_IMAGE_NAME}}-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/*
+          path: /tmp/digests/${{env.DEV_IMAGE_NAME}}/*
           if-no-files-found: error
           retention-days: 1
 
