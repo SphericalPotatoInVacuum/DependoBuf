@@ -39,9 +39,6 @@ jobs:
       contents: read
       packages: write
       id-token: write
-    outputs:
-      metadata: ${{ steps.metadata.outputs.json }}
-      digest: ${{ steps.build.outputs.metadata }}
     strategy:
       fail-fast: true
       matrix:
