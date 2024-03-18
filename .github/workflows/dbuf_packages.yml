@@ -332,7 +332,7 @@ jobs:
     steps:
       - name: Prepare
         run: |
-          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')/${{matrix.image}}" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')${{matrix.image}}" >> $GITHUB_ENV
 
       - name: Download image digests
         uses: actions/download-artifact@v4
