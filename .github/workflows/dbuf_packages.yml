@@ -193,7 +193,7 @@ jobs:
         with:
           context: .
           build-args: |
-            BASE_IMAGE=${{env.REGISTRY}}/${{ env.BUILDER_IMAGE_NAME }}@sha256:${{ env.BUILDER_DIGEST }}
+            BASE_IMAGE=${{env.REGISTRY}}/${{github.repository_owner}}/${{ env.BUILDER_IMAGE_NAME }}@sha256:${{ env.BUILDER_DIGEST }}
           file: Dockerfile.runtime
           push: false
           provenance: false
@@ -286,7 +286,7 @@ jobs:
         with:
           context: .
           build-args: |
-            BASE_IMAGE=${{env.REGISTRY}}/${{ env.BUILDER_IMAGE_NAME }}@sha256:${{ env.BUILDER_DIGEST }}
+            BASE_IMAGE=${{env.REGISTRY}}/${{github.repository_owner}}/${{ env.BUILDER_IMAGE_NAME }}@sha256:${{ env.BUILDER_DIGEST }}
           file: Dockerfile.dev
           push: false
           provenance: false
