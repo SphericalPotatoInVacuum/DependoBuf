@@ -51,7 +51,7 @@ jobs:
     steps:
       - name: Prepare
         run: |
-          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')/$BUILDER_IMAGE_NAME" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$BUILDER_IMAGE_NAME" >> $GITHUB_ENV
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
@@ -131,7 +131,7 @@ jobs:
     steps:
       - name: Prepare
         run: |
-          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')/$RUNTIME_IMAGE_NAME" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$RUNTIME_IMAGE_NAME" >> $GITHUB_ENV
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
           echo "SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
@@ -241,7 +241,7 @@ jobs:
     steps:
       - name: Prepare
         run: |
-          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')/$DEV_IMAGE_NAME" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$DEV_IMAGE_NAME" >> $GITHUB_ENV
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
