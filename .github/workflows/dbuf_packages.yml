@@ -253,7 +253,7 @@ jobs:
 
       - name: Get builder image digest
         run: |
-          builder_digest=$(ls /tmp/digests/${{env.BUILDER_IMAGE_NAME}}
+          builder_digest=$(ls /tmp/digests/${{env.BUILDER_IMAGE_NAME}})
           echo "BUILDER_DIGEST=$builder_digest" >> $GITHUB_ENV
 
       - name: Checkout repository
