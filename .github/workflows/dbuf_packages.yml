@@ -129,6 +129,11 @@ jobs:
           - linux/arm64
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
       - name: Prepare
         run: |
           echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$RUNTIME_IMAGE_NAME" >> $GITHUB_ENV
@@ -148,11 +153,6 @@ jobs:
           builder_digest=$(ls /tmp/digests/${{env.BUILDER_IMAGE_NAME}})
           echo "BUILDER_DIGEST=$builder_digest" >> $GITHUB_ENV
           echo "BUILDER_IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$BUILDER_IMAGE_NAME" >> $GITHUB_ENV
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -240,6 +240,11 @@ jobs:
           - linux/arm64
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
       - name: Prepare
         run: |
           echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$DEV_IMAGE_NAME" >> $GITHUB_ENV
@@ -257,11 +262,6 @@ jobs:
           builder_digest=$(ls /tmp/digests/${{env.BUILDER_IMAGE_NAME}})
           echo "BUILDER_DIGEST=$builder_digest" >> $GITHUB_ENV
           echo "BUILDER_IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$BUILDER_IMAGE_NAME" >> $GITHUB_ENV
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
