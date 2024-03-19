@@ -116,7 +116,7 @@ jobs:
       id-token: write
     needs: build-builder
     env:
-      REF: ${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+      REF: ${{ github.event_name == 'pull_request' && github.event.number || 'stable' }}
       IMAGE_NAME:
       DATE:
       SHA:
@@ -227,7 +227,6 @@ jobs:
       id-token: write
     needs: build-builder
     env:
-      REF: ${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
       IMAGE_NAME:
       DATE:
       SHA:
