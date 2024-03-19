@@ -1,69 +1,24 @@
+name: Run code checks
+
 on:
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
     paths:
-      - "src/**"
+      - ".github/workflows/ci.yml"
       - "lib/**"
+      - "src/**"
       - "test/**"
       - "CMakeLists.txt"
       - ".clang-*"
 
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
-  CC: clang-16
-  CXX: clang++-16
 
 jobs:
-  build:
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-
-    - run: |
-        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-        sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main'
-        sudo apt update
-
-    - uses: awalsh128/cache-apt-pkgs-action@latest
-      with:
-        packages: libfl-dev clang-16 libc++-16-dev libc++abi-16-dev
-        version: 1.0
-
-    - name: Cache Cmake build
-      id: cache-build
-      uses: actions/cache@v3
-      with:
-        path: |
-          ${{github.workspace}}/build
-        key: build-${{env.BUILD_TYPE}}-${{hashFiles('**/CMakeLists.txt')}}
-        restore-keys: |
-          build-${{env.BUILD_TYPE}}-
-          build-
-
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-    - name: Test
-      working-directory: ${{github.workspace}}/build/test
-      # Execute tests defined by the CMake configuration.
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}}
-
   tidy:
+    name: Check codestyle using clang-tidy
     permissions: write-all
     runs-on: ubuntu-latest
 
@@ -72,34 +27,49 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Cache Cmake build
-      id: cache-build
-      uses: actions/cache@v3
+    - name: Set outputs
+      id: vars
+      run: |
+        echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+        echo "ref=${{ github.event_name == 'pull_request' && github.event.number || github.ref }}" >> $GITHUB_OUTPUT
+
+    - name: cache
+      uses: actions/cache@v4
       with:
-        path: |
-          ${{github.workspace}}/build
-        key: build-${{env.BUILD_TYPE}}-${{hashFiles('**/CMakeLists.txt')}}
+        path: ${{ github.workspace }}/.ccache
+        key: ccache-tidy-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.ref }}-${{ steps.vars.outputs.sha_short }}-${{ steps.vars.outputs.date }}
         restore-keys: |
-          build-${{env.BUILD_TYPE}}-
-          build-
+          ccache-tidy-${{ env.BUILD_TYPE }}-${{ steps.vars.outputs.ref }}-
+          ccache-tidy-${{ env.BUILD_TYPE }}-
 
     - name: clang-tidy review
       id: review
-      uses: SphericalPotatoInVacuum/clang-tidy-review@master
+      env:
+        CC: clang-16
+        CXX: clang++-16
+        CCACHE_BASEDIR: /github/workspace
+        CCACHE_DIR: /github/workspace/.ccache
+        CCACHE_SLOPPINESS: file_macro,time_macros
+        CCACHE_NOHASHDIR: true
+      uses: ZedThree/clang-tidy-review@v0.17.0
       with:
-        apt_packages: libfl-dev,flex,bison,clang-16,libc++-16-dev,libc++abi-16-dev
+        apt_packages: libfl-dev,flex,bison,clang-16,libc++-16-dev,libc++abi-16-dev,ccache
         clang_tidy_version: 16
         cmake_command: >
-          cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} &&
-          cmake --build ${{github.workspace}}/build --target dbuf
-        build_dir: ${{github.workspace}}/build
+          cmake -B /github/workspace/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -D CMAKE_C_COMPILER_LAUNCHER=ccache -D CMAKE_CXX_COMPILER_LAUNCHER=ccache &&
+          cmake --build /github/workspace/build --target dbuf &&
+          ccache -s
+        build_dir: /github/workspace/build
         config_file: .clang-tidy
         include: '*.h,*.cc'
 
     - if: steps.review.outputs.total_comments > 0
+      name: Fail if there are requested changes
       run: exit 1
 
   format:
+    name: Format the code using clang-format
     permissions: write-all
     runs-on: ubuntu-latest
     defaults:
