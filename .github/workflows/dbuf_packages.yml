@@ -206,9 +206,9 @@ jobs:
 
       - name: Export digest
         run: |
-          mkdir -p /tmp/digests/${{env.RUNTIME_IMAGE_NAME}}/${{ env.PLATFORM_PAIR }}
+          mkdir -p /tmp/digests/${{env.RUNTIME_IMAGE_NAME}}
           digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${{env.RUNTIME_IMAGE_NAME}}/${{ env.PLATFORM_PAIR }}/${digest#sha256:}"
+          touch "/tmp/digests/${{env.RUNTIME_IMAGE_NAME}}/${digest#sha256:}"
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
