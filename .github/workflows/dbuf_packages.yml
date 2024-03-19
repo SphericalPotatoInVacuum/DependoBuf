@@ -24,7 +24,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository }}/${{ github.event_name == 'pull_request' && 'custom-' || '' }}
+  IMAGE_PREFIX: ${{ github.repository_owner }}/${{ github.event_name == 'pull_request' && 'custom-' || '' }}
   BUILDER_IMAGE_NAME: dbufbuilder
   RUNTIME_IMAGE_NAME: dbuf
   DEV_IMAGE_NAME: dbufdev
