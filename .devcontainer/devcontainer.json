@@ -17,7 +17,6 @@
 				"llvm-vs-code-extensions.vscode-clangd",
 				"ms-azuretools.vscode-docker",
 				"mhutchie.git-graph",
-				"eamodio.gitlens",
 				"GitHub.vscode-pull-request-github"
 			],
 			"settings": {
