@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/docker_images.yml'
+      - '.github/workflows/dbuf_packages.yml'
       - 'Dockerfile.*'
       - 'lib/**'
       - 'src/**'
@@ -15,7 +15,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/docker_images.yml'
+      - '.github/workflows/dbuf_packages.yml'
       - 'Dockerfile.*'
       - 'lib/**'
       - 'src/**'
@@ -25,30 +25,33 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/${{ github.event_name == 'pull_request' && 'custom-' || '' }}
+  BUILDER_IMAGE_NAME: dbufbuilder
+  RUNTIME_IMAGE_NAME: dbuf
+  DEV_IMAGE_NAME: dbufdev
   BUILD_TYPE: Release
-  PLATFORM_PAIR: linux/amd64
+  PLATFORM_PAIR: linux-amd64
 
 jobs:
-  builder:
-    name: Builder image
+  build-builder:
+    name: Build builder images
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
       id-token: write
-    outputs:
-      metadata: ${{ steps.metadata.outputs.json }}
     strategy:
       fail-fast: true
       matrix:
         platform:
           - linux/amd64
           - linux/arm64
+    env:
+      IMAGE_NAME:
 
     steps:
       - name: Prepare
         run: |
-          echo "IMAGE_PREFIX=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$BUILDER_IMAGE_NAME" >> $GITHUB_ENV
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
@@ -74,34 +77,50 @@ jobs:
         id: metadata
         uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
         with:
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value={{date 'YYYYMMDD'}}.{{sha}},enable=${{ github.event_name == 'pull_request' }}
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufbuilder
+          images: ${{env.REGISTRY}}/${{ env.IMAGE_NAME}}
 
-      - name: Build and push Docker image
-        id: build-and-push
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
         with:
           context: .
           file: Dockerfile.builder
-          push: true
+          push: false
           provenance: false
-          tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufbuilder,push=true
-          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
-          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
+          outputs: type=image,name=${{env.REGISTRY}}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=builder-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=builder-${{ env.PLATFORM_PAIR }}
 
-  runtime:
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests/${{env.BUILDER_IMAGE_NAME}}/
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${{env.BUILDER_IMAGE_NAME}}/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{env.BUILDER_IMAGE_NAME}}-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/${{env.BUILDER_IMAGE_NAME}}/*
+          if-no-files-found: error
+          retention-days: 1
+
+  build-runtime:
     name: Runtime image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
       id-token: write
-    needs: builder
+    needs: build-builder
+    env:
+      REF: ${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+      IMAGE_NAME:
+      DATE:
+      SHA:
+      BUILDER_DIGEST:
     strategy:
       fail-fast: true
       matrix:
@@ -110,23 +129,30 @@ jobs:
           - linux/arm64
 
     steps:
-      - name: Prepare
-        run: |
-          echo "IMAGE_PREFIX=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          platform=${{ matrix.platform }}
-          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
-
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Set outputs
-        id: vars
+      - name: Prepare
         run: |
-          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-          echo "ref=${{ github.event_name == 'pull_request' && github.event.number || github.ref }}" >> $GITHUB_OUTPUT
+          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$RUNTIME_IMAGE_NAME" >> $GITHUB_ENV
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          echo "SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+
+      - name: Download image digests
+        uses: actions/download-artifact@v4
+        with:
+          name: digests-${{env.BUILDER_IMAGE_NAME}}-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/${{env.BUILDER_IMAGE_NAME}}
+
+      - name: Get builder image info
+        run: |
+          builder_digest=$(ls /tmp/digests/${{env.BUILDER_IMAGE_NAME}})
+          echo "BUILDER_DIGEST=$builder_digest" >> $GITHUB_ENV
+          echo "BUILDER_IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$BUILDER_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -145,19 +171,16 @@ jobs:
         id: meta
         uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
         with:
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value={{date 'YYYYMMDD'}}.{{sha}},enable=${{ github.event_name == 'pull_request' }}
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbuf
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Cache compilation results
         uses: actions/cache@v4
         with:
           path: ccache
-          key: ccache-build-${{ env.BUILD_TYPE }}-${{ matrix.platform }}-${{ steps.vars.outputs.ref }}-${{ steps.vars.outputs.sha_short }}-${{ steps.vars.outputs.date }}
+          key: ccache-build-${{ env.BUILD_TYPE }}-${{ env.PLATFORM_PAIR }}-${{ env.REF }}-${{ env.SHA }}-${{ env.DATE }}
           restore-keys: |
-            ccache-build-${{ env.BUILD_TYPE }}-${{ matrix.platform }}-${{ steps.vars.outputs.ref }}-
-            ccache-build-${{ env.BUILD_TYPE }}-${{ matrix.platform }}-
+            ccache-build-${{ env.BUILD_TYPE }}-${{ env.PLATFORM_PAIR }}-${{ env.REF }}-
+            ccache-build-${{ env.BUILD_TYPE }}-${{ env.PLATFORM_PAIR }}-
 
       - name: Inject ccache into docker cache
         uses: reproducible-containers/buildkit-cache-dance@v2.1.2
@@ -165,31 +188,50 @@ jobs:
           cache-source: ccache
           cache-target: /dbuf/.ccache
 
-      - name: Build and push Docker image
-        id: build-and-push
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
         with:
           context: .
           build-args: |
-            BASE_IMAGE=${{ fromJson(needs.builder.outputs.metadata).tags[0] }}
+            BASE_IMAGE=${{env.REGISTRY}}/${{ env.BUILDER_IMAGE_NAME }}@sha256:${{ env.BUILDER_DIGEST }}
           file: Dockerfile.runtime
-          push: true
+          push: false
           provenance: false
-          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbuf,push=true
-          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
-          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=runtime-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=runtime-${{ env.PLATFORM_PAIR }}
 
-  dev:
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests/${{env.RUNTIME_IMAGE_NAME}}
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${{env.RUNTIME_IMAGE_NAME}}/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{env.RUNTIME_IMAGE_NAME}}-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/${{env.RUNTIME_IMAGE_NAME}}/*
+          if-no-files-found: error
+          retention-days: 1
+
+  build-dev:
     name: Development image
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
       id-token: write
-    needs: builder
+    needs: build-builder
+    env:
+      REF: ${{ github.event_name == 'pull_request' && github.event.number || github.ref }}
+      IMAGE_NAME:
+      DATE:
+      SHA:
+      BUILDER_DIGEST:
     strategy:
       fail-fast: true
       matrix:
@@ -198,16 +240,28 @@ jobs:
           - linux/arm64
 
     steps:
-      - name: Prepare
-        run: |
-          echo "IMAGE_PREFIX=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          platform=${{ matrix.platform }}
-          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
-
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           submodules: recursive
+
+      - name: Prepare
+        run: |
+          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$DEV_IMAGE_NAME" >> $GITHUB_ENV
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
+      - name: Download image digests
+        uses: actions/download-artifact@v4
+        with:
+          name: digests-${{env.BUILDER_IMAGE_NAME}}-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/${{env.BUILDER_IMAGE_NAME}}
+
+      - name: Get builder image info
+        run: |
+          builder_digest=$(ls /tmp/digests/${{env.BUILDER_IMAGE_NAME}})
+          echo "BUILDER_DIGEST=$builder_digest" >> $GITHUB_ENV
+          echo "BUILDER_IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')$BUILDER_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -226,24 +280,92 @@ jobs:
         id: meta
         uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
         with:
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value={{date 'YYYYMMDD'}}.{{sha}},enable=${{ github.event_name == 'pull_request' }}
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufdev
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      - name: Build and push Docker image
-        id: build-and-push
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
         with:
           context: .
           build-args: |
-            BASE_IMAGE=${{ fromJson(needs.builder.outputs.metadata).tags[0] }}
+            BASE_IMAGE=${{env.REGISTRY}}/${{ env.BUILDER_IMAGE_NAME }}@sha256:${{ env.BUILDER_DIGEST }}
           file: Dockerfile.dev
-          push: true
+          push: false
           provenance: false
-          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}dbufdev,push=true
-          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
-          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=dev-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=dev-${{ env.PLATFORM_PAIR }}
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests/${{env.DEV_IMAGE_NAME}}
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${{env.DEV_IMAGE_NAME}}/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{env.DEV_IMAGE_NAME}}-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/${{env.DEV_IMAGE_NAME}}/*
+          if-no-files-found: error
+          retention-days: 1
+
+  push-images:
+    name: Merge image manifests
+    runs-on: ubuntu-latest
+    needs:
+      - build-builder
+      - build-runtime
+      - build-dev
+    env:
+      IMAGE_NAME:
+    strategy:
+      fail-fast: true
+      matrix:
+        image:
+          - dbuf
+          - dbufbuilder
+          - dbufdev
+
+    steps:
+      - name: Prepare
+        run: |
+          echo "IMAGE_NAME=$(echo $IMAGE_PREFIX | tr '[:upper:]' '[:lower:]')${{matrix.image}}" >> $GITHUB_ENV
+
+      - name: Download image digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests/${{ matrix.image }}
+          pattern: digests-${{ matrix.image }}-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Extract docker metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{date 'YYYYMMDD'}}.{{sha}},enable=${{ github.event_name == 'pull_request' }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests/${{ matrix.image }}
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< '${{ steps.meta.outputs.json }}') \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+
+      - name: Inspect and test new multi-platform image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
