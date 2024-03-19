@@ -15,7 +15,10 @@
 				"twxs.cmake",
 				"ms-vscode.cmake-tools",
 				"llvm-vs-code-extensions.vscode-clangd",
-				"ms-azuretools.vscode-docker"
+				"ms-azuretools.vscode-docker",
+				"mhutchie.git-graph",
+				"eamodio.gitlens",
+				"GitHub.vscode-pull-request-github"
 			],
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "bash",
