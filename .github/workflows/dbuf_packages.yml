@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - '.github/workflows/dbuf_packages.yml'
+      - '.devcontainer/**'
       - 'Dockerfile.*'
       - 'lib/**'
       - 'src/**'
@@ -16,6 +17,7 @@ on:
       - main
     paths:
       - '.github/workflows/dbuf_packages.yml'
+      - '.devcontainer/**'
       - 'Dockerfile.*'
       - 'lib/**'
       - 'src/**'
