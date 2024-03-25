@@ -16,6 +16,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/checker/expression_comparator.h"
 #include "core/checker/type_comparator.h"
 #include "core/interning/interned_string.h"
+#include "core/substitutor/substitutor.h"
 #include "glog/logging.h"
 #include "location.hh"
 #include "z3++.h"
@@ -30,9 +31,9 @@ the Free Software Foundation, either version 3 of the License, or
 
 namespace dbuf::checker {
 
-TypeChecker::TypeChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph)
+TypeChecker::TypeChecker(const ast::AST &ast, std::vector<InternedString> sorted_graph)
     : ast_(ast)
-    , sorted_graph_(sorted_graph) {}
+    , sorted_graph_(std::move(sorted_graph)) {}
 
 ErrorList TypeChecker::CheckTypes() {
   for (const auto &node : sorted_graph_) {
@@ -108,8 +109,8 @@ void TypeChecker::operator()(const ast::Enum &ast_enum) {
   for (const auto &rule : ast_enum.pattern_mapping) {
     DLOG(INFO) << "Checking rule with inputs " << rule.inputs;
     // We need separate scope for each pattern
-    auto scope = Scope(&context_);
-    substitutor_.PushScope();
+    auto scope             = Scope(&context_);
+    auto substitutor_scope = SubstitutorScope(&substitutor_context_);
 
     if (rule.inputs.size() != ast_enum.type_dependencies.size()) {
       errors_.emplace_back(
@@ -126,12 +127,18 @@ void TypeChecker::operator()(const ast::Enum &ast_enum) {
       }
 
       const auto &value = std::get<ast::Value>(rule.inputs[id]);
-      substitutor_.AddSubstitution(ast_enum.type_dependencies[id].name, std::make_shared<const ast::Expression>(value));
+      substitutor_scope.AddSubstitution(
+          ast_enum.type_dependencies[id].name,
+          std::make_shared<const ast::Expression>(value));
 
       // Check that value has expected type in this context
-      auto type_err =
-          TypeComparator(ast_enum.type_dependencies[id].type_expression, ast_, &context_, &substitutor_, &z3_stuff_)
-              .Compare(ast::Expression(value));
+      auto type_err = TypeComparator(
+                          ast_enum.type_dependencies[id].type_expression,
+                          ast_,
+                          &context_,
+                          &substitutor_context_,
+                          &z3_stuff_)
+                          .Compare(ast::Expression(value));
       if (type_err) {
         errors_.emplace_back(*type_err);
         return;
@@ -197,8 +204,6 @@ void TypeChecker::operator()(const ast::Enum &ast_enum) {
       DLOG(INFO) << "Checking constructor: " << constructor.identifier.name;
       CheckFields(constructor);
     }
-
-    substitutor_.PopScope();
   }
 
   // Create a z3 sort for this enum
@@ -270,10 +275,11 @@ void TypeChecker::CheckDependencies(const ast::DependentType &type) {
 void TypeChecker::CheckFields(const ast::TypeWithFields &type) {
   DLOG(INFO) << "Checking fields";
   Scope scope(&context_);
+  SubstitutorScope substitutor_scope(&substitutor_context_);
 
   for (const auto &field : type.fields) {
     DLOG(INFO) << "Checking field: " << field.name << " of type " << field.type_expression;
-    auto after_substitution = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
+    auto after_substitution = std::get<ast::TypeExpression>(substitutor_scope(field.type_expression));
     DLOG(INFO) << "After substitution: " << after_substitution;
     CheckTypeExpression(after_substitution);
     scope.AddName(field.name, after_substitution);
@@ -305,18 +311,18 @@ void TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
   DLOG(INFO) << "Checking parameters";
 
   // Next step is to check parameters
-  substitutor_.PushScope();
+  auto substitutor_scope = SubstitutorScope(&substitutor_context_);
   for (size_t id = 0; id < type.type_dependencies.size(); ++id) {
     DLOG(INFO) << "Comparing argument " << *type_expression.parameters[id] << " against type "
                << type.type_dependencies[id].type_expression;
     // Update type using already known substitutions
     DLOG(INFO) << "Type before substitution: " << type.type_dependencies[id].type_expression;
     ast::TypeExpression substituted_type =
-        std::get<ast::TypeExpression>(substitutor_(type.type_dependencies[id].type_expression));
+        std::get<ast::TypeExpression>(substitutor_scope(type.type_dependencies[id].type_expression));
     DLOG(INFO) << "Type after substitution: " << substituted_type;
 
     // Check that parameter hase exprected type
-    auto type_err = TypeComparator(substituted_type, ast_, &context_, &substitutor_, &z3_stuff_)
+    auto type_err = TypeComparator(substituted_type, ast_, &context_, &substitutor_context_, &z3_stuff_)
                         .Compare(*type_expression.parameters[id]);
     if (type_err) {
       errors_.emplace_back(*type_err);
@@ -324,9 +330,8 @@ void TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
     }
 
     // Now we can update substitutions
-    substitutor_.AddSubstitution(type.type_dependencies[id].name, type_expression.parameters[id]);
+    substitutor_scope.AddSubstitution(type.type_dependencies[id].name, type_expression.parameters[id]);
   }
-  substitutor_.PopScope();
 }
 
 } // namespace dbuf::checker

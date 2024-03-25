@@ -24,10 +24,25 @@ the Free Software Foundation, either version 3 of the License, or
 
 namespace dbuf {
 
-struct Substitutor {
+class SubstitutorScope {
+public:
+  explicit SubstitutorScope(std::deque<SubstitutorScope *> *ctx_ptr)
+      : ctx_(*ctx_ptr) {
+    ctx_.push_back(this);
+    DLOG(INFO) << "Added a scope to substitutor";
+  }
+
+  ~SubstitutorScope() {
+    DCHECK(!ctx_.empty());
+    DCHECK_EQ(ctx_.back(), this);
+    ctx_.pop_back();
+    DLOG(INFO) << "Popped a scope from substitutor";
+  }
+
+  SubstitutorScope(const SubstitutorScope &)            = delete;
+  SubstitutorScope &operator=(const SubstitutorScope &) = delete;
+
   void AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression);
-  void PushScope();
-  void PopScope();
 
   template <typename T>
   ast::Expression operator()(const ast::ScalarValue<T> &value) {
@@ -44,14 +59,11 @@ struct Substitutor {
     DCHECK(value.field_identifiers.empty()) << "Field access on scalar value";
     return substitution;
   }
-  ast::Expression operator()(const ast::VarAccess &value, const ast::Value &substitution) {
-    return std::visit(*this, ast::Expression(value), substitution);
-  }
+  ast::Expression operator()(const ast::VarAccess &value, const ast::Value &substitution);
   template <typename T, typename U>
   ast::Expression operator()(const T &, const U &) {
     throw std::runtime_error("Substitution error");
   }
-
   ast::Expression operator()(const ast::VarAccess &value);
 
   ast::Expression operator()(const ast::ConstructedValue &value);
@@ -61,8 +73,8 @@ struct Substitutor {
   ast::Expression operator()(const ast::TypeExpression &type_expression);
 
 private:
-  using Scope = std::unordered_map<InternedString, std::shared_ptr<const ast::Expression>>;
-  std::deque<Scope> substitute_;
+  std::unordered_map<InternedString, std::shared_ptr<const ast::Expression>> substitute_;
+  std::deque<SubstitutorScope *> &ctx_;
 };
 
 } // namespace dbuf

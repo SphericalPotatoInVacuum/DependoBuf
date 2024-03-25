@@ -26,7 +26,7 @@ namespace dbuf::checker {
 struct Matcher {
   Z3stuff &z3_stuff;
   std::deque<Scope *> &context;
-  Substitutor &substitutor;
+  SubstitutorScope &substitutor_scope;
   const ast::AST &ast;
 
   bool operator()(const ast::Expression &arg, const ast::Enum::Rule::InputPattern &pattern) {
@@ -46,7 +46,7 @@ struct Matcher {
   template <typename T>
   bool operator()(const T &arg, const ast::VarAccess &pattern) {
     DLOG(INFO) << "Matched " << arg << " to VarAccess " << pattern;
-    substitutor.AddSubstitution(pattern.var_identifier.name, std::make_shared<ast::Expression>(arg));
+    substitutor_scope.AddSubstitution(pattern.var_identifier.name, std::make_shared<ast::Expression>(arg));
     return true;
   }
 
@@ -275,18 +275,17 @@ std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val
   DLOG(INFO) << "Matching expression " << expected_ << " against enum " << type_name;
   for (const auto &rule : ast_enum.pattern_mapping) {
     DLOG(INFO) << "Trying input patterns " << rule.inputs;
-    bool matches = true;
-    substitutor_.PushScope();
+    bool matches           = true;
+    auto substitutor_scope = SubstitutorScope(&substitutor_context_);
     for (size_t i = 0; i < rule.inputs.size(); ++i) {
-      if (!Matcher {z3_stuff_, context_, substitutor_, ast_}(*expected_.parameters[i], rule.inputs[i])) {
+      if (!Matcher {z3_stuff_, context_, substitutor_scope, ast_}(*expected_.parameters[i], rule.inputs[i])) {
         matches = false;
         break;
       }
       // If the pattern matches, we need to add the bindings to the substitutor
-      substitutor_.AddSubstitution(ast_enum.type_dependencies[i].name, expected_.parameters[i]);
+      substitutor_scope.AddSubstitution(ast_enum.type_dependencies[i].name, expected_.parameters[i]);
     }
     if (!matches) {
-      substitutor_.PopScope();
       continue;
     }
     for (const auto &constructor : rule.outputs) {
@@ -308,15 +307,15 @@ TypeComparator::CheckConstructedValue(const ast::ConstructedValue &val, const as
   // Check that all fields have the correct types
   for (size_t i = 0; i < constructor.fields.size(); ++i) {
     const auto &field         = constructor.fields[i];
-    const auto &expected_type = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
+    const auto &expected_type = std::get<ast::TypeExpression>((*substitutor_context_.back())(field.type_expression));
     DLOG(INFO) << "Checking that field " << field.name << " has type " << expected_type;
     if (std::holds_alternative<ast::VarAccess>(*val.fields[i].second)) {
       const auto &var_access = std::get<ast::VarAccess>(*val.fields[i].second);
       context_.back()->AddName(var_access.var_identifier.name, expected_type);
       continue;
     }
-    auto field_err =
-        TypeComparator(expected_type, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*val.fields[i].second);
+    auto field_err = TypeComparator(expected_type, ast_, &context_, &substitutor_context_, &z3_stuff_)
+                         .Compare(*val.fields[i].second);
     if (field_err) {
       DLOG(ERROR) << "Field " << field.name << " has incorrect type";
       return field_err;
