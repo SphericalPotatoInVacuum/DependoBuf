@@ -11,3 +11,6 @@
 build
 .ccache/*
 !.ccache/.gitkeep
+
+# z3
+.z3-trace
