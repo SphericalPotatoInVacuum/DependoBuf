@@ -11,12 +11,13 @@ the Free Software Foundation, either version 3 of the License, or
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace dbuf {
 
 class Driver {
 public:
-  static int Run(const std::string &input_file);
+  static int Run(const std::string &input_file, std::vector<const std::string> output_filenames = {});
 };
 
 } // namespace dbuf
