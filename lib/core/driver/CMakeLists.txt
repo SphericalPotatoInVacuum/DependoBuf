@@ -10,4 +10,5 @@ target_link_libraries(driver PUBLIC
   parser
   checker
   substitutor
+  codegen
 )
