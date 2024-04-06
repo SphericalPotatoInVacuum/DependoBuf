@@ -28,18 +28,11 @@ int main(const int argc, const char **argv) {
       return EXIT_FAILURE;
     }
 
-    std::set<const std::string> formats;
-    std::vector<const std::string> filenames;
+    std::vector<std::string> filenames;
     filenames.reserve(argc - 3);
 
     for (int file_no = 3; file_no < argc; ++file_no) {
-      const std::string filename(argv[file_no]);
-      const auto format = filename.substr(filename.find_last_of('.') + 1);
-      if ((format.size() != 0) && (formats.contains(format))) {
-        return EXIT_FAILURE;
-      }
-      formats.insert(format);
-      filenames.emplace_back(filename);
+      filenames.emplace_back(argv[file_no]);
     }
     
     return dbuf::Driver::Run(argv[1], filenames);
