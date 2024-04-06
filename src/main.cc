@@ -34,7 +34,6 @@ int main(const int argc, const char **argv) {
     for (int file_no = 3; file_no < argc; ++file_no) {
       filenames.emplace_back(argv[file_no]);
     }
-    
     return dbuf::Driver::Run(argv[1], filenames);
   }
   return EXIT_FAILURE;
