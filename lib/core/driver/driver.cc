@@ -25,9 +25,17 @@ the Free Software Foundation, either version 3 of the License, or
 
 namespace dbuf {
 
-int Driver::Run(const std::string &input_filename, std::vector<const std::string> output_filenames) {
+int Driver::Run(const std::string &input_filename, std::vector<std::string> output_filenames) {
   std::ifstream in_file(input_filename);
   if (!in_file.good()) {
+    return EXIT_FAILURE;
+  }
+
+  gen::ListGenerators generators;
+  try {
+    generators.Fill(output_filenames);
+  } catch (const char *err) {
+    std::cerr << err << std::endl;
     return EXIT_FAILURE;
   }
 
@@ -48,14 +56,6 @@ int Driver::Run(const std::string &input_filename, std::vector<const std::string
 
   checker::Checker checker;
   if (checker.CheckAll(ast) != EXIT_SUCCESS) {
-    return EXIT_FAILURE;
-  }
-
-  gen::ListGenerators generators;
-  try {
-    generators.Fill(output_filenames);
-  } catch (const char *err) {
-    std::cerr << err << std::endl;
     return EXIT_FAILURE;
   }
 

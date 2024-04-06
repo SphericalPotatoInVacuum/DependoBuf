@@ -8,28 +8,28 @@ namespace dbuf::gen {
 
 class ITargetCodeGenerator {
 public:
-  ITargetCodeGenerator(const std::string &out_filename);
+  explicit ITargetCodeGenerator(const std::string &out_filename);
 
   virtual void Generate(ast::AST *tree) const = 0;
 
 protected:
-  std::ofstream target;
+  std::ofstream output_;
 };
 
 class CppCodeGenerator : public ITargetCodeGenerator {
 public:
-  CppCodeGenerator(const std::string &out_file)
+  explicit CppCodeGenerator(const std::string &out_file)
       : ITargetCodeGenerator(out_file) {}
 
   void Generate(ast::AST *tree) const override;
 };
 class ListGenerators {
 public:
-  void Fill(std::vector<const std::string> &files);
+  void Fill(std::vector<std::string> &files);
 
   void Process(ast::AST *tree) const;
 
 private:
-  std::vector<std::unique_ptr<ITargetCodeGenerator>> targets;
+  std::vector<std::unique_ptr<ITargetCodeGenerator>> targets_;
 };
 } // namespace dbuf::gen
