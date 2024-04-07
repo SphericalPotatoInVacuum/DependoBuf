@@ -17,12 +17,21 @@ floats, strings, and booleans.
 $$
 \begin{align*}
 any &::= \text{any single character except a newline} \\
-string\_literal &::= \texttt{"}any_{\langle\texttt{"}\mid\texttt{\\}\rangle}\texttt{"} \\
+string\_literal &::= \texttt{"}any_{\langle\texttt{"}\texttt{\\}\rangle}\texttt{"} \\
 int\_literal &::= [\texttt{+}\mid\texttt{-}] digit \lbrace digit \rbrace \\
 unsigned\_int\_literal &::= digit \lbrace digit \rbrace \texttt{u} \\
 float\_literal &::= [\texttt{+}\mid\texttt{-}] digit \lbrace digit \rbrace \texttt{.} digit \lbrace digit \rbrace \\
 bool\_literal &::= \texttt{true} \mid \texttt{false} \\
 literal &::= string\_literal \mid int\_literal \mid unsigned\_int\_literal \mid float\_literal \mid bool\_literal
+\end{align*}
+$$
+
+## Array and Set Literals
+
+$$
+\begin{align*}
+array\_literal &::= \texttt{\{} \ \lbrace value \lbrace ~\texttt{,}~ value \rbrace \rbrace \ \texttt{\}} \\
+set\_literal &::= \texttt{\{} \ \lbrace value \lbrace ~\texttt{,}~ value \rbrace \rbrace \ \texttt{\}} \\
 \end{align*}
 $$
 
@@ -34,7 +43,7 @@ Field initialization must initialize all fields of the type in the order they
 are declared.
 
 Notice that here we use the $expression$ production. It will be defined in the
-[next chapter](../../expressions).
+[next chapter](../expressions.md).
 
 $$
 \begin{align*}

@@ -13,7 +13,7 @@ $$
 \begin{align*}
   expression ::=&
   \ expression
-  \left(\ \texttt{+} \mid \texttt{-} \mid \texttt{*} \mid \texttt{/} \mid \texttt{&} \mid \texttt{|}\ \right)
+  \left(\ \texttt{+} \mid \texttt{-} \mid \texttt{*} \mid \texttt{/} \mid \texttt{\&} \mid \texttt{|}\ \right)
   expression \\
   \mid&\ \texttt{-} expression  \\
   \mid&\ \texttt{!} expression  \\
@@ -34,9 +34,9 @@ operators in order of decreasing precedence:
 | `*`      | Multiplication      |
 | `/`      | Division            |
 | `&`      | Logical AND         |
+| `\|`     | Logical OR          |
 | `+`      | Addition            |
 | `-`      | Subtraction         |
-| `        | `                   | Logical OR |
 
 ### Primary expressions
 

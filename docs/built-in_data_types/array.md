@@ -46,9 +46,7 @@ enum D (array Array Int 3) {
 ```
  Operator | Description         |
 |----------|---------------------|
-| `+`      | array1 $\sqcup$ array2 |
-| `-`      | {kx \| kx = kixi-kjxj, if (ki>kj); else 0} |
-|          | xi - elem, ki - number of xi in arrayi |
+| `&`      | array1 $\sqcup$ array2 |
 
 
 ```
@@ -57,10 +55,10 @@ message T {
   array2 Array Int 2;
 }
 
-message K (array Array) {
+message K (array Array Int 3) {
 }
 
 message P (t T) {
-  k K (t.array1 + t.array2);
+  k K (t.array1 & t.array2);
 }
 ```
