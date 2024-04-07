@@ -22,9 +22,9 @@ $$
 \begin{align*}
 lc\_identifier &::= lc\_letter \lbrace ident\_char \rbrace \\
 uc\_identifier &::= uc\_letter \lbrace ident\_char \rbrace \\
-type\_identifier &::= uc\_identifier
-constructor\_identifier &::= uc\_identifier
-var\_identifier &::= lc\_identifier
+type\_identifier &::= uc\_identifier \\
+constructor\_identifier &::= uc\_identifier \\
+var\_identifier &::= lc\_identifier \\
 \end{align*}
 $$
 

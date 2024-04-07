@@ -1,31 +1,66 @@
 # Array
 
-...
-
 $$
 \begin{align*}
-  type\_dependency ::=&\ \texttt{(}\ typed\_variable \texttt{)}\\
   size\_variable ::=&\ unsigned\_int\_literal \\
-  array\_definition ::=&\ \texttt{array}\ type\_identifier \ <type\_expr, \ size\_variable>
+  array ::=&\ \texttt{Array}\ type\_identifier \ size\_variable \\
 \end{align*}
 $$
 
 ```
-message Num {
-    x Int;
+message A (x Unsigned) {
+  array Array Int x;
 }
 
-array List <Num, 2>
-```
-
-```
-message Foo {
-  l List;
+message B (a A 4) {
 }
 
-message Bar (foo Foo) {}
-
-message Tar (bar Bar Foo{l: List Num{x: 5} Num{x: 4}}) {}
+message C (b B A{array = {1, 2, 3, 4}}) {
+}
 ```
 
+$$
+\begin{align*}
+  array\_access ::=&\ var\_identifier \texttt{[} unsigned\_int\_literal \texttt{]}
+\end{align*}
+$$
 
+```
+message Number (x Int) {
+}
+
+enum D (array Array Int 3) {
+  {1, 1, 1} => {
+    Constuctor1 {
+      num Number array[0];
+    }
+  }
+  * => {
+    Constuctor1 {
+      num1 Number array[0];
+      num2 Number array[1];
+      num3 Number array[2];
+    }
+  }
+}
+```
+ Operator | Description         |
+|----------|---------------------|
+| `+`      | array1 $\sqcup$ array2 |
+| `-`      | {kx \| kx = kixi-kjxj, if (ki>kj); else 0} |
+|          | xi - elem, ki - number of xi in arrayi |
+
+
+```
+message T {
+  array1 Array Int 1;
+  array2 Array Int 2;
+}
+
+message K (array Array) {
+}
+
+message P (t T) {
+  k K (t.array1 + t.array2);
+}
+```
