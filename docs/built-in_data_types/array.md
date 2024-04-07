@@ -1,12 +1,5 @@
 # Array
 
-$$
-\begin{align*}
-  size\_variable ::=&\ unsigned\_int\_literal \\
-  array ::=&\ \texttt{Array}\ type\_identifier \ size\_variable \\
-\end{align*}
-$$
-
 ```
 message A (x Unsigned) {
   array Array Int x;
@@ -46,7 +39,7 @@ enum D (array Array Int 3) {
 ```
  Operator | Description         |
 |----------|---------------------|
-| `&`      | array1 $\sqcup$ array2 |
+| `\|`      | concatenation of two arrays |
 
 
 ```

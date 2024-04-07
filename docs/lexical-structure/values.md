@@ -26,12 +26,11 @@ literal &::= string\_literal \mid int\_literal \mid unsigned\_int\_literal \mid 
 \end{align*}
 $$
 
-## Array and Set Literals
+## Collection Literal
 
 $$
 \begin{align*}
-array\_literal &::= \texttt{\{} \ \lbrace value \lbrace ~\texttt{,}~ value \rbrace \rbrace \ \texttt{\}} \\
-set\_literal &::= \texttt{\{} \ \lbrace value \lbrace ~\texttt{,}~ value \rbrace \rbrace \ \texttt{\}} \\
+collection\_literal &::= \texttt{\{} \ \lbrace value \lbrace ~\texttt{,}~ value \rbrace \rbrace \ \texttt{\}} \\
 \end{align*}
 $$
 

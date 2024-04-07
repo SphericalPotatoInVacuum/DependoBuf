@@ -1,11 +1,5 @@
 # Set
 
-$$
-\begin{align*}
-  set ::=&\ \texttt{Set}\ type\_identifier
-\end{align*}
-$$
-
 ```
 message A () {
   set Set Int;
