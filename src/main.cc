@@ -22,9 +22,9 @@ int main(const int argc, const char **argv) {
   google::InstallFailureSignalHandler();
   google::InitGoogleLogging(argv[0]);
   
-  CLI::App app{"DependoBuf, type-safe serailization protocol"};
+  CLI::App app {"DependoBuf, type-safe serailization protocol"};
 
-  std::string dbuf_file = "none", dir_path = "none";
+  std::string dbuf_file, dir_path;
   std::vector<std::string> formats;
   app.add_option("-f,--file", dbuf_file, "dbuf file name")->required();
   app.add_option("-p,--path", dir_path, "path to generated files")->required();
