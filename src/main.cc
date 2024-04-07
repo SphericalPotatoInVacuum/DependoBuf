@@ -15,26 +15,21 @@ the Free Software Foundation, either version 3 of the License, or
 #include <cstring>
 #include <iostream>
 #include <set>
+#include <unistd.h>
+#include <CLI11.hpp>
 
 int main(const int argc, const char **argv) {
   google::InstallFailureSignalHandler();
   google::InitGoogleLogging(argv[0]);
-  if (argc == 2) {
-    return dbuf::Driver::Run(argv[1]);
-  }
+  
+  CLI::App app{"DependoBuf, type-safe serailization protocol"};
 
-  if (argc >= 4) {
-    if (std::strcmp(argv[2], "-o") != 0) {
-      return EXIT_FAILURE;
-    }
+  std::string dbuf_file = "none", dir_path = "none";
+  std::vector<std::string> formats;
+  app.add_option("-f,--file", dbuf_file, "dbuf file name")->required();
+  app.add_option("-p,--path", dir_path, "path to generated files")->required();
+  app.add_option("-o", formats, "required formats for generation")->required();
 
-    std::vector<std::string> filenames;
-    filenames.reserve(argc - 3);
-
-    for (int file_no = 3; file_no < argc; ++file_no) {
-      filenames.emplace_back(argv[file_no]);
-    }
-    return dbuf::Driver::Run(argv[1], filenames);
-  }
-  return EXIT_FAILURE;
+  CLI11_PARSE(app, argc, argv);
+  return dbuf::Driver::Run(dbuf_file, dir_path, formats);
 }

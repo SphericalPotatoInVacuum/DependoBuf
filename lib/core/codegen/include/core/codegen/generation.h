@@ -25,7 +25,7 @@ public:
 };
 class ListGenerators {
 public:
-  void Fill(std::vector<std::string> &files);
+  void Fill(std::vector<std::string> &formats, const std::string &path, const std::string &filename);
 
   void Process(ast::AST *tree) const;
 

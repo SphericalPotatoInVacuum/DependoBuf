@@ -17,7 +17,7 @@ namespace dbuf {
 
 class Driver {
 public:
-  static int Run(const std::string &input_file, std::vector<std::string> output_filenames = {});
+  static int Run(const std::string &input_filename, const std::string &path, std::vector<std::string> &output_formats);
 };
 
 } // namespace dbuf

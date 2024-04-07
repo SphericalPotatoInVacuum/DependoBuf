@@ -25,15 +25,19 @@ the Free Software Foundation, either version 3 of the License, or
 
 namespace dbuf {
 
-int Driver::Run(const std::string &input_filename, std::vector<std::string> output_filenames) {
+int Driver::Run(const std::string &input_filename, const std::string &path, std::vector<std::string> &output_formats) {
   std::ifstream in_file(input_filename);
   if (!in_file.good()) {
     return EXIT_FAILURE;
   }
+  const std::string filename = input_filename.substr(0, input_filename.find_last_of('.'));
 
   gen::ListGenerators generators;
   try {
-    generators.Fill(output_filenames);
+    generators.Fill(output_formats, path, filename);
+  } catch (std::string &err) {
+    std::cerr << err << std::endl;
+    return EXIT_FAILURE;
   } catch (const char *err) {
     std::cerr << err << std::endl;
     return EXIT_FAILURE;

@@ -42,7 +42,9 @@ protected:
 dbuf::Driver *CompileTest::driver_ = nullptr;
 
 TEST_P(CompileTest, WorksForCorrectSyntax) {
-  ASSERT_EQ(driver_->Run(GetParam().path().string()), 0) << "Parsing failed with exception";
+  std::vector<std::string> formats;
+  const std::string path = ".";
+  ASSERT_EQ(driver_->Run(GetParam().path().string(), path, formats), 0) << "Parsing failed with exception";
 }
 
 INSTANTIATE_TEST_SUITE_P(
