@@ -11,20 +11,21 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/driver/driver.h"
 #include "glog/logging.h"
 
+#include <CLI11.hpp>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <set>
 #include <unistd.h>
-#include <CLI11.hpp>
 
 int main(const int argc, const char **argv) {
   google::InstallFailureSignalHandler();
   google::InitGoogleLogging(argv[0]);
-  
+
   CLI::App app {"DependoBuf, type-safe serailization protocol"};
 
-  std::string dbuf_file, dir_path;
+  std::string dbuf_file;
+  std::string dir_path;
   std::vector<std::string> formats;
   app.add_option("-f,--file", dbuf_file, "dbuf file name")->required();
   app.add_option("-p,--path", dir_path, "path to generated files")->required();
