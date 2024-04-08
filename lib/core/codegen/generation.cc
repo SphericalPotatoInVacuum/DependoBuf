@@ -5,9 +5,9 @@
 
 namespace dbuf::gen {
 ITargetCodeGenerator::ITargetCodeGenerator(const std::string &out_filename) {
-  output_.open(out_filename, std::ios::out | std::ios::trunc);
-  if (!output_.good()) {
-    throw "Cannot create file in the given path";
+  output_.open(out_filename, std::ios::trunc);
+  if (!output_.is_open()) {
+    throw "Cannot open file in the given path";
   }
 }
 

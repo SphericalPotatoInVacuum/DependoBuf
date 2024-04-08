@@ -30,7 +30,10 @@ int Driver::Run(const std::string &input_filename, const std::string &path, std:
   if (!in_file.good()) {
     return EXIT_FAILURE;
   }
-  const std::string filename = input_filename.substr(0, input_filename.find_last_of('.'));
+  auto name_start            = input_filename.find_last_of('/');
+  auto name_end              = input_filename.find_last_of('.');
+  name_start                 = (name_start == std::string::npos) ? -1 : name_start;
+  const std::string filename = input_filename.substr(name_start + 1, name_end - name_start - 1);
 
   gen::ListGenerators generators;
   try {
