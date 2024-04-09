@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <set>
+#include <sstream>
 
 namespace dbuf::gen {
 ITargetCodeGenerator::ITargetCodeGenerator(const std::string &out_filename) {
@@ -22,9 +23,9 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
   for (std::string &format : formats) {
     if ((format == "cpp") || (format == "c++")) {
       if (!added_formats.contains("cpp")) {
-        std::string full_path = path + "/";
-        full_path += filename + ".h";
-        targets_.emplace_back(std::make_unique<CppCodeGenerator>(std::move(CppCodeGenerator(full_path))));
+        std::stringstream full_path;
+        full_path << path << "/" << filename << ".h";
+        targets_.emplace_back(std::make_unique<CppCodeGenerator>(std::move(CppCodeGenerator(full_path.str()))));
         added_formats.insert("cpp");
       } else {
         throw "You can add only one c++ file";
