@@ -14,7 +14,7 @@ message C (b B A{array = {1, 2, 3, 4}}) {
 
 $$
 \begin{align*}
-  array\_access ::=&\ var\_identifier \texttt{[} unsigned\_int\_literal \texttt{]}
+  array\_access ::=&\ var\_identifier \texttt{[} expression \texttt{]}
 \end{align*}
 $$
 
@@ -37,9 +37,9 @@ enum D (array Array Int 3) {
   }
 }
 ```
- Operator | Description         |
-|----------|---------------------|
-| `\|`      | concatenation of two arrays |
+| Operator | Description                 |
+|----------|-----------------------------|
+| `\|\|`   | concatenation of two arrays |
 
 
 ```
@@ -52,6 +52,6 @@ message K (array Array Int 3) {
 }
 
 message P (t T) {
-  k K (t.array1 & t.array2);
+  k K (t.array1 || t.array2);
 }
 ```

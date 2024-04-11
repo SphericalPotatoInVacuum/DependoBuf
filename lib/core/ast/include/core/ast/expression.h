@@ -19,7 +19,13 @@ the Free Software Foundation, either version 3 of the License, or
 #include <utility>
 #include <variant>
 #include <vector>
+
 namespace dbuf::ast {
+
+struct Expression;
+std::ostream &operator<<(std::ostream &os, const Expression &expr);
+
+using ExprPtr = std::shared_ptr<const Expression>;
 
 struct NamedType {
   InternedString name;
@@ -46,19 +52,18 @@ template <typename T>
 struct ScalarValue : ASTNode { // NOLINT(bugprone-exception-escape)
   T value = {};
 };
+
 template <typename T>
 std::ostream &operator<<(std::ostream &os, const ScalarValue<T> &val) {
   os << val.value;
   return os;
 }
+
 template <>
 inline std::ostream &operator<<(std::ostream &os, const ScalarValue<std::string> &val) {
   os << "\"" << val.value << "\"";
   return os;
 }
-
-struct Expression;
-std::ostream &operator<<(std::ostream &os, const Expression &expr);
 
 /**
  * @brief Represents variable access expressions,
@@ -69,6 +74,7 @@ struct VarAccess {
   Identifier var_identifier;
   std::vector<Identifier> field_identifiers = {};
 };
+
 inline std::ostream &operator<<(std::ostream &os, const VarAccess &var) {
   os << var.var_identifier.name;
   for (const auto &field_identifier : var.field_identifiers) {
@@ -78,13 +84,29 @@ inline std::ostream &operator<<(std::ostream &os, const VarAccess &var) {
 }
 
 /**
+ * @brief Represents array access expressions,
+ * like `array[0]`
+ *
+ */
+struct ArrayAccess {
+  Identifier var_identifier;
+  ExprPtr ind;
+};
+
+inline std::ostream &operator<<(std::ostream &os, const ArrayAccess &var) {
+  os << var.var_identifier.name << "[" << *var.ind << "]";
+  return os;
+}
+
+/**
  * @brief Represents a type expression, like `Vec Int 5`
  *
  */
 struct TypeExpression : ASTNode {
   Identifier identifier;
-  std::vector<std::shared_ptr<const Expression>> parameters = {};
+  std::vector<ExprPtr> parameters = {};
 };
+
 inline std::ostream &operator<<(std::ostream &os, const TypeExpression &expr) {
   os << expr.identifier.name;
   for (const auto &param : expr.parameters) {
@@ -98,6 +120,7 @@ inline std::ostream &operator<<(std::ostream &os, const TypeExpression &expr) {
  *
  */
 struct Star : ASTNode {};
+
 inline std::ostream &operator<<(std::ostream &os, const Star & /*star*/) {
   os << "*";
   return os;
@@ -107,7 +130,7 @@ inline std::ostream &operator<<(std::ostream &os, const Star & /*star*/) {
  * @brief Represents a binary expression operator
  *
  */
-enum struct BinaryExpressionType { Plus = '+', Minus = '-', Star = '*', Slash = '/', And = '&', Or = '|' };
+enum struct BinaryExpressionType { Plus = '+', Minus = '-', Star = '*', Slash = '/', And = '&', Or = '|', DoubleAnd, DoubleOr, BackSlash, In};
 
 /**
  * @brief Represents a binary expression, like `1 + 2`
@@ -115,9 +138,10 @@ enum struct BinaryExpressionType { Plus = '+', Minus = '-', Star = '*', Slash = 
  */
 struct BinaryExpression : ASTNode {
   BinaryExpressionType type;
-  std::shared_ptr<const Expression> left;
-  std::shared_ptr<const Expression> right;
+  ExprPtr left;
+  ExprPtr right;
 };
+
 inline std::ostream &operator<<(std::ostream &os, const BinaryExpression &expr) {
   os << "(" << *expr.left << " " << static_cast<char>(expr.type) << " " << *expr.right << ")";
   return os;
@@ -135,8 +159,9 @@ enum struct UnaryExpressionType { Minus = '-', Bang = '!' };
  */
 struct UnaryExpression : ASTNode {
   UnaryExpressionType type;
-  std::shared_ptr<const Expression> expression;
+  ExprPtr expression;
 };
+
 inline std::ostream &operator<<(std::ostream &os, const UnaryExpression &expr) {
   os << static_cast<char>(expr.type) << *expr.expression;
   return os;
@@ -148,8 +173,9 @@ inline std::ostream &operator<<(std::ostream &os, const UnaryExpression &expr) {
  */
 struct ConstructedValue : ASTNode {
   Identifier constructor_identifier;
-  std::vector<std::pair<Identifier, std::shared_ptr<const Expression>>> fields = {};
+  std::vector<std::pair<Identifier, ExprPtr>> fields = {};
 };
+
 inline std::ostream &operator<<(std::ostream &os, const ConstructedValue &val) {
   os << val.constructor_identifier.name << "{";
   bool first = true;
@@ -166,7 +192,29 @@ inline std::ostream &operator<<(std::ostream &os, const ConstructedValue &val) {
 }
 
 /**
- * @brief Represents a value, which can be a scalar value or a constructed value
+ * @brief Represents a constructed value, like `{1, 2, 3, 4}`
+ *
+ */
+struct CollectionValue : ASTNode {
+  std::vector<ExprPtr> values;
+};
+
+inline std::ostream &operator<<(std::ostream &os, const CollectionValue &col_val) {
+  bool first = true;
+  for (const auto &val : col_val.values) {
+    if (first) {
+      first = false;
+    } else {
+      os << ", ";
+    }
+    os << *val;
+  }
+  os << "}";
+  return os;
+}
+
+/**
+ * @brief Represents a value, which can be a scalar value, a constructed value or collection value
  *
  */
 using Value = std::variant<
@@ -175,7 +223,8 @@ using Value = std::variant<
     ScalarValue<int64_t>,
     ScalarValue<uint64_t>,
     ScalarValue<std::string>,
-    ConstructedValue>;
+    ConstructedValue,
+    CollectionValue>;
 inline std::ostream &operator<<(std::ostream &os, const Value &val) {
   std::visit([&os](const auto &val) { os << val; }, val);
   return os;
@@ -186,8 +235,8 @@ inline std::ostream &operator<<(std::ostream &os, const Value &val) {
  * a value or a variable access
  *
  */
-struct Expression : std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess> {
-  using Base = std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess>;
+struct Expression : std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess, ArrayAccess> {
+  using Base = std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess, ArrayAccess>;
   using Base::Base;
 };
 

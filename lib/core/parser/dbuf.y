@@ -96,12 +96,18 @@ namespace dbuf::parser {
   AND "&"
   OR "|"
   BANG "!"
+  DOUBLE_AND "&&"
+  DOUBLE_OR "||"
+  BACK_SLASH "\"
+  IN "in"
 ;
 %token
   LEFT_PAREN "("
   RIGHT_PAREN ")"
   LEFT_BRACE "{"
   RIGHT_BRACE "}"
+  LEFT_SQUARE "["
+  RIGHT_SQUARE "]"
 ;
 %token
   COMMA ","
@@ -113,6 +119,10 @@ namespace dbuf::parser {
 %token <uint64_t> UINT_LITERAL
 %token <std::string> STRING_LITERAL
 
+%precedence "in"
+%left "||"
+%left "&&"
+%left "\"
 %left "|" "-" "+"
 %left "&" "*" "/"
 %precedence "!"
@@ -323,6 +333,38 @@ expression
       std::move($3)
     });
   }
+  | expression DOUBLE_AND expression {
+    $$ = std::make_shared< const ast::Expression>(ast::BinaryExpression{
+      {location(@$)},
+      ast::BinaryExpressionType::DoubleAnd,
+      std::move($1),
+      std::move($3)
+    });
+  }
+  | expression DOUBLE_OR expression {
+    $$ = std::make_shared< const ast::Expression>(ast::BinaryExpression{
+      {location(@$)},
+      ast::BinaryExpressionType::DoubleOr,
+      std::move($1),
+      std::move($3)
+    });
+  }
+  | expression BACK_SLASH expression {
+    $$ = std::make_shared< const ast::Expression>(ast::BinaryExpression{
+      {location(@$)},
+      ast::BinaryExpressionType::BackSlash,
+      std::move($1),
+      std::move($3)
+    });
+  }
+  | expression IN expression {
+    $$ = std::make_shared< const ast::Expression>(ast::BinaryExpression{
+      {location(@$)},
+      ast::BinaryExpressionType::In,
+      std::move($1),
+      std::move($3)
+    });
+  }
   | MINUS expression {
     $$ = std::make_shared<const ast::Expression>(ast::UnaryExpression{
       {location(@$)},
@@ -353,6 +395,9 @@ primary
   | var_access {
     $$ = std::make_shared<const ast::Expression>(std::move($1));
   }
+  | array_access {
+    $$ = std::make_shared<const ast::Expression>(std::move($1));
+  }
   | "(" expression ")" {
     $$ = std::move($2);
   }
@@ -369,6 +414,12 @@ var_access
   }
   ;
 
+  %nterm <ast::ArrayAccess> array_access;
+  array_access
+  : var_identifier "[" expression "]" {
+    $$ = ast::ArrayAccess{$1, ast::ScalarValue<uint64_t>{{@3}, $3}}
+  }
+
 %nterm <ast::Value> value;
 value
   : bool_literal { $$ = std::move($1); }
@@ -377,6 +428,7 @@ value
   | uint_literal { $$ = std::move($1); }
   | string_literal { $$ = std::move($1); }
   | constructed_value { $$ = std::move($1); }
+  | collection_value { $$ = std::move($1); }
   ;
 
 %nterm <ast::Value> bool_literal;
@@ -396,6 +448,21 @@ uint_literal : UINT_LITERAL { $$ = ast::Value(ast::ScalarValue<uint64_t>{{@1}, $
 
 %nterm <ast::Value> string_literal;
 string_literal : STRING_LITERAL { $$ = ast::Value(ast::ScalarValue<std::string>{{@1}, $1}); };
+
+%nterm <ast::Value> collection_value;
+collection_value
+  : "{" collection_elements "}" {
+    $$ = ast::ConstructedValue{{@$}, std::move($2)};
+  }
+
+%nterm <std::vector<ExprPtr>> collection_elements;
+collection_elements 
+  : %empty {
+    $$ = std::vector<ExprPtr>();
+  } 
+  | collection_elements "," expression {
+  $$.emplace_back(std::move($3))
+  };
 
 %nterm <ast::Value> constructed_value;
 constructed_value

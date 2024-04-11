@@ -13,10 +13,11 @@ $$
 \begin{align*}
   expression ::=&
   \ expression
-  \left(\ \texttt{+} \mid \texttt{-} \mid \texttt{*} \mid \texttt{/} \mid \texttt{\&} \mid \texttt{|}\ \right)
+  \left(\ \texttt{+} \mid \texttt{-} \mid \texttt{*} \mid \texttt{/} \mid \texttt{\&} \mid \texttt{|} \mid \texttt{\&\&} \mid \texttt{||} \mid \texttt{\textbackslash} \mid \texttt{in} \right)
   expression \\
   \mid&\ \texttt{-} expression  \\
   \mid&\ \texttt{!} expression  \\
+  \mid&\ type\_expr \\
   \mid&\ primary
 \end{align*}
 $$
@@ -38,15 +39,19 @@ operators in order of decreasing precedence:
 | `+`      | Addition            |
 | `-`      | Subtraction         |
 
+In addition, there are operators `&&` `||` `\` `in` that are used in conjunction with two Arrays or Sets. They are defined in the [array.md](../collection_types/array.md) and [set.md](../collection_types/set.md)
+
 ### Primary expressions
 
 Primary is like an atomic expression. It can be a value, a variable (with
 optional field access), or a parenthesized expression.
 
+Notice that here we use $array\_access$. It is defined in the [array.md](collection_types/array.md).
+
 $$
 \begin{align*}
   var\_access ::=&\ var\_identifier \lbrace \ \texttt{.}\ var\_identifier \rbrace \\
-  primary ::=&\ value \mid var\_access
+  primary ::=&\ value \mid var\_access \mid array\_access
   \mid \texttt{(} expression \texttt{)}
 \end{align*}
 $$

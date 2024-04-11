@@ -80,12 +80,18 @@ string_literal \"(\\.|[^\\"])*\"
 "&" return token::TOK_AND;
 "|" return token::TOK_OR;
 "!"  return token::TOK_BANG;
+"&&"  return token::TOK_DOUBLE_AND;
+"||"  return token::TOK_DOUBLE_OR;
+"\"  return token::TOK_BACK_SLASH;
+"in"  return token::TOK_IN;
 
     /* Single-character tokens */
 "("  return token::TOK_LEFT_PAREN;
 ")"  return token::TOK_RIGHT_PAREN;
 "{"  return token::TOK_LEFT_BRACE;
 "}"  return token::TOK_RIGHT_BRACE;
+"["  return token::TOK_LEFT_SQUARE;
+"]"  return token::TOK_RIGHT_SQUARE;
 ","  return token::TOK_COMMA;
 "."  return token::TOK_DOT;
 "-"  return token::TOK_MINUS;

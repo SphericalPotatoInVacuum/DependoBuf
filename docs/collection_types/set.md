@@ -12,12 +12,12 @@ message C (b B A{set = {1, 2, 3, 4}}) {
 }
 ```
 
- Operator | Description         |
-|----------|---------------------|
-| `in`      | checks if element x is in Set |
-| `\|`      | set1 $\cup$ set2 |
-| `&`      | set1 $\cap$ set2 |
-| `\`      | set1 \ set2 |
+| Operator  | Description                  |
+|----------|-------------------------------|
+| `&&`     | set1 $\cap$ set2              |
+| `\|\|`   | set1 $\cup$ set2              |
+| `\`      | set1 \ set2                   |
+| `in`     | checks if element x is in Set |
 
 ```
 message C (b Bool) {
@@ -38,6 +38,6 @@ message K (set Set Int) {
 }
 
 message P (t T) {
-  k K (t.array1 & t.array2);
+  k K (t.array1 && t.array2);
 }
 ```
