@@ -15,7 +15,9 @@ ITargetCodeGenerator::ITargetCodeGenerator(const std::string &out_file) {
 
 void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &path, const std::string &filename) {
   if (!std::filesystem::is_directory(path)) {
-    throw "Incorrect path: " + path;
+    std::stringstream err;
+    err << "Incorrect path: " << path;
+    throw err.str().c_str();
   }
 
   std::set<std::string> added_formats;
@@ -32,7 +34,9 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
         throw "You can add only one c++ file";
       }
     } else {
-      throw "Unsupported foramt: " + format;
+      std::stringstream err;
+      err << "Unsupported foramt: " << format;
+      throw err.str().c_str();
     }
   }
 }

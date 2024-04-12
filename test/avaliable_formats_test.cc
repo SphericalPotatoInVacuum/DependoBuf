@@ -1,4 +1,4 @@
-#include "core/driver/driver.h"
+#include "core/codegen/generation.h"
 
 #include <exception>
 #include <filesystem>
@@ -10,7 +10,7 @@
 using ParamTuple = std::tuple<bool, std::vector<std::string>>;
 
 const std::string kDirPath  = "./generated_files";
-const std::string kFilePath = "../../test/code_samples/empty.dbuf";
+const std::string kFileName = "test";
 
 class AvaliableFormatsTest : public ::testing::TestWithParam<ParamTuple> {
 protected:
@@ -20,28 +20,32 @@ protected:
 
   void SetUp() override {
     std::filesystem::create_directory(kDirPath);
-    driver_ = new dbuf::Driver();
+    gens_ = new dbuf::gen::ListGenerators;
   }
 
   void TearDown() override {
     std::filesystem::remove_all(kDirPath);
-    delete driver_;
-    driver_ = nullptr;
+    delete gens_;
+    gens_ = nullptr;
   }
 
-  static dbuf::Driver *driver_;
+  static dbuf::gen::ListGenerators *gens_;
 };
 
-dbuf::Driver *AvaliableFormatsTest::driver_ = nullptr;
+dbuf::gen::ListGenerators *AvaliableFormatsTest::gens_ = nullptr;
 
 TEST_P(AvaliableFormatsTest, CorrectnessInputFormats) {
-  bool expected                    = std::get<0>(GetParam());
+  bool expect_throw                = std::get<0>(GetParam());
   std::vector<std::string> formats = std::get<1>(GetParam());
-  ASSERT_EQ(driver_->Run(kFilePath, kDirPath, formats), expected);
+  if (expect_throw) {
+    ASSERT_THROW(gens_->Fill(formats, kDirPath, kFileName), const char *);
+  } else {
+    ASSERT_NO_THROW(gens_->Fill(formats, kDirPath, kFileName));
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    DriverInput,
+    ListGeneratorsFill,
     AvaliableFormatsTest,
     ::testing::Values(
         std::make_tuple(EXIT_FAILURE, std::vector<std::string> {"cpp", "c++", "py"}),
