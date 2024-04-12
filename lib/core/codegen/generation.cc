@@ -1,6 +1,6 @@
 #include "core/codegen/generation.h"
 
-#include <algorithm>
+#include <format>
 #include <filesystem>
 #include <set>
 #include <sstream>
@@ -9,15 +9,13 @@ namespace dbuf::gen {
 ITargetCodeGenerator::ITargetCodeGenerator(const std::string &out_file) {
   output_ = std::make_shared<std::ofstream>(std::ofstream(out_file));
   if (!output_->is_open()) {
-    throw "Cannot open file in the given path";
+    throw std::string("Cannot open file in the given path");
   }
 }
 
 void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &path, const std::string &filename) {
   if (!std::filesystem::is_directory(path)) {
-    std::stringstream err;
-    err << "Incorrect path: " << path;
-    throw err.str().c_str();
+    throw "Incorrect path: {}" + path;
   }
 
   std::set<std::string> added_formats;
@@ -31,12 +29,10 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
         targets_.emplace_back(std::make_shared<CppCodeGenerator>(CppCodeGenerator(full_path.str())));
         added_formats.insert("cpp");
       } else {
-        throw "You can add only one c++ file";
+        throw std::string("You can add only one c++ file");
       }
     } else {
-      std::stringstream err;
-      err << "Unsupported foramt: " << format;
-      throw err.str().c_str();
+      throw "Unsupported foramt: {}" + format;
     }
   }
 }

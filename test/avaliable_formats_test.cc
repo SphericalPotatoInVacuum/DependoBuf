@@ -38,7 +38,7 @@ TEST_P(AvaliableFormatsTest, CorrectnessInputFormats) {
   bool expect_throw                = std::get<0>(GetParam());
   std::vector<std::string> formats = std::get<1>(GetParam());
   if (expect_throw) {
-    ASSERT_THROW(gens_->Fill(formats, kDirPath, kFileName), const char *);
+    ASSERT_THROW(gens_->Fill(formats, kDirPath, kFileName), std::string);
   } else {
     ASSERT_NO_THROW(gens_->Fill(formats, kDirPath, kFileName));
   }
