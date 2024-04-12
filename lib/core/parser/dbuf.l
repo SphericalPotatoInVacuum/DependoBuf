@@ -77,8 +77,8 @@ string_literal \"(\\.|[^\\"])*\"
 }
 
     /* Collection constructors */
-"Array" return token::TOK_ARRAY
-"Set" return token::TOK_SET
+"Array" return token::TOK_ARRAY;
+"Set" return token::TOK_SET;
 
     /* One or two character tokens */
 "&" return token::TOK_AND;

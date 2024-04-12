@@ -422,7 +422,7 @@ var_access
 %nterm <ast::ArrayAccess> array_access;
 array_access
   : var_identifier "[" expression "]" {
-    $$ = ast::ArrayAccess{$1, ast::ScalarValue<uint64_t>{{@3}, $3}};
+    $$ = ast::ArrayAccess{$1, std::move($3)};
   }
   ;
 
