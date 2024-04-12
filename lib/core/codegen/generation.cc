@@ -1,6 +1,5 @@
 #include "core/codegen/generation.h"
 
-#include <format>
 #include <filesystem>
 #include <set>
 #include <sstream>
