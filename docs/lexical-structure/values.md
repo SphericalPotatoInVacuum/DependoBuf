@@ -49,7 +49,7 @@ Collection values are used to represent values of Arrays and Sets. They are crea
 
 $$
 \begin{align*}
-collection\_value &::= \texttt{\{} \ collection\_elements \ \texttt{\}} \\
+collection\_value &::= collection\_identifier ~\texttt{\{}  \ collection\_elements \ \texttt{\}} \\
 collection\_elements &::= \lbrace expression \ \lbrace ~\texttt{,}~ expression \rbrace \rbrace \\
 \end{align*}
 $$

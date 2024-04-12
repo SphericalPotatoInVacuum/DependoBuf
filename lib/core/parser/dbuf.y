@@ -98,7 +98,7 @@ namespace dbuf::parser {
   BANG "!"
   DOUBLE_AND "&&"
   DOUBLE_OR "||"
-  BACK_SLASH "\"
+  BACK_SLASH "\\"
   IN "in"
 ;
 %token
@@ -114,15 +114,20 @@ namespace dbuf::parser {
   DOT "."
   COLON ":"
 ;
+%token
+  ARRAY "Array"
+  SET "Set"
+;
+
 %token <double> FLOAT_LITERAL
 %token <int64_t> INT_LITERAL
 %token <uint64_t> UINT_LITERAL
 %token <std::string> STRING_LITERAL
 
-%precedence "in"
+%left "in"
 %left "||"
 %left "&&"
-%left "\"
+%left "\\"
 %left "|" "-" "+"
 %left "&" "*" "/"
 %precedence "!"
@@ -414,11 +419,12 @@ var_access
   }
   ;
 
-  %nterm <ast::ArrayAccess> array_access;
-  array_access
+%nterm <ast::ArrayAccess> array_access;
+array_access
   : var_identifier "[" expression "]" {
-    $$ = ast::ArrayAccess{$1, ast::ScalarValue<uint64_t>{{@3}, $3}}
+    $$ = ast::ArrayAccess{$1, ast::ScalarValue<uint64_t>{{@3}, $3}};
   }
+  ;
 
 %nterm <ast::Value> value;
 value
@@ -438,7 +444,7 @@ bool_literal
   ;
 
 %nterm <ast::Value> float_literal;
-float_literal : FLOAT_LITERAL { $$ = ast::Value(ast::ScalarValue<double>{{@1}, $1}); } ;
+float_literal : FLOAT_LITERAL { $$ = ast::Value(ast::ScalarValue<double>{{@1}, $1}); };
 
 %nterm <ast::Value> int_literal;
 int_literal : INT_LITERAL { $$ = ast::Value(ast::ScalarValue<int64_t>{{@1}, $1}); };
@@ -451,18 +457,26 @@ string_literal : STRING_LITERAL { $$ = ast::Value(ast::ScalarValue<std::string>{
 
 %nterm <ast::Value> collection_value;
 collection_value
-  : "{" collection_elements "}" {
-    $$ = ast::ConstructedValue{{@$}, std::move($2)};
+  : ARRAY "{" collection_elements "}" {
+    $$ = ast::CollectionValue{{@$}, ast::Identifier{{@1}, {InternedString(std::move("Array"))}}, std::move($3)};
   }
+  | SET "{" collection_elements "}" {
+    $$ = ast::CollectionValue{{@$}, ast::Identifier{{@1}, {InternedString(std::move("Set"))}}, std::move($3)};
+  }
+  ;
 
 %nterm <std::vector<ExprPtr>> collection_elements;
 collection_elements 
   : %empty {
     $$ = std::vector<ExprPtr>();
   } 
+  | expression {
+    $$.emplace_back(std::move($1));
+  }
   | collection_elements "," expression {
-  $$.emplace_back(std::move($3))
-  };
+    $$.emplace_back(std::move($3));
+  }
+  ;
 
 %nterm <ast::Value> constructed_value;
 constructed_value
@@ -490,6 +504,7 @@ field_initialization_list
     $$ = std::move($1);
     $$.emplace_back($3, std::move($5));
   }
+  ;
 
 %nterm <ast::Identifier>
   type_identifier
@@ -526,6 +541,7 @@ typed_variable
   : var_identifier type_expr {
     $$ = ast::TypedVariable{{$1}, std::move($2)};
   }
+  ;
 
 %%
 

@@ -196,6 +196,7 @@ inline std::ostream &operator<<(std::ostream &os, const ConstructedValue &val) {
  *
  */
 struct CollectionValue : ASTNode {
+  Identifier collection_identifier;
   std::vector<ExprPtr> values;
 };
 

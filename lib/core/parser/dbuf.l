@@ -76,13 +76,17 @@ string_literal \"(\\.|[^\\"])*\"
   return token::TOK_FLOAT_LITERAL;
 }
 
+    /* Collection constructors */
+"Array" return token::TOK_ARRAY
+"Set" return token::TOK_SET
+
     /* One or two character tokens */
 "&" return token::TOK_AND;
 "|" return token::TOK_OR;
 "!"  return token::TOK_BANG;
 "&&"  return token::TOK_DOUBLE_AND;
 "||"  return token::TOK_DOUBLE_OR;
-"\"  return token::TOK_BACK_SLASH;
+"\\"  return token::TOK_BACK_SLASH;
 "in"  return token::TOK_IN;
 
     /* Single-character tokens */

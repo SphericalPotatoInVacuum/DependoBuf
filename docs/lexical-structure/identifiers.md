@@ -25,6 +25,7 @@ uc\_identifier &::= uc\_letter \lbrace ident\_char \rbrace \\
 type\_identifier &::= uc\_identifier \\
 constructor\_identifier &::= uc\_identifier \\
 var\_identifier &::= lc\_identifier \\
+collection\_identifier &::= Array \mid Set \\
 \end{align*}
 $$
 
