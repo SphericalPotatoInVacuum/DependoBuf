@@ -38,7 +38,7 @@ int Driver::Run(const std::string &input_filename, const std::string &path, std:
   gen::ListGenerators generators;
   try {
     generators.Fill(output_formats, path, filename);
-  } catch (std::string err) {
+  } catch (std::string& err) {
     std::cerr << err << std::endl;
     return EXIT_FAILURE;
   }
