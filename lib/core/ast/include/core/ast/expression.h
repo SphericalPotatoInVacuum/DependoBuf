@@ -201,6 +201,7 @@ struct CollectionValue : ASTNode {
 };
 
 inline std::ostream &operator<<(std::ostream &os, const CollectionValue &col_val) {
+  os << "{";
   bool first = true;
   for (const auto &val : col_val.values) {
     if (first) {
