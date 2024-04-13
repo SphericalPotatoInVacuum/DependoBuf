@@ -18,6 +18,7 @@ the Free Software Foundation, either version 3 of the License, or
 int main(const int argc, const char **argv) {
   google::InstallFailureSignalHandler();
   google::InitGoogleLogging(argv[0]);
+  google::LogToStderr();
   if (argc == 2) {
     return dbuf::Driver::Run(argv[1]);
   }
