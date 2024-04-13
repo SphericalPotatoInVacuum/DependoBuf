@@ -53,8 +53,14 @@ struct Substitutor {
   }
 
   ast::Expression operator()(const ast::VarAccess &value);
+  ast::Expression operator()(const ast::ArrayAccess &/*value*/) {
+    DLOG(FATAL) << "Unfinished function: " << "ast::Expression operator()(const ast::ArrayAccess &value)";
+  }
 
   ast::Expression operator()(const ast::ConstructedValue &value);
+  ast::Expression operator()(const ast::CollectionValue &/*value*/) {
+    DLOG(FATAL) << "Unfinished function: " << "ast::Expression operator()(const ast::CollectionValue &value)";
+  }
 
   ast::Expression operator()(const ast::Value &value);
 

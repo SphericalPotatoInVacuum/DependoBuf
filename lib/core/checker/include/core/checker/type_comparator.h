@@ -40,6 +40,9 @@ public:
   std::optional<Error> operator()(const ast::BinaryExpression &expr);
   std::optional<Error> operator()(const ast::UnaryExpression &expr);
   std::optional<Error> operator()(const ast::VarAccess &expr);
+  std::optional<Error> operator()(const ast::ArrayAccess &/*expr*/) {
+    DLOG(FATAL) << "Unfinished function: " << "std::optional<Error> operator()(const ast::ArrayAccess &expr)";
+  }
   std::optional<Error> operator()(const ast::Value &val);
 
   // Value specifications
@@ -54,6 +57,9 @@ public:
   }
 
   std::optional<Error> operator()(const ast::ConstructedValue &val);
+  std::optional<Error> operator()(const ast::CollectionValue &/*val*/) {
+    DLOG(FATAL) << "Unfinished function: " << "std::optional<Error> operator()(const ast::CollectionValue &val)";
+  }
 
 private:
   const ast::TypeExpression &expected_;

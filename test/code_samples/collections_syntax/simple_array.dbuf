@@ -1,0 +1,3 @@
+message A (x Unsigned) {
+  array Array Int x;
+}

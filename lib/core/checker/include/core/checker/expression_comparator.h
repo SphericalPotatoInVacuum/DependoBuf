@@ -64,6 +64,8 @@ struct ExpressionToZ3 {
       return left && right;
     case ast::BinaryExpressionType::Or:
       return left || right;
+    default:
+      DLOG(FATAL) << "Unfinished function: " << "operator()(const ast::BinaryExpression &binary_expression)";
     // case ast::BinaryExpressionType::DoubleAnd:
     //   return z3::set_intersect(left, right);
     // case ast::BinaryExpressionType::DoubleOr:
@@ -116,6 +118,10 @@ struct ExpressionToZ3 {
     return expr;
   } // NOLINT(clang-diagnostic-return-type)
 
+  z3::expr operator()(const ast::ArrayAccess &/*value*/) {
+    DLOG(FATAL) << "Unfinished function: " << "operator()(const ast::CollectionValue &value)";
+  }
+
   z3::expr operator()(const ast::ScalarValue<bool> &value) {
     return z3_stuff.context_.bool_val(value.value);
   }
@@ -146,6 +152,10 @@ struct ExpressionToZ3 {
       args.push_back(std::visit(*this, *field));
     }
     return z3_stuff.constructors_.at(value.constructor_identifier.name)(args);
+  }
+
+  z3::expr operator()(const ast::CollectionValue &/*value*/) {
+    DLOG(FATAL) << "Unfinished function: " << "operator()(const ast::CollectionValue &value)";
   }
 
   z3::expr operator()(const ast::Expression &expression) {

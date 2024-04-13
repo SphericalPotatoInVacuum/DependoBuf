@@ -31,6 +31,9 @@ public:
   void operator()(const ast::Value & /* value */);
 
   void operator()(const ast::VarAccess & /* var_access */);
+  void operator()(const ast::ArrayAccess & /* array_access */) {
+    DLOG(FATAL) << "Unfinished function: " << "void operator()(const ast::ArrayAccess &array_access) ";
+  }
 
   void operator()(const ast::UnaryExpression &expr);
 

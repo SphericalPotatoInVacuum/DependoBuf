@@ -44,6 +44,9 @@ public:
   template <typename T>
   void operator()(const ast::ScalarValue<T> &) {}
   void operator()(const ast::ConstructedValue &value);
+  void operator()(const ast::CollectionValue &/*value*/) {
+    DLOG(FATAL) << "Unfinished function: " << "void operator()(const ast::CollectionValue &value)";
+  }
   void operator()(const ast::Value &value);
 
   void operator()(const ast::Star &value);
@@ -52,6 +55,9 @@ public:
   void operator()(const ast::UnaryExpression &expr);
   void operator()(const ast::TypeExpression &expr);
   void operator()(const ast::VarAccess &var_access);
+  void operator()(const ast::ArrayAccess &/*array_access*/) {
+    DLOG(FATAL) << "Unfinished function: " << "void operator()(const ast::CollectionValue &value)";
+  }
 
 private:
   using Scope                = std::unordered_set<InternedString>;
