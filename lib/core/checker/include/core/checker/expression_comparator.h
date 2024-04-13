@@ -11,6 +11,7 @@ the Free Software Foundation, either version 3 of the License, or
 #pragma once
 
 #include "core/ast/ast.h"
+#include "core/ast/expression.h"
 #include "core/checker/common.h"
 #include "glog/logging.h"
 #include "location.hh"
@@ -63,6 +64,14 @@ struct ExpressionToZ3 {
       return left && right;
     case ast::BinaryExpressionType::Or:
       return left || right;
+    // case ast::BinaryExpressionType::DoubleAnd:
+    //   return z3::set_intersect(left, right);
+    // case ast::BinaryExpressionType::DoubleOr:
+    //   return z3::set_union(left, right);
+    // case ast::BinaryExpressionType::BackSlash:
+    //   return z3::set_difference(left, right);
+    // case ast::BinaryExpressionType::In:
+    //   return z3::set_member(right, left);
     }
   }
 
