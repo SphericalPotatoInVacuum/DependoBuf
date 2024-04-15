@@ -111,11 +111,6 @@ void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
 
 void NameResolutionChecker::operator()(const ast::CollectionValue &values) {
   AddName(values.collection_identifier.name, "field", false);
-  for (const auto &value : values.values) {
-    if (!IsInScope(value.first.name)) {
-      errors_.emplace_back(Error {.message = "No value named " + value.first.name.GetString()});
-    }
-  }
 }
 
 void NameResolutionChecker::operator()(const ast::Value &value) {

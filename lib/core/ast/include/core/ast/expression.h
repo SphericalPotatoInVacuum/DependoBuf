@@ -197,7 +197,7 @@ inline std::ostream &operator<<(std::ostream &os, const ConstructedValue &val) {
  */
 struct CollectionValue : ASTNode {
   Identifier collection_identifier;
-  std::vector<std::pair<Identifier, ExprPtr>> values = {};
+  std::vector<ExprPtr> values = {};
 };
 
 inline std::ostream &operator<<(std::ostream &os, const CollectionValue &col_val) {
@@ -209,7 +209,7 @@ inline std::ostream &operator<<(std::ostream &os, const CollectionValue &col_val
     } else {
       os << ", ";
     }
-    os << *val.second;
+    os << *val;
   }
   os << "}";
   return os;
