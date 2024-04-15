@@ -189,7 +189,9 @@ void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
   AddName(InternedString("String"), "type", false);
   AddName(InternedString("Float"), "type", false);
   AddName(InternedString("Bool"), "type", false);
-  
+  AddName(InternedString("Array"), "type", false);
+  AddName(InternedString("Set"), "type", false);
+
   auto visitor = [this](const auto &type) {
     if constexpr (std::is_same_v<std::decay_t<decltype(type)>, ast::Message>) {
       AddName(type.identifier.name, "message", false);
