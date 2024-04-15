@@ -234,7 +234,7 @@ inline std::ostream &operator<<(std::ostream &os, const Value &val) {
 
 /**
  * @brief Represents an expression, which can be a binary or a unary expression, a type expression,
- * a value or a variable access
+ * a value, variable or array access
  *
  */
 struct Expression : std::variant<BinaryExpression, UnaryExpression, TypeExpression, Value, VarAccess, ArrayAccess> {
