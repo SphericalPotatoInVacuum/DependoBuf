@@ -54,8 +54,8 @@ public:
   void operator()(const ast::ArrayAccess &array_access);
 
 private:
-  using Scope = std::unordered_set<InternedString>;
-  using ConstructorFields = std::unordered_set<InternedString>;
+  using Scope                = std::unordered_set<InternedString>;
+  using ConstructorFields    = std::unordered_set<InternedString>;
   using ConstructorFieldsMap = std::unordered_map<InternedString, ConstructorFields>;
 
   ErrorList errors_;

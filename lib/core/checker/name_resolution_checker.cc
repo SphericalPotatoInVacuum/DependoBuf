@@ -80,7 +80,8 @@ void NameResolutionChecker::operator()(const ast::TypedVariable &variable, bool 
 }
 
 void NameResolutionChecker::operator()(const Field &field) {
-  if (accept_aliases_ && std::holds_alternative<ast::VarAccess>(*field.second) && std::get<ast::VarAccess>(*field.second).field_identifiers.empty()) {
+  if (accept_aliases_ && std::holds_alternative<ast::VarAccess>(*field.second) &&
+      std::get<ast::VarAccess>(*field.second).field_identifiers.empty()) {
     AddName(std::get<ast::VarAccess>(*field.second).var_identifier.name, "variable", false);
     return;
   }
@@ -93,17 +94,20 @@ void NameResolutionChecker::operator()(const ast::Value &value) {
 
 void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
   if (!IsInScope(value.constructor_identifier.name)) {
-    errors_.emplace_back(Error{.message = "Undefined constructor: \"" + value.constructor_identifier.name.GetString() + "\""});
+    errors_.emplace_back(
+        Error {.message = "Undefined constructor: \"" + value.constructor_identifier.name.GetString() + "\""});
   }
   for (const auto &field : value.fields) {
     if (!constructor_to_fields_[value.constructor_identifier.name].contains(field.first.name)) {
-      errors_.emplace_back(Error{"No field with name " + field.first.name.GetString() + " in constructor " + value.constructor_identifier.name.GetString()});
+      errors_.emplace_back(Error {
+          "No field with name " + field.first.name.GetString() + " in constructor " +
+          value.constructor_identifier.name.GetString()});
     }
     (*this)(field);
   }
 }
 
-void NameResolutionChecker::operator()(const ast::CollectionValue &/* value */) {}
+void NameResolutionChecker::operator()(const ast::CollectionValue & /* value */) {}
 
 void NameResolutionChecker::operator()(const ast::Star &) {}
 
@@ -118,7 +122,9 @@ void NameResolutionChecker::operator()(const ast::UnaryExpression &expr) {
 
 void NameResolutionChecker::operator()(const ast::TypeExpression &expr) {
   if (!IsInScope(expr.identifier.name)) {
-    errors_.emplace_back(Error(CreateError() << "Undefined type name: \"" << expr.identifier.name.GetString() << "\" at " << expr.identifier.location));
+    errors_.emplace_back(Error(
+        CreateError() << "Undefined type name: \"" << expr.identifier.name.GetString() << "\" at "
+                      << expr.identifier.location));
   }
   for (const auto &parameter : expr.parameters) {
     std::visit(*this, *parameter);
@@ -127,13 +133,17 @@ void NameResolutionChecker::operator()(const ast::TypeExpression &expr) {
 
 void NameResolutionChecker::operator()(const ast::VarAccess &var_access) {
   if (!IsInScope(var_access.var_identifier.name)) {
-    errors_.emplace_back(Error(CreateError() << "Undefined variable: \"" << var_access.var_identifier.name.GetString() << "\" at " << var_access.var_identifier.location));
+    errors_.emplace_back(Error(
+        CreateError() << "Undefined variable: \"" << var_access.var_identifier.name.GetString() << "\" at "
+                      << var_access.var_identifier.location));
   }
 }
 
 void NameResolutionChecker::operator()(const ast::ArrayAccess &array_access) {
   if (!IsInScope(array_access.array_identifier.name)) {
-    errors_.emplace_back(Error(CreateError() << "Undefined array: \"" << array_access.array_identifier.name.GetString() << "\" at " << array_access.array_identifier.location));
+    errors_.emplace_back(Error(
+        CreateError() << "Undefined array: \"" << array_access.array_identifier.name.GetString() << "\" at "
+                      << array_access.array_identifier.location));
   }
 }
 
@@ -153,7 +163,7 @@ bool NameResolutionChecker::IsInScope(InternedString name) {
 void NameResolutionChecker::AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing) {
   DCHECK(!scopes_.empty());
   if ((!allow_shadowing) && IsInScope(name)) {
-    errors_.emplace_back(Error{"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""});
+    errors_.emplace_back(Error {"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""});
   }
   scopes_.back().insert(name);
 }
