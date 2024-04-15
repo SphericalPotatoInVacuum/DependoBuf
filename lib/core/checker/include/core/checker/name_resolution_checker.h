@@ -22,30 +22,28 @@ the Free Software Foundation, either version 3 of the License, or
 
 namespace dbuf::checker {
 
-struct NameResolutionChecker {
+class NameResolutionChecker {
+public:
   ErrorList operator()(const ast::AST &ast);
 
   void operator()(const ast::Message &ast_message);
-
   void operator()(const ast::Enum &ast_enum);
-
   void operator()(const ast::Enum::Rule &rule);
-
   void operator()(const ast::Constructor &constructor);
-
   void operator()(const ast::TypedVariable &variable, bool allow_shadowing);
 
 private:
-  using Field = std::pair<ast::Identifier, std::shared_ptr<const ast::Expression>>;
+  using Field = std::pair<ast::Identifier, ast::ExprPtr>;
 
 public:
   void operator()(const Field &field);
+
+  void operator()(const ast::Value &value);
 
   template <typename T>
   void operator()(const ast::ScalarValue<T> &) {}
   void operator()(const ast::ConstructedValue &value);
   void operator()(const ast::CollectionValue &value);
-  void operator()(const ast::Value &value);
 
   void operator()(const ast::Star &value);
 
@@ -56,31 +54,26 @@ public:
   void operator()(const ast::ArrayAccess &array_access);
 
 private:
-  using Scope                = std::unordered_set<InternedString>;
-  using ConstructorFields    = std::unordered_set<InternedString>;
+  using Scope = std::unordered_set<InternedString>;
+  using ConstructorFields = std::unordered_set<InternedString>;
   using ConstructorFieldsMap = std::unordered_map<InternedString, ConstructorFields>;
 
-  // private members
   ErrorList errors_;
-
   std::deque<Scope> scopes_;
-
   ConstructorFieldsMap constructor_to_fields_;
 
   // For pattern matching only. Case: Succ {prev: n}, where n is alias
-  bool accept_aliases_ {false};
-
-  // private methods
-  bool IsInScope(InternedString name);
-  void AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing);
-
-  void InitConstructorFields(const ast::AST &ast);
-  void AddFields(const InternedString &constructor_name, const ast::TypeWithFields &type);
-
-  void AddGlobalNames(const ast::AST &ast);
+  bool accept_aliases_ = false;
 
   void PushScope();
   void PopScope();
+  bool IsInScope(InternedString name);
+
+  void AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing);
+  void AddFields(const InternedString &constructor_name, const ast::TypeWithFields &type);
+
+  void AddGlobalNames(const ast::AST &ast);
+  void InitConstructorFields(const ast::AST &ast);
 };
 
 } // namespace dbuf::checker

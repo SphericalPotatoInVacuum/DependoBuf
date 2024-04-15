@@ -49,7 +49,7 @@ message H {
 enum I (d D) {
   D{intField: intField, stringField: strinfField} => {
     ICons{
-      intField Int;
+      a Int;
     }
   }
 }
@@ -58,5 +58,5 @@ message J (i I D{intField: 10, stringField: "hello"}) {
 }
 
 message K {
-  j J ICons{intField: 10};
+  j J ICons{a: 10};
 }

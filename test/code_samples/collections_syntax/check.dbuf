@@ -1,0 +1,4 @@
+message A {
+  abc Array (Int) 5;
+  abc Int;
+}
