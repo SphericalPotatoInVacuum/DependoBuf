@@ -64,16 +64,14 @@ struct ExpressionToZ3 {
       return left && right;
     case ast::BinaryExpressionType::Or:
       return left || right;
-    default:
-      DLOG(FATAL) << "Unfinished function: " << "operator()(const ast::BinaryExpression &binary_expression)";
-    // case ast::BinaryExpressionType::DoubleAnd:
-    //   return z3::set_intersect(left, right);
-    // case ast::BinaryExpressionType::DoubleOr:
-    //   return z3::set_union(left, right);
-    // case ast::BinaryExpressionType::BackSlash:
-    //   return z3::set_difference(left, right);
-    // case ast::BinaryExpressionType::In:
-    //   return z3::set_member(right, left);
+    case ast::BinaryExpressionType::DoubleAnd:
+      return z3::set_intersect(left, right);
+    case ast::BinaryExpressionType::DoubleOr:
+      return z3::set_union(left, right);
+    case ast::BinaryExpressionType::BackSlash:
+      return z3::set_difference(left, right);
+    case ast::BinaryExpressionType::In:
+      return z3::set_member(right, left);
     }
   }
 
