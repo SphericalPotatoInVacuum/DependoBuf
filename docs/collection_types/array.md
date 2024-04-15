@@ -2,7 +2,7 @@
 In DependoBuf, `array` is a collection type that allows the declaration of typed arrays with fixed sizes. These arrays enhance data integrity by ensuring all elements conform to the specified type and size is strictly adhered to.
 ```
 message A (x Unsigned) {
-  array Array Int x;
+  array Array (Int) x;
 }
 
 message B (a A 4) {
@@ -24,7 +24,7 @@ The $array\_access$ operation is used to access an element within an array at a 
 message Number (x Int) {
 }
 
-enum D (array Array Int 3) {
+enum D (array Array (Int) 3) {
   {1, 1, 1} => {
     Constuctor1 {
       num Number array[0];
@@ -46,11 +46,11 @@ enum D (array Array Int 3) {
 
 ```
 message T {
-  array1 Array Int 1;
-  array2 Array Int 2;
+  array1 Array (Int) 1;
+  array2 Array (Int) 2;
 }
 
-message K (array Array Int 3) {
+message K (array Array (Int) 3) {
 }
 
 message P (t T) {
