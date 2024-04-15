@@ -109,6 +109,15 @@ void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
   PopScope();
 }
 
+void NameResolutionChecker::operator()(const ast::CollectionValue &values) {
+  AddName(values.collection_identifier.name, "field", false);
+  for (const auto &value : values.values) {
+    if (!IsInScope(value.first.name)) {
+      errors_.emplace_back(Error {.message = "No value named " + value.first.name.GetString()});
+    }
+  }
+}
+
 void NameResolutionChecker::operator()(const ast::Value &value) {
   std::visit(*this, value);
 }
@@ -141,6 +150,15 @@ void NameResolutionChecker::operator()(const ast::VarAccess &var_access) {
     std::stringstream ms;
     ms << "Undefined variable: \"" << var_access.var_identifier.name.GetString() << "\" at "
        << var_access.var_identifier.location;
+    errors_.emplace_back(Error {.message = ms.str()});
+  }
+}
+
+void NameResolutionChecker::operator()(const ast::ArrayAccess &array_access) {
+  if (!IsInScope(array_access.array_identifier.name)) {
+    std::stringstream ms;
+    ms << "Undefined array: \"" << array_access.array_identifier.name.GetString() << "\" at "
+       << array_access.array_identifier.location;
     errors_.emplace_back(Error {.message = ms.str()});
   }
 }
@@ -185,7 +203,7 @@ void NameResolutionChecker::AddFields(const InternedString &constructor_name, co
 
 void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
   AddName(InternedString("Int"), "type", false);
-  AddName(InternedString("Unsigned"),"type",false);
+  AddName(InternedString("Unsigned"), "type", false);
   AddName(InternedString("String"), "type", false);
   AddName(InternedString("Float"), "type", false);
   AddName(InternedString("Bool"), "type", false);

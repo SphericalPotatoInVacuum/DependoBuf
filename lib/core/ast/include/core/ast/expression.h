@@ -89,12 +89,12 @@ inline std::ostream &operator<<(std::ostream &os, const VarAccess &var) {
  *
  */
 struct ArrayAccess {
-  Identifier var_identifier;
+  Identifier array_identifier;
   ExprPtr ind;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const ArrayAccess &var) {
-  os << var.var_identifier.name << "[" << *var.ind << "]";
+  os << var.array_identifier.name << "[" << *var.ind << "]";
   return os;
 }
 
@@ -197,7 +197,7 @@ inline std::ostream &operator<<(std::ostream &os, const ConstructedValue &val) {
  */
 struct CollectionValue : ASTNode {
   Identifier collection_identifier;
-  std::vector<ExprPtr> values;
+  std::vector<std::pair<Identifier, ExprPtr>> values = {};
 };
 
 inline std::ostream &operator<<(std::ostream &os, const CollectionValue &col_val) {
@@ -209,7 +209,7 @@ inline std::ostream &operator<<(std::ostream &os, const CollectionValue &col_val
     } else {
       os << ", ";
     }
-    os << *val;
+    os << *val.second;
   }
   os << "}";
   return os;
