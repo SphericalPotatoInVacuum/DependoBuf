@@ -12,6 +12,7 @@ the Free Software Foundation, either version 3 of the License, or
 
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
+#include "core/checker/common.h"
 #include "core/interning/interned_string.h"
 #include "glog/logging.h"
 
@@ -29,7 +30,6 @@ ErrorList NameResolutionChecker::operator()(const ast::AST &ast) {
   for (const auto &[_, type] : ast.types) {
     std::visit(*this, type);
   }
-
   return errors_;
 }
 
@@ -62,7 +62,6 @@ void NameResolutionChecker::operator()(const ast::Enum::Rule &rule) {
     std::visit(*this, input);
   }
   accept_aliases_ = false;
-
   for (const auto &output : rule.outputs) {
     (*this)(output);
   }
@@ -81,41 +80,30 @@ void NameResolutionChecker::operator()(const ast::TypedVariable &variable, bool 
 }
 
 void NameResolutionChecker::operator()(const Field &field) {
-  if (accept_aliases_ && std::holds_alternative<ast::VarAccess>(*field.second) &&
-      std::get<ast::VarAccess>(*field.second).field_identifiers.empty()) {
-    AddName(std::get<ast::VarAccess>(*field.second).var_identifier.name, "variable", true);
+  if (accept_aliases_ && std::holds_alternative<ast::VarAccess>(*field.second) && std::get<ast::VarAccess>(*field.second).field_identifiers.empty()) {
+    AddName(std::get<ast::VarAccess>(*field.second).var_identifier.name, "variable", false);
     return;
   }
   std::visit(*this, *field.second);
-  AddName(field.first.name, "field", true);
-}
-
-void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
-  if (!IsInScope(value.constructor_identifier.name)) {
-    errors_.emplace_back(
-        Error {.message = "Undefined constructor: \"" + value.constructor_identifier.name.GetString() + "\""});
-  }
-  PushScope();
-
-  for (const auto &field : value.fields) {
-    if (!constructor_to_fields_[value.constructor_identifier.name].contains(field.first.name)) {
-      errors_.emplace_back(Error {
-          .message = "No field with name " + field.first.name.GetString() + " in constructor " +
-                     value.constructor_identifier.name.GetString()});
-    }
-
-    (*this)(field);
-  }
-  PopScope();
-}
-
-void NameResolutionChecker::operator()(const ast::CollectionValue &values) {
-  AddName(values.collection_identifier.name, "field", false);
 }
 
 void NameResolutionChecker::operator()(const ast::Value &value) {
   std::visit(*this, value);
 }
+
+void NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
+  if (!IsInScope(value.constructor_identifier.name)) {
+    errors_.emplace_back(Error{.message = "Undefined constructor: \"" + value.constructor_identifier.name.GetString() + "\""});
+  }
+  for (const auto &field : value.fields) {
+    if (!constructor_to_fields_[value.constructor_identifier.name].contains(field.first.name)) {
+      errors_.emplace_back(Error{"No field with name " + field.first.name.GetString() + " in constructor " + value.constructor_identifier.name.GetString()});
+    }
+    (*this)(field);
+  }
+}
+
+void NameResolutionChecker::operator()(const ast::CollectionValue &/* value */) {}
 
 void NameResolutionChecker::operator()(const ast::Star &) {}
 
@@ -130,11 +118,8 @@ void NameResolutionChecker::operator()(const ast::UnaryExpression &expr) {
 
 void NameResolutionChecker::operator()(const ast::TypeExpression &expr) {
   if (!IsInScope(expr.identifier.name)) {
-    std::stringstream ms;
-    ms << "Undefined type name: \"" << expr.identifier.name.GetString() << "\" at " << expr.identifier.location;
-    errors_.emplace_back(Error {.message = ms.str()});
+    errors_.emplace_back(Error(CreateError() << "Undefined type name: \"" << expr.identifier.name.GetString() << "\" at " << expr.identifier.location));
   }
-
   for (const auto &parameter : expr.parameters) {
     std::visit(*this, *parameter);
   }
@@ -142,20 +127,23 @@ void NameResolutionChecker::operator()(const ast::TypeExpression &expr) {
 
 void NameResolutionChecker::operator()(const ast::VarAccess &var_access) {
   if (!IsInScope(var_access.var_identifier.name)) {
-    std::stringstream ms;
-    ms << "Undefined variable: \"" << var_access.var_identifier.name.GetString() << "\" at "
-       << var_access.var_identifier.location;
-    errors_.emplace_back(Error {.message = ms.str()});
+    errors_.emplace_back(Error(CreateError() << "Undefined variable: \"" << var_access.var_identifier.name.GetString() << "\" at " << var_access.var_identifier.location));
   }
 }
 
 void NameResolutionChecker::operator()(const ast::ArrayAccess &array_access) {
   if (!IsInScope(array_access.array_identifier.name)) {
-    std::stringstream ms;
-    ms << "Undefined array: \"" << array_access.array_identifier.name.GetString() << "\" at "
-       << array_access.array_identifier.location;
-    errors_.emplace_back(Error {.message = ms.str()});
+    errors_.emplace_back(Error(CreateError() << "Undefined array: \"" << array_access.array_identifier.name.GetString() << "\" at " << array_access.array_identifier.location));
   }
+}
+
+void NameResolutionChecker::PushScope() {
+  scopes_.emplace_back();
+}
+
+void NameResolutionChecker::PopScope() {
+  DCHECK(!scopes_.empty());
+  scopes_.pop_back();
 }
 
 bool NameResolutionChecker::IsInScope(InternedString name) {
@@ -164,30 +152,10 @@ bool NameResolutionChecker::IsInScope(InternedString name) {
 
 void NameResolutionChecker::AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing) {
   DCHECK(!scopes_.empty());
-
   if ((!allow_shadowing) && IsInScope(name)) {
-    errors_.push_back({"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""});
+    errors_.emplace_back(Error{"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""});
   }
-
   scopes_.back().insert(name);
-}
-
-void NameResolutionChecker::InitConstructorFields(const ast::AST &ast) {
-  auto visitor = [this](const auto &type) {
-    using T = std::decay_t<decltype(type)>;
-    if constexpr (std::is_same_v<T, ast::Enum>) {
-      for (const auto &pattern : type.pattern_mapping) {
-        for (const auto &constructor : pattern.outputs) {
-          AddFields(constructor.identifier.name, constructor);
-        }
-      }
-    } else if constexpr (std::is_same_v<T, ast::Message>) {
-      AddFields(type.identifier.name, type);
-    }
-  };
-  for (const auto &[type_name, type_variant] : ast.types) {
-    std::visit(visitor, type_variant);
-  }
 }
 
 void NameResolutionChecker::AddFields(const InternedString &constructor_name, const ast::TypeWithFields &type) {
@@ -206,9 +174,10 @@ void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
   AddName(InternedString("Set"), "type", false);
 
   auto visitor = [this](const auto &type) {
-    if constexpr (std::is_same_v<std::decay_t<decltype(type)>, ast::Message>) {
+    using T = std::decay_t<decltype(type)>;
+    if constexpr (std::is_same_v<T, ast::Message>) {
       AddName(type.identifier.name, "message", false);
-    } else if constexpr (std::is_same_v<std::decay_t<decltype(type)>, ast::Enum>) {
+    } else if constexpr (std::is_same_v<T, ast::Enum>) {
       AddName(type.identifier.name, "enum", false);
       for (const auto &pattern : type.pattern_mapping) {
         for (const auto &constructor : pattern.outputs) {
@@ -217,18 +186,29 @@ void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
       }
     }
   };
+
   for (const auto &[_, type] : ast.types) {
     std::visit(visitor, type);
   }
 }
 
-void NameResolutionChecker::PushScope() {
-  scopes_.emplace_back();
-}
+void NameResolutionChecker::InitConstructorFields(const ast::AST &ast) {
+  auto visitor = [this](const auto &type) {
+    using T = std::decay_t<decltype(type)>;
+    if constexpr (std::is_same_v<T, ast::Message>) {
+      AddFields(type.identifier.name, type);
+    } else if constexpr (std::is_same_v<T, ast::Enum>) {
+      for (const auto &pattern : type.pattern_mapping) {
+        for (const auto &constructor : pattern.outputs) {
+          AddFields(constructor.identifier.name, constructor);
+        }
+      }
+    }
+  };
 
-void NameResolutionChecker::PopScope() {
-  DCHECK(!scopes_.empty());
-  scopes_.pop_back();
+  for (const auto &[_, type_variant] : ast.types) {
+    std::visit(visitor, type_variant);
+  }
 }
 
 } // namespace dbuf::checker
