@@ -27,32 +27,32 @@ ErrorList Checker::CheckNameResolution(const ast::AST &ast) {
   return NameResolutionChecker()(ast);
 }
 
-ErrorList Checker::CheckPositivity(const ast::AST &ast) {
+ErrorList Checker::CheckPositivity(ast::AST &ast) {
   PositivityChecker::Result result = PositivityChecker()(ast);
-  visit_order_                     = std::move(result.sorted);
+  ast.visit_order                  = std::move(result.sorted);
   if (!result.errors.empty()) {
     DLOG(INFO) << "Positivity errors: " << result.errors.size();
     return result.errors;
   }
   DLOG(INFO) << "Positivity check passed";
   std::stringstream ss;
-  if (visit_order_.empty()) {
+  if (ast.visit_order.empty()) {
     return {};
   }
-  ss << visit_order_[0];
-  for (size_t i = 1; i < visit_order_.size(); ++i) {
-    ss << " -> " << visit_order_[i];
+  ss << ast.visit_order[0];
+  for (size_t i = 1; i < ast.visit_order.size(); ++i) {
+    ss << " -> " << ast.visit_order[i];
   }
   DLOG(INFO) << "Visit order: " << ss.str();
   return {};
 }
 
-ErrorList Checker::CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order) {
-  TypeChecker type_expression_checker(ast, visit_order);
+ErrorList Checker::CheckTypeResolution(const ast::AST &ast) {
+  TypeChecker type_expression_checker(ast);
   return type_expression_checker.CheckTypes();
 }
 
-int Checker::CheckAll(const ast::AST &ast) {
+int Checker::CheckAll(ast::AST &ast) {
   ErrorList name_resolution_errors = CheckNameResolution(ast);
   if (!name_resolution_errors.empty()) {
     for (const auto &error : name_resolution_errors) {
@@ -69,7 +69,7 @@ int Checker::CheckAll(const ast::AST &ast) {
     return EXIT_FAILURE;
   }
 
-  ErrorList type_errors = CheckTypeResolution(ast, visit_order_);
+  ErrorList type_errors = CheckTypeResolution(ast);
   if (!type_errors.empty()) {
     for (const auto &error : type_errors) {
       std::cerr << error.message << std::endl;
