@@ -10,7 +10,6 @@ the Free Software Foundation, either version 3 of the License, or
 */
 #include "core/driver/driver.h"
 #include "glog/logging.h"
-#include "CLI/CLI.hpp"
 
 #include <cstdlib>
 #include <cstring>
