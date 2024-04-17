@@ -13,6 +13,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
 #include "core/checker/common.h"
+#include "core/interning/interned_string.h"
 #include "glog/logging.h"
 #include "location.hh"
 #include "z3++.h"
@@ -28,7 +29,8 @@ struct Z3stuff {
             {{InternedString("Int"), context_.int_sort()},
              {InternedString("Unsigned"), context_.int_sort()},
              {InternedString("Bool"), context_.bool_sort()},
-             {InternedString("String"), context_.string_sort()}}) {}
+             {InternedString("String"), context_.string_sort()},
+             {InternedString("Float"), context_.fpa_sort(11, 53)}}) {}
 
   using NameToSort        = std::unordered_map<InternedString, z3::sort>;        // NameToSort[type_name] = sort
   using NameToConstructor = std::unordered_map<InternedString, z3::func_decl>;   // NameToConstructor[cons_name] = cons
