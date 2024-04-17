@@ -21,13 +21,10 @@ public:
   using ErrorList = std::vector<Error>;
 
   static ErrorList CheckNameResolution(const ast::AST &ast);
-  ErrorList CheckPositivity(const ast::AST &ast);
-  static ErrorList CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order);
+  static ErrorList CheckPositivity(ast::AST &ast);
+  static ErrorList CheckTypeResolution(const ast::AST &ast);
 
-  int CheckAll(const ast::AST &ast);
-
-private:
-  std::vector<InternedString> visit_order_;
+  static int CheckAll(ast::AST &ast);
 };
 
 } // namespace dbuf::checker

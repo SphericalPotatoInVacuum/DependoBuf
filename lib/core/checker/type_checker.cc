@@ -30,12 +30,11 @@ the Free Software Foundation, either version 3 of the License, or
 
 namespace dbuf::checker {
 
-TypeChecker::TypeChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph)
-    : ast_(ast)
-    , sorted_graph_(sorted_graph) {}
+TypeChecker::TypeChecker(const ast::AST &ast)
+    : ast_(ast) {}
 
 ErrorList TypeChecker::CheckTypes() {
-  for (const auto &node : sorted_graph_) {
+  for (const auto &node : ast_.visit_order) {
     std::visit(*this, ast_.types.at(node));
   }
 

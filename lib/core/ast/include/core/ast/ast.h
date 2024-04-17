@@ -81,6 +81,7 @@ inline std::ostream &operator<<(std::ostream &os, const std::vector<Enum::Rule::
 struct AST {
   std::unordered_map<InternedString, std::variant<Message, Enum>> types  = {};
   std::unordered_map<InternedString, InternedString> constructor_to_type = {};
+  std::vector<InternedString> visit_order;
 };
 
 } // namespace dbuf::ast
