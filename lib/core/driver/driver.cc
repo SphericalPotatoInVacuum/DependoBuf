@@ -58,8 +58,7 @@ int Driver::Run(const std::string &input_filename, const std::string &path, std:
     return EXIT_FAILURE;
   }
 
-  checker::Checker checker;
-  if (checker.CheckAll(ast) != EXIT_SUCCESS) {
+  if (dbuf::checker::Checker::CheckAll(ast) != EXIT_SUCCESS) {
     return EXIT_FAILURE;
   }
 

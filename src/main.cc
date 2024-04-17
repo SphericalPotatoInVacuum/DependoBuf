@@ -10,13 +10,12 @@ the Free Software Foundation, either version 3 of the License, or
 */
 #include "core/driver/driver.h"
 #include "glog/logging.h"
+#include "CLI/CLI.hpp"
 
-#include <CLI11.hpp>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <set>
-#include <unistd.h>
 
 int main(const int argc, const char **argv) {
   google::InstallFailureSignalHandler();

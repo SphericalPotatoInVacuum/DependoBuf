@@ -21,10 +21,10 @@ public:
   using ErrorList = std::vector<Error>;
 
   static ErrorList CheckNameResolution(const ast::AST &ast);
-  ErrorList CheckPositivity(ast::AST &ast);
+  static ErrorList CheckPositivity(ast::AST &ast);
   static ErrorList CheckTypeResolution(const ast::AST &ast);
 
-  int CheckAll(ast::AST &ast);
+  static int CheckAll(ast::AST &ast);
 };
 
 } // namespace dbuf::checker

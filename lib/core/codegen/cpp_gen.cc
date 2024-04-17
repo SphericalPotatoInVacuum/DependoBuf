@@ -1,4 +1,4 @@
-#include "core/codegen/generation.h"
+#include "core/codegen/cpp_gen.h"
 
 namespace dbuf::gen {
 void CppCodeGenerator::Generate(ast::AST *tree) {

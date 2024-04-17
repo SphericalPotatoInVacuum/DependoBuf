@@ -18,18 +18,6 @@ protected:
   std::shared_ptr<std::ofstream> output_;
 };
 
-class CppCodeGenerator : public ITargetCodeGenerator {
-public:
-  explicit CppCodeGenerator(const std::string &out_file)
-      : ITargetCodeGenerator(out_file) {}
-
-  void operator()(const ast::Message &ast_message);
-
-  void operator()(const ast::Enum &ast_enum);
-
-  void Generate(ast::AST *tree) override;
-};
-
 class ListGenerators {
 public:
   void Fill(std::vector<std::string> &formats, const std::string &path, const std::string &filename);

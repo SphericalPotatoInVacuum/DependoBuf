@@ -1,5 +1,7 @@
 #include "core/codegen/generation.h"
 
+#include "core/codegen/cpp_gen.h"
+
 #include <filesystem>
 #include <set>
 #include <sstream>
