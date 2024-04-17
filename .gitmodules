@@ -4,6 +4,6 @@
 [submodule "lib/googletest"]
 	path = lib/googletest
 	url = git@github.com:google/googletest.git
-[submodule "CLI11"]
-	path = CLI11
+[submodule "lib/CLI11"]
+	path = lib/CLI11
 	url = https://github.com/CLIUtils/CLI11.git
