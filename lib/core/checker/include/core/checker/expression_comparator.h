@@ -118,8 +118,9 @@ struct ExpressionToZ3 {
     return expr;
   } // NOLINT(clang-diagnostic-return-type)
 
-  z3::expr operator()(const ast::ArrayAccess &/*value*/) {
-    DLOG(FATAL) << "Unfinished function: " << "operator()(const ast::CollectionValue &value)";
+  z3::expr operator()(const ast::ArrayAccess & /*value*/) {
+    DLOG(FATAL) << "Unfinished function: "
+                << "operator()(const ast::CollectionValue &value)";
   }
 
   z3::expr operator()(const ast::ScalarValue<bool> &value) {
@@ -154,8 +155,9 @@ struct ExpressionToZ3 {
     return z3_stuff.constructors_.at(value.constructor_identifier.name)(args);
   }
 
-  z3::expr operator()(const ast::CollectionValue &/*value*/) {
-    DLOG(FATAL) << "Unfinished function: " << "operator()(const ast::CollectionValue &value)";
+  z3::expr operator()(const ast::CollectionValue & /*value*/) {
+    DLOG(FATAL) << "Unfinished function: "
+                << "operator()(const ast::CollectionValue &value)";
   }
 
   z3::expr operator()(const ast::Expression &expression) {
