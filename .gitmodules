@@ -6,4 +6,4 @@
 	url = git@github.com:google/googletest.git
 [submodule "lib/CLI11"]
 	path = lib/CLI11
-	url = https://github.com/CLIUtils/CLI11.git
+	url = git@github.com:CLIUtils/CLI11.git
