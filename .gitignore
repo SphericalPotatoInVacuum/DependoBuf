@@ -11,3 +11,7 @@
 build
 .ccache/*
 !.ccache/.gitkeep
+
+# vs code
+.vscode/
+.z3-trace
