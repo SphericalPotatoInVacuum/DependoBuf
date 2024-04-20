@@ -27,24 +27,21 @@ public:
     ErrorList errors;
   };
 
-  void operator()(const ast::Star & /* star */);
-  void operator()(const ast::Value & /* value */);
+  Result operator()(const ast::AST &ast);
 
-  void operator()(const ast::VarAccess & /* var_access */);
-  void operator()(const ast::ArrayAccess & /* array_access */) {
-    DLOG(FATAL) << "Unfinished function: " << "void operator()(const ast::ArrayAccess &array_access) ";
-  }
-
-  void operator()(const ast::UnaryExpression &expr);
-
-  void operator()(const ast::BinaryExpression &expr);
-
+  void operator()(const ast::Message &ast_message);
+  void operator()(const ast::Enum &ast_enum);
   void operator()(const ast::TypeExpression &type_expression);
 
-  void operator()(const ast::Enum &ast_enum);
-  void operator()(const ast::Message &ast_message);
+  void operator()(const ast::Value &value);
 
-  Result operator()(const ast::AST &ast);
+  void operator()(const ast::VarAccess &var_access);
+  void operator()(const ast::ArrayAccess &array_access);
+
+  void operator()(const ast::Star &star);
+
+  void operator()(const ast::BinaryExpression &expr);
+  void operator()(const ast::UnaryExpression &expr);
 
 private:
   enum class NodeState { Visiting, Visited };

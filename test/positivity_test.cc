@@ -88,10 +88,10 @@ INSTANTIATE_TEST_SUITE_P(
             "Found dependency cycle: A -> B -> A"),
         ParamTuple(
             "../../test/code_samples/incorrect_syntax/wf_mixed.dbuf",
-            "Found dependency cycle: A -> C -> B -> A"),
+            "Found dependency cycle: A -> B -> C -> A"),
         ParamTuple("../../test/code_samples/incorrect_syntax/wf_enum_field_self.dbuf", ""),
         ParamTuple(
             "../../test/code_samples/incorrect_syntax/wf_mixed_field.dbuf",
-            "Found dependency cycle: A -> B -> C -> A")));
+            "Found dependency cycle: A -> C -> B -> A")));
 
 } // namespace dbuf

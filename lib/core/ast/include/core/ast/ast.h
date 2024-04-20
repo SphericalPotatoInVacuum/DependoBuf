@@ -26,10 +26,6 @@ namespace dbuf::ast {
 struct TypedVariable : NamedType {
   TypeExpression type_expression;
 };
-inline std::ostream &operator<<(std::ostream &os, const TypedVariable &var) {
-  os << var.name << " " << var.type_expression;
-  return os;
-}
 
 struct DependentType {
   std::vector<TypedVariable> type_dependencies = {};
@@ -61,6 +57,16 @@ struct Enum
   std::vector<Rule> pattern_mapping = {};
 };
 
+struct AST {
+  std::unordered_map<InternedString, std::variant<Message, Enum>> types  = {};
+  std::unordered_map<InternedString, InternedString> constructor_to_type = {};
+};
+
+inline std::ostream &operator<<(std::ostream &os, const TypedVariable &var) {
+  os << var.name << " " << var.type_expression;
+  return os;
+}
+
 inline std::ostream &operator<<(std::ostream &os, const Enum::Rule::InputPattern &pattern) {
   std::visit([&os](const auto &input) { os << input; }, pattern);
   return os;
@@ -77,10 +83,5 @@ inline std::ostream &operator<<(std::ostream &os, const std::vector<Enum::Rule::
   }
   return os;
 }
-
-struct AST {
-  std::unordered_map<InternedString, std::variant<Message, Enum>> types  = {};
-  std::unordered_map<InternedString, InternedString> constructor_to_type = {};
-};
 
 } // namespace dbuf::ast
