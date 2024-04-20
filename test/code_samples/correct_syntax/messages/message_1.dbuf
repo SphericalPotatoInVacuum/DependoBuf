@@ -1,0 +1,4 @@
+message User {
+    id Int;
+    name String;
+}

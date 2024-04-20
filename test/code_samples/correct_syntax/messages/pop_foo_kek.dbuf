@@ -1,0 +1,11 @@
+message Pop {
+  a Int;
+  b Float;
+}
+
+message Foo (p Pop) (i Int){
+}
+
+message Kek (k Pop) (f Foo Pop{a: k.a, b: 2.1} 5) {
+  c Int;
+}
