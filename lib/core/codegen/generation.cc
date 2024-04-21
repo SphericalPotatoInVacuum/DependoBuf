@@ -37,7 +37,7 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
     } else if ((format == "py") || (format == "python")) {
       if (!added_formats.contains("py")) {
         std::stringstream full_path;
-        full_path << path << "/" << filename << ".h";
+        full_path << path << "/" << filename << ".py";
         targets_.emplace_back(std::make_shared<PyCodeGenerator>(PyCodeGenerator(full_path.str())));
         added_formats.insert("py");
       } else {

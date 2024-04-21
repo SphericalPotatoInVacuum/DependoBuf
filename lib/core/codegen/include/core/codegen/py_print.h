@@ -1,17 +1,30 @@
 #include <iostream>
+#include <fstream>
+#include <unordered_map>
 
 namespace dbuf::gen {
 
 class PyPrinter {
 public:
-  explicit PyPrinter(std::ofstream &out): out_(out) {}
+  PyPrinter() = default;
 
-  void print_class(std::string &name);
+  explicit PyPrinter(std::shared_ptr<std::ofstream> output);
 
-  void print_field(std::string &type, std::string &name);
+  void init_file();
+
+  void print_class(const std::string &name);
+
+  void print_field(const std::string &name, const std::string &type);
 
 private:
-  std::ofstream &out_;
+  static std::string get_python_type(const std::string &type);
+  
+  std::shared_ptr<std::ofstream> out_ = nullptr;
+
+  static const std::string kReadme;
+  static const std::string kImport;
+
+  static const std::unordered_map<std::string, std::string> kBuildInTypes;
 };
 
 }

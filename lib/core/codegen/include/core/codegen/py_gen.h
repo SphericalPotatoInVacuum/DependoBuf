@@ -1,13 +1,13 @@
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
 #include "core/codegen/generation.h"
+#include "core/codegen/py_print.h"
 
 namespace dbuf::gen {
 
 class PyCodeGenerator : public ITargetCodeGenerator {
 public:
-  explicit PyCodeGenerator(const std::string &out_file)
-      : ITargetCodeGenerator(out_file) {}
+  explicit PyCodeGenerator(const std::string &out_file);
 
   void Generate(ast::AST *tree) override;
 
@@ -36,6 +36,8 @@ private:
   void operator()(const ast::ScalarValue<T> &scalar_val);
 
   void operator()(const ast::Star &value);
+
+  PyPrinter printer_;
 };
 
 } // namespace dbuf::gen
