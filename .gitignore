@@ -15,3 +15,6 @@ build
 # vs code
 .vscode/
 .z3-trace
+
+# vs code python
+__pycache__/

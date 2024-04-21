@@ -5,8 +5,5 @@ void CppCodeGenerator::Generate(ast::AST *tree) {
   if (tree == nullptr) {
     std::cerr << "Cpp codegen did\'t get AST" << std::endl;
   }
-  else {
-    std::cout << "it's ok" << std::endl;
-  }
 }
 } // namespace dbuf::gen

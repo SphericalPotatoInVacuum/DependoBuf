@@ -1,5 +1,5 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <unordered_map>
 
 namespace dbuf::gen {
@@ -18,7 +18,7 @@ public:
 
 private:
   static std::string get_python_type(const std::string &type);
-  
+
   std::shared_ptr<std::ofstream> out_ = nullptr;
 
   static const std::string kReadme;
@@ -27,4 +27,4 @@ private:
   static const std::unordered_map<std::string, std::string> kBuildInTypes;
 };
 
-}
+} // namespace dbuf::gen

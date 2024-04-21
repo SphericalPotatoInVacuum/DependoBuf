@@ -32,7 +32,7 @@ private:
 
   void operator()(const ast::ConstructedValue &constructed_val);
 
-  template<typename T>
+  template <typename T>
   void operator()(const ast::ScalarValue<T> &scalar_val);
 
   void operator()(const ast::Star &value);

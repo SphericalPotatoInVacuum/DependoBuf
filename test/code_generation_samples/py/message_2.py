@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Address:
-  id: Unsigned | None = None
+  id: int | None = None
   street: str | None = None
   floor: int | None = None
   withIntercom: bool | None = None
@@ -14,14 +14,14 @@ class Address:
 
 @dataclass
 class Pet:
-  id: Unsigned | None = None
+  id: int | None = None
   kind: str | None = None
   name: str | None = None
 
 
 @dataclass
 class User:
-  id: Unsigned | None = None
+  id: int | None = None
   name: str | None = None
   address: Address | None = None
   pet: Pet | None = None
