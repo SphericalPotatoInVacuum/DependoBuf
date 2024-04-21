@@ -5,5 +5,5 @@ message A {
 message B (a A) {
 }
 
-message C (b B A{set : Set{1}}) {
+message C (b B A{set : Set{1, 2, 3, 4}}) {
 }
