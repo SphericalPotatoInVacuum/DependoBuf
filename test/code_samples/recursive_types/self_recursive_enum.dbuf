@@ -1,0 +1,6 @@
+enum Nat {
+    Zero {}
+    Succ { 
+        pred Nat;
+    }
+}

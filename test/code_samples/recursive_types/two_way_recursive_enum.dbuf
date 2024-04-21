@@ -1,0 +1,13 @@
+enum Red {
+    RZero {}
+    RSuc {
+        blue Blue;
+    }
+}
+
+enum Blue {
+    BZero {}
+    BSuc { 
+        red Red;
+    }
+}

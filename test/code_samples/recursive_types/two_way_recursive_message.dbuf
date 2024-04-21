@@ -1,0 +1,6 @@
+message Red {
+    blue Blue;
+}
+message Blue {
+    red Red;
+}
