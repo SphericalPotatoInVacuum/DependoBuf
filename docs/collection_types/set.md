@@ -3,8 +3,8 @@
 In DependoBuf, the `set` is a dynamic collection type that allows storage of unique elements. This type supports various operations to manipulate sets, such as union, intersection, and difference, along with membership testing. 
 
 ```
-message A () {
-  set Set Int;
+message A {
+  set Set (Int);
 }
 
 message B (a A) {

@@ -61,7 +61,8 @@ void TypeChecker::operator()(const ast::Message &ast_message) {
   z3_stuff_.sorts_.emplace(ast_message.identifier.name, z3_stuff_.context_.datatype_sort(name_symbol));
 
   for (const auto &field : ast_message.fields) {
-    if (field.type_expression.identifier.name.GetString() == "Array" || field.type_expression.identifier.name.GetString() == "Set") {
+    if (field.type_expression.identifier.name.GetString() == "Array" ||
+        field.type_expression.identifier.name.GetString() == "Set") {
       const auto *type_expr = std::get_if<ast::TypeExpression>(&*field.type_expression.parameters[0]);
       if (type_expr != nullptr) {
         if (type_expr->identifier.name.GetString() == "Int" || type_expr->identifier.name.GetString() == "Unsigned") {
@@ -311,7 +312,8 @@ void TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
       type_expression.identifier.name == InternedString("Bool") ||
       type_expression.identifier.name == InternedString("String") ||
       type_expression.identifier.name == InternedString("Float") ||
-      type_expression.identifier.name == InternedString("Array")) {
+      type_expression.identifier.name == InternedString("Array") ||
+      type_expression.identifier.name == InternedString("Set")) {
     return;
   }
 
