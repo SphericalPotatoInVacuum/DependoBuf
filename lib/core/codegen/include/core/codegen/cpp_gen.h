@@ -1,3 +1,5 @@
+#pragma once
+
 #include "core/codegen/generation.h"
 
 #include <unordered_set>
