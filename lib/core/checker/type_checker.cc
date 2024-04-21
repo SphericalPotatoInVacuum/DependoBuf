@@ -61,24 +61,24 @@ void TypeChecker::operator()(const ast::Message &ast_message) {
   z3_stuff_.sorts_.emplace(ast_message.identifier.name, z3_stuff_.context_.datatype_sort(name_symbol));
 
   for (const auto &field : ast_message.fields) {
-    if (field.type_expression.identifier.name.GetString() == "Array") {
+    if (field.type_expression.identifier.name.GetString() == "Array" || field.type_expression.identifier.name.GetString() == "Set") {
       const auto *type_expr = std::get_if<ast::TypeExpression>(&*field.type_expression.parameters[0]);
       if (type_expr != nullptr) {
         if (type_expr->identifier.name.GetString() == "Int" || type_expr->identifier.name.GetString() == "Unsigned") {
           z3_stuff_.sorts_.emplace(
-              InternedString("Array"),
+              field.type_expression.identifier.name,
               z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.int_sort()));
         } else if (type_expr->identifier.name.GetString() == "Bool") {
           z3_stuff_.sorts_.emplace(
-              InternedString("Array"),
+              field.type_expression.identifier.name,
               z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.bool_sort()));
         } else if (type_expr->identifier.name.GetString() == "String") {
           z3_stuff_.sorts_.emplace(
-              InternedString("Array"),
+              field.type_expression.identifier.name,
               z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.string_sort()));
         } else if (type_expr->identifier.name.GetString() == "Float") {
           z3_stuff_.sorts_.emplace(
-              InternedString("Array"),
+              field.type_expression.identifier.name,
               z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.fpa_sort(11, 53)));
         }
       }
@@ -91,7 +91,6 @@ void TypeChecker::operator()(const ast::Message &ast_message) {
   std::vector<z3::sort> accessor_sorts;
 
   for (const auto &field : ast_message.fields) {
-    DLOG(INFO) << field.type_expression.identifier.name;
     accessor_names.push_back(z3_stuff_.context_.str_symbol(field.name.GetString().c_str()));
     accessor_sorts.push_back(z3_stuff_.sorts_.at(field.type_expression.identifier.name));
   }
