@@ -207,9 +207,11 @@ void CppCodeGenerator::operator()(const ast::TypeExpression &expr, bool as_depen
 }
 
 void CppCodeGenerator::operator()(const ast::BinaryExpression &expr) {
+  *output_ << "(";
   std::visit(*this, *expr.left);
   *output_ << " " << static_cast<char>(expr.type) << " ";
   std::visit(*this, *expr.right);
+  *output_ << ")";
 }
 
 void CppCodeGenerator::operator()(const ast::UnaryExpression &expr) {

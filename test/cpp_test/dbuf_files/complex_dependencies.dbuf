@@ -1,12 +1,14 @@
 message Sum (a Int) {}
 
 message Foo (a Int) (b Int) {
-    sum Sum (a + b);
+    sum Sum (-a + b);
 }
 
-message Bar (c Int) {
+message Bar (c Int) (s String) {
     e Int;
     d Int;
     f Foo e d;
     g Foo c (e + d);
 }
+
+message Kek (a Int) (b Int) (f Foo a b) {}

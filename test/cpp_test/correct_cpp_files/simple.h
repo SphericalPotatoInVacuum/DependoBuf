@@ -8,29 +8,34 @@ struct A {
 	}
 };
 
-template <A<5> a>
-struct B {
-	int f;
+struct D {
+	int a;
+	int b;
 
 	bool check() const {
 		return true;
 	}
 };
 
-struct B_a {
-	int f;
+template <D d>
+struct B {
+	int i;
+	unsigned u;
+	std::string s;
+	float f;
+	bool b;
 
-	bool check(A<5> a) const {
+	bool check() const {
 		return true;
 	}
 };
 
 struct C {
-	A<1 + 3 + 5 - 4> a;
-	B_a b;
+	A<((1 + 3) + (5 - 4))> a;
+	B<D{5, 6}> b;
 
 	bool check() const {
-		return true && b.check(a);
+		return true;
 	}
 };
 

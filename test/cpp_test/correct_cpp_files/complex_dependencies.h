@@ -10,7 +10,7 @@ struct Sum {
 
 template <int a, int b>
 struct Foo {
-	Sum<a + b> sum;
+	Sum<(-a + b)> sum;
 
 	bool check() const {
 		return true;
@@ -28,7 +28,7 @@ struct Foo_a_b {
 	Sum_a sum;
 
 	bool check(int a, int b) const {
-		return true && sum.check(a + b);
+		return true && sum.check((-a + b));
 	}
 };
 
@@ -37,11 +37,11 @@ struct Foo_b {
 	Sum_a sum;
 
 	bool check(int b) const {
-		return true && sum.check(a + b);
+		return true && sum.check((-a + b));
 	}
 };
 
-template <int c>
+template <int c, const char* s>
 struct Bar {
 	int e;
 	int d;
@@ -49,7 +49,15 @@ struct Bar {
 	Foo_b<c> g;
 
 	bool check() const {
-		return true && g.check(e + d) && f.check(e, d);
+		return true && g.check((e + d)) && f.check(e, d);
+	}
+};
+
+template <int a, int b, Foo<a, b> f>
+struct Kek {
+
+	bool check() const {
+		return true;
 	}
 };
 
