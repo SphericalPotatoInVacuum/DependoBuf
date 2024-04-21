@@ -5,10 +5,10 @@ message A (x Unsigned) {
   array Array (Int) x;
 }
 
-message B (a A 4) {
+message B (a A 4u) {
 }
 
-message C (b B A{array = {1, 2, 3, 4}}) {
+message C (b B A{array : {1, 2, 3, 4}}) {
 }
 ```
 

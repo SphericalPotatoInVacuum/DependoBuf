@@ -1,0 +1,9 @@
+message A {
+  set Set (Int);
+}
+
+message B (a A) {
+}
+
+message C (b B A{set : Set{1}}) {
+}

@@ -1,0 +1,11 @@
+message A (x Unsigned) {
+  array Array (Int) x;
+}
+
+message B{
+    set Set (String);
+}
+
+message C (a A 4u) (b B) {
+    field Int;
+}

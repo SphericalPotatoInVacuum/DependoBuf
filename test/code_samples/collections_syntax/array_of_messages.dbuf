@@ -1,0 +1,7 @@
+message A{
+    field Int;
+}
+
+message B (x Unsigned){
+    array Array (A) x;
+}

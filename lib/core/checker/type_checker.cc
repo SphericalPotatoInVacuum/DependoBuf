@@ -81,6 +81,10 @@ void TypeChecker::operator()(const ast::Message &ast_message) {
           z3_stuff_.sorts_.emplace(
               field.type_expression.identifier.name,
               z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.fpa_sort(11, 53)));
+        }else{
+          z3_stuff_.sorts_.emplace(
+              field.type_expression.identifier.name,
+              z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.sorts_.at(type_expr->identifier.name)));
         }
       }
     }
