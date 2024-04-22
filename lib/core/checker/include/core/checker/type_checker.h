@@ -46,7 +46,6 @@ private:
   std::deque<Scope *> context_;
   Substitutor substitutor_;
   Z3stuff z3_stuff_;
-  // ErrorList errors_;
 
   std::optional<Error> CheckDependencies(const ast::DependentType &type);
   std::optional<Error> CheckFields(const ast::TypeWithFields &type);
