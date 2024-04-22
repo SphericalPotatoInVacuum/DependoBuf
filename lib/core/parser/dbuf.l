@@ -47,6 +47,8 @@ string_literal \"(\\.|[^\\"])*\"
 "=>"      return token::TOK_IMPL;
 "returns" return token::TOK_RETURNS;
 
+"in"  return token::TOK_IN;
+
     /* Literals */
 {string_literal} {
   std::string str(yytext);
@@ -87,7 +89,6 @@ string_literal \"(\\.|[^\\"])*\"
 "&&"  return token::TOK_DOUBLE_AND;
 "||"  return token::TOK_DOUBLE_OR;
 "\\"  return token::TOK_BACK_SLASH;
-"in"  return token::TOK_IN;
 
     /* Single-character tokens */
 "("  return token::TOK_LEFT_PAREN;

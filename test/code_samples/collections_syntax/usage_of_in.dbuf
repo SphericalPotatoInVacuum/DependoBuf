@@ -1,0 +1,10 @@
+message A (b Bool) {
+  str String;
+}
+
+message B {
+  set Set (Int);
+  x Int;
+  bar Bool;
+  a A (x in set);
+}

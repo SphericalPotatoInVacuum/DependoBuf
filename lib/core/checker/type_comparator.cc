@@ -156,18 +156,20 @@ std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &exp
     if (expected_.identifier.name == InternedString("Float")) {
       return {};
     }
-  } else if (expr.type == ast::BinaryExpressionType::And || expr.type == ast::BinaryExpressionType::Or || expr.type == ast::BinaryExpressionType::In) {
+  } else if (
+      expr.type == ast::BinaryExpressionType::And || expr.type == ast::BinaryExpressionType::Or ||
+      expr.type == ast::BinaryExpressionType::In) {
     if (expected_.identifier.name == InternedString("Bool")) {
       return {};
     }
   } else if (expr.type == ast::BinaryExpressionType::DoubleAnd || expr.type == ast::BinaryExpressionType::BackSlash) {
-      if (expected_.identifier.name == InternedString("Set")) {
-        return {};
-      }
+    if (expected_.identifier.name == InternedString("Set")) {
+      return {};
+    }
   } else if (expr.type == ast::BinaryExpressionType::DoubleOr) {
-      if (expected_.identifier.name == InternedString("Array") || expected_.identifier.name == InternedString("Set")) {
-        return {};
-      }
+    if (expected_.identifier.name == InternedString("Array") || expected_.identifier.name == InternedString("Set")) {
+      return {};
+    }
   }
   DLOG(ERROR) << "Invalid operator use in expression " << expr;
   return Error(
@@ -203,7 +205,7 @@ std::optional<Error> TypeComparator::operator()(const ast::VarAccess &expr) {
   const Scope &outer_scope = *context_.back();
   DLOG(INFO) << "Checking var access: " << expr;
   if (expr.field_identifiers.empty()) {
-    return CompareTypeExpressions(expected_, outer_scope.LookupName(expr.var_identifier.name), z3_stuff_);
+    return {};
   }
   InternedString message_name   = outer_scope.LookupName(expr.var_identifier.name).identifier.name;
   InternedString expected_field = expr.field_identifiers[0].name;
@@ -290,30 +292,29 @@ std::optional<Error> TypeComparator::operator()(const ast::CollectionValue &) {
 }
 
 [[nodiscard]] std::optional<Error> TypeComparator::CompareTypeExpressions(
-      const ast::TypeExpression &expected_type,
-      const ast::TypeExpression &expression,
-      Z3stuff &z3_stuff) {
-    if (expected_type.identifier.name != expression.identifier.name) {
-      return Error(
-          CreateError() << "Got type \"" << expression.identifier.name << "\", but expected type is \""
-                        << expected_type.identifier.name << "\" at " << expression.location);
-    }
-    if (expected_type.parameters.size() != expression.parameters.size()) {
-      return Error(
-          CreateError() << "Expected " << expected_type.parameters.size() << "type parametes, but got "
-                        << expression.parameters.size() << " at " << expression.location);
-    }
-    for (size_t id = 0; id < expected_type.parameters.size(); ++id) {
-      auto error =
-          CompareExpressions(*expected_type.parameters[id], *expression.parameters[id], z3_stuff, ast_, context_);
-      if (error) {
-        return Error(
-            CreateError() << "Type parameter " << id << " mismatch: " << error->message << " at "
-                          << expression.location);
-      }
-    }
-    return {};
+    const ast::TypeExpression &expected_type,
+    const ast::TypeExpression &expression,
+    Z3stuff &z3_stuff) {
+  if (expected_type.identifier.name != expression.identifier.name) {
+    return Error(
+        CreateError() << "Got type \"" << expression.identifier.name << "\", but expected type is \""
+                      << expected_type.identifier.name << "\" at " << expression.location);
   }
+  if (expected_type.parameters.size() != expression.parameters.size()) {
+    return Error(
+        CreateError() << "Expected " << expected_type.parameters.size() << "type parametes, but got "
+                      << expression.parameters.size() << " at " << expression.location);
+  }
+  for (size_t id = 0; id < expected_type.parameters.size(); ++id) {
+    auto error =
+        CompareExpressions(*expected_type.parameters[id], *expression.parameters[id], z3_stuff, ast_, context_);
+    if (error) {
+      return Error(
+          CreateError() << "Type parameter " << id << " mismatch: " << error->message << " at " << expression.location);
+    }
+  }
+  return {};
+}
 
 std::optional<Error>
 TypeComparator::CheckConstructedValue(const ast::ConstructedValue &val, const ast::TypeWithFields &constructor) {
