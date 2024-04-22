@@ -33,23 +33,25 @@ std::optional<Error> Checker::CheckPositivity(const ast::AST &ast) {
   if (result.error.has_value()) {
     return result.error;
   }
-  visit_order_ = std::move(result.sorted_order);
+
   DLOG(INFO) << "Positivity check passed";
-  std::stringstream ss;
+
+  visit_order_ = std::move(result.sorted_order);
   if (visit_order_.empty()) {
     return {};
   }
+  std::stringstream ss;
   ss << visit_order_[0];
   for (size_t i = 1; i < visit_order_.size(); ++i) {
     ss << " -> " << visit_order_[i];
   }
-  DLOG(INFO) << "Visit order: " << ss.str();
+
+  DLOG(INFO) << "Visit order: " << ss.str();  
   return {};
 }
 
-ErrorList Checker::CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order) {
-  TypeChecker type_expression_checker(ast, visit_order);
-  return type_expression_checker.CheckTypes();
+std::optional<Error> Checker::CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order) {
+  return TypeChecker(ast, visit_order).CheckTypes();
 }
 
 int Checker::CheckAll(const ast::AST &ast) {
@@ -67,11 +69,9 @@ int Checker::CheckAll(const ast::AST &ast) {
     return EXIT_FAILURE;
   }
 
-  ErrorList type_errors = CheckTypeResolution(ast, visit_order_);
-  if (!type_errors.empty()) {
-    for (const auto &error : type_errors) {
-      std::cerr << error.message << std::endl;
-    }
+  std::optional<Error> type_error = CheckTypeResolution(ast, visit_order_);
+  if (type_error.has_value()) {
+    std::cerr << type_error->message << std::endl;
     return EXIT_FAILURE;
   }
 

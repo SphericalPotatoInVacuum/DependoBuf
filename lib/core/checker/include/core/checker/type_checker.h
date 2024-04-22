@@ -34,37 +34,24 @@ class TypeChecker {
 public:
   explicit TypeChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph);
 
-  ErrorList CheckTypes();
+  std::optional<Error> CheckTypes();
 
-  void operator()(const ast::Message &ast_message);
-  void operator()(const ast::Enum &ast_enum);
+  std::optional<Error> operator()(const ast::Message &ast_message);
+  std::optional<Error> operator()(const ast::Enum &ast_enum);
 
 private:
-  /**
-   * @brief Check that all dependencies are correctly defined
-   *
-   * @param type
-   */
-  void CheckDependencies(const ast::DependentType &type);
-  /**
-   * @brief Check that all fields are correctly defined
-   *
-   * @param type
-   */
-  void CheckFields(const ast::TypeWithFields &type);
-
-  void CheckTypeExpression(const ast::TypeExpression &type_expression);
-
-  ast::TypeExpression GetVarAccessType(const ast::VarAccess &var_access);
-
   const ast::AST &ast_;
   const std::vector<InternedString> sorted_graph_;
 
-  Substitutor substitutor_;
   std::deque<Scope *> context_;
-  ErrorList errors_;
-
+  Substitutor substitutor_;
   Z3stuff z3_stuff_;
+  // ErrorList errors_;
+
+  std::optional<Error> CheckDependencies(const ast::DependentType &type);
+  std::optional<Error> CheckFields(const ast::TypeWithFields &type);
+
+  std::optional<Error> CheckTypeExpression(const ast::TypeExpression &type_expression);
 };
 
 } // namespace dbuf::checker
