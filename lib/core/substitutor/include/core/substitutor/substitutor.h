@@ -56,7 +56,7 @@ public:
 
   ast::Expression operator()(const ast::VarAccess &value, const ast::VarAccess &substitution);
   ast::Expression operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution);
-  
+
   template <typename T, typename U>
   ast::Expression operator()(const T &, const U &) {
     throw std::runtime_error("Substitution error");

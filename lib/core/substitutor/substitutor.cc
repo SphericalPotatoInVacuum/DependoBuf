@@ -72,10 +72,7 @@ ast::Expression Substitutor::operator()(const ast::TypeExpression &type_expressi
     parameters.emplace_back(std::make_shared<const ast::Expression>(std::visit(*this, *parameter)));
   }
 
-  return ast::TypeExpression {
-      {type_expression.location},
-      type_expression.identifier,
-      std::move(parameters)};
+  return ast::TypeExpression {{type_expression.location}, type_expression.identifier, std::move(parameters)};
 }
 
 // If VarAccess is in scope, we need to subsitute that VarAccess with corresponding Expression
@@ -93,9 +90,11 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value) {
 // To substitute ArrayAccess we need to subtitute array_identifier and index
 ast::Expression Substitutor::operator()(const ast::ArrayAccess &value) {
   ast::Expression array_identifier = std::visit(*this, *value.array_identifier);
-  ast::Expression ind = std::visit(*this, *value.ind);
+  ast::Expression ind              = std::visit(*this, *value.ind);
 
-  return ast::ArrayAccess{std::make_shared<const ast::Expression>(array_identifier), std::make_shared<const ast::Expression>(ind)};
+  return ast::ArrayAccess {
+      std::make_shared<const ast::Expression>(array_identifier),
+      std::make_shared<const ast::Expression>(ind)};
 }
 
 ast::Expression Substitutor::operator()(const ast::Value &value) {
@@ -110,7 +109,7 @@ ast::Expression Substitutor::operator()(const ast::ConstructedValue &value) {
     fields.emplace_back(field.first, std::make_shared<const ast::Expression>(std::visit(*this, *field.second)));
   }
 
-  return ast::ConstructedValue{{value.location}, value.constructor_identifier, std::move(fields)};
+  return ast::ConstructedValue {{value.location}, value.constructor_identifier, std::move(fields)};
 }
 
 // To substitute CollectionValue we need to subtitute all elements of CollectionValue
@@ -120,7 +119,7 @@ ast::Expression Substitutor::operator()(const ast::CollectionValue &value) {
   for (const auto &elem : value.values) {
     values.emplace_back(std::make_shared<const ast::Expression>(std::visit(*this, *elem)));
   }
-  return ast::CollectionValue{{value.location}, std::move(values)};
+  return ast::CollectionValue {{value.location}, std::move(values)};
 }
 
 ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::Value &substitution) {
@@ -135,7 +134,7 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::
   return ast::VarAccess {substitution.var_identifier, std::move(fields)};
 }
 
-// Case foo -> Foo {bar: some_value} and we need to substitute foo.bar 
+// Case foo -> Foo {bar: some_value} and we need to substitute foo.bar
 ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution) {
   if (value.field_identifiers.empty()) {
     return substitution;

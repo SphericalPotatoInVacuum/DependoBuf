@@ -33,7 +33,7 @@ std::optional<Error> Checker::CheckPositivity(const ast::AST &ast) {
   if (result.error.has_value()) {
     return result.error;
   }
-  visit_order_                     = std::move(result.sorted_order);
+  visit_order_ = std::move(result.sorted_order);
   DLOG(INFO) << "Positivity check passed";
   std::stringstream ss;
   if (visit_order_.empty()) {
