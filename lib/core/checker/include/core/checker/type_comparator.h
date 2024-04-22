@@ -40,7 +40,7 @@ public:
   std::optional<Error> operator()(const ast::BinaryExpression &expr);
   std::optional<Error> operator()(const ast::UnaryExpression &expr);
   std::optional<Error> operator()(const ast::VarAccess &expr);
-  std::optional<Error> operator()(const ast::ArrayAccess & /*expr*/) {
+  std::optional<Error> operator()(const ast::ArrayAccess & /* expr */) {
     DLOG(FATAL) << "Unfinished function: "
                 << "std::optional<Error> operator()(const ast::ArrayAccess &expr)";
   }
@@ -58,10 +58,7 @@ public:
   }
 
   std::optional<Error> operator()(const ast::ConstructedValue &val);
-  std::optional<Error> operator()(const ast::CollectionValue & /*val*/) {
-    DLOG(FATAL) << "Unfinished function: "
-                << "std::optional<Error> operator()(const ast::CollectionValue &val)";
-  }
+  std::optional<Error> operator()(const ast::CollectionValue &val);
 
 private:
   const ast::TypeExpression &expected_;
@@ -73,46 +70,26 @@ private:
   [[nodiscard]] std::optional<Error> CompareTypeExpressions(
       const ast::TypeExpression &expected_type,
       const ast::TypeExpression &expression,
-      Z3stuff &z3_stuff) {
-    if (expected_type.identifier.name != expression.identifier.name) {
-      return Error(
-          CreateError() << "Got type \"" << expression.identifier.name << "\", but expected type is \""
-                        << expected_type.identifier.name << "\" at " << expression.location);
-    }
-
-    if (expected_type.parameters.size() != expression.parameters.size()) {
-      return Error(
-          CreateError() << "Expected " << expected_type.parameters.size() << "type parametes, but got "
-                        << expression.parameters.size() << " at " << expression.location);
-    }
-
-    for (size_t id = 0; id < expected_type.parameters.size(); ++id) {
-      auto error =
-          CompareExpressions(*expected_type.parameters[id], *expression.parameters[id], z3_stuff, ast_, context_);
-      if (error) {
-        return Error(
-            CreateError() << "Type parameter " << id << " mismatch: " << error->message << " at "
-                          << expression.location);
-      }
-    }
-
-    return {};
-  }
+      Z3stuff &z3_stuff);
 
   std::optional<Error> CheckConstructedValue(const ast::ConstructedValue &val, const ast::TypeWithFields &constructor);
 
   static InternedString GetTypename(const ast::ScalarValue<bool> &) {
     return InternedString("Bool");
   }
+
   static InternedString GetTypename(const ast::ScalarValue<int64_t> &) {
     return InternedString("Int");
   }
+
   static InternedString GetTypename(const ast::ScalarValue<uint64_t> &) {
     return InternedString("Unsigned");
   }
+
   static InternedString GetTypename(const ast::ScalarValue<double> &) {
     return InternedString("Float");
   }
+
   static InternedString GetTypename(const ast::ScalarValue<std::string> &) {
     return InternedString("String");
   }

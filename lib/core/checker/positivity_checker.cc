@@ -29,44 +29,44 @@ PositivityChecker::Result PositivityChecker::operator()(const ast::AST &ast) {
 void PositivityChecker::operator()(const ast::Message &ast_message) {
   DLOG(INFO) << "Checking message: " << ast_message.identifier.name;
   current_type_ = ast_message.identifier.name;
-  add_self_     = true;
+  // add_self_     = true;
   dependency_graph_.emplace(current_type_, std::set<InternedString> {});
   for (const auto &dep : ast_message.type_dependencies) {
     (*this)(dep.type_expression);
   }
-  add_self_ = false;
-  for (const auto &field : ast_message.fields) {
-    (*this)(field.type_expression);
-  }
+  // add_self_ = false;
+  // for (const auto &field : ast_message.fields) {
+  //   (*this)(field.type_expression);
+  // }
 }
 
 void PositivityChecker::operator()(const ast::Enum &ast_enum) {
   DLOG(INFO) << "Checking enum: " << ast_enum.identifier.name;
   current_type_ = ast_enum.identifier.name;
-  add_self_     = true;
+  // add_self_     = true;
   dependency_graph_.emplace(current_type_, std::set<InternedString> {});
   for (const auto &dep : ast_enum.type_dependencies) {
     (*this)(dep.type_expression);
   }
-  for (const auto &rule : ast_enum.pattern_mapping) {
-    add_self_ = true;
-    for (const auto &input : rule.inputs) {
-      std::visit(*this, input);
-    }
-    add_self_ = false;
-    for (const auto &output : rule.outputs) {
-      for (const auto &field : output.fields) {
-        (*this)(field.type_expression);
-      }
-    }
-  }
+  // for (const auto &rule : ast_enum.pattern_mapping) {
+  //   add_self_ = true;
+  //   for (const auto &input : rule.inputs) {
+  //     std::visit(*this, input);
+  //   }
+  //   add_self_ = false;
+  //   for (const auto &output : rule.outputs) {
+  //     for (const auto &field : output.fields) {
+  //       (*this)(field.type_expression);
+  //     }
+  //   }
+  // }
 }
 
 void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
-  if (add_self_ || (type_expression.identifier.name != current_type_)) {
-    dependency_graph_.at(current_type_).insert(type_expression.identifier.name);
-    DLOG(INFO) << "Adding dependency: " << current_type_ << " -> " << type_expression.identifier.name;
-  }
+  // if (add_self_ || (type_expression.identifier.name != current_type_)) {
+  dependency_graph_.at(current_type_).insert(type_expression.identifier.name);
+  DLOG(INFO) << "Adding dependency: " << current_type_ << " -> " << type_expression.identifier.name;
+  // }
   for (const auto &parameter : type_expression.parameters) {
     std::visit(*this, *parameter);
   }

@@ -96,6 +96,8 @@ string_literal \"(\\.|[^\\"])*\"
 "}"  return token::TOK_RIGHT_BRACE;
 "["  return token::TOK_LEFT_SQUARE;
 "]"  return token::TOK_RIGHT_SQUARE;
+"<"  return token::TOK_LEFT_TRIANGLE;
+">"  return token::TOK_RIGHT_TRIANGLE;
 ","  return token::TOK_COMMA;
 "."  return token::TOK_DOT;
 "-"  return token::TOK_MINUS;

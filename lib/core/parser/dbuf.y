@@ -108,16 +108,16 @@ namespace dbuf::parser {
   RIGHT_BRACE "}"
   LEFT_SQUARE "["
   RIGHT_SQUARE "]"
+  LEFT_TRIANGLE "<"
+  RIGHT_TRIANGLE ">"
 ;
 %token
   COMMA ","
   DOT "."
   COLON ":"
 ;
-%token
-  ARRAY "Array"
-  SET "Set"
-;
+%token <std::string> ARRAY "Array"
+%token <std::string> SET "Set"
 
 %token <double> FLOAT_LITERAL
 %token <int64_t> INT_LITERAL
@@ -457,11 +457,8 @@ string_literal : STRING_LITERAL { $$ = ast::Value(ast::ScalarValue<std::string>{
 
 %nterm <ast::Value> collection_value;
 collection_value
-  : ARRAY "{" collection_elements "}" {
-    $$ = ast::CollectionValue{{@$}, ast::Identifier{{@1}, {InternedString(std::move("Array"))}}, std::move($3)};
-  }
-  | SET "{" collection_elements "}" {
-    $$ = ast::CollectionValue{{@$}, ast::Identifier{{@1}, {InternedString(std::move("Set"))}}, std::move($3)};
+  : "<" collection_elements ">" {
+    $$ = ast::CollectionValue{{@$}, std::move($2)};
   }
   ;
 
@@ -513,6 +510,7 @@ field_initialization_list
   var_identifier
   rpc_identifier
 ;
+
 type_identifier : UC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
 constructor_identifier : UC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
 service_identifier : UC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };

@@ -1,4 +1,9 @@
 message A {
-  abc Array (Int) 5;
-  abc Int;
+  set Set (Int);
+}
+
+message B (a A) {
+}
+
+message C (b B A{set : <1, 2, 3>}) {
 }

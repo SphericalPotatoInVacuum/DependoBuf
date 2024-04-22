@@ -37,7 +37,7 @@ struct Matcher {
 
   // Anything matches the star
   template <typename T>
-  bool operator()(const T &arg, const ast::Star & /*star*/) {
+  bool operator()(const T &arg, const ast::Star & /* star */) {
     DLOG(INFO) << "Matched " << arg << " to Star";
     return true;
   }
@@ -53,6 +53,18 @@ struct Matcher {
   bool operator()(const ast::Value &arg, const ast::Value &pattern) {
     DLOG(INFO) << "Matching Value " << arg << " against Value" << pattern;
     return std::visit(*this, arg, pattern);
+  }
+
+  template <typename T>
+  bool operator()(const T &arg, const ast::ConstructedValue &pattern) {
+    DLOG(INFO) << "Tried to match " << arg << " against ConstructedValue " << pattern;
+    return false;
+  }
+
+  template <typename T>
+  bool operator()(const ast::ConstructedValue &arg, const T &pattern) {
+    DLOG(INFO) << "Tried to match ConstructedValue " << arg << " against " << pattern;
+    return false;
   }
 
   bool operator()(const ast::ConstructedValue &arg, const ast::ConstructedValue &pattern) {
@@ -74,12 +86,7 @@ struct Matcher {
     }
     return true;
   }
-  template <typename T>
-  bool operator()(const T &arg, const ast::ConstructedValue &pattern) {
-    DLOG(INFO) << "Tried to match " << arg << " against ConstructedValue " << pattern;
-    return false;
-  }
-  template <>
+
   bool operator()(const ast::VarAccess &arg, const ast::ConstructedValue &pattern) {
     DLOG(INFO) << "Matching VarAccess " << arg << " against ConstructedValue " << pattern;
     const auto &type_variant = ast.types.at(GetVarAccessType(arg, ast, &context).identifier.name);
@@ -94,12 +101,6 @@ struct Matcher {
       }
     }
     return true;
-  }
-
-  template <typename T>
-  bool operator()(const ast::ConstructedValue &arg, const T &pattern) {
-    DLOG(INFO) << "Tried to match ConstructedValue " << arg << " against " << pattern;
-    return false;
   }
 
   template <typename T, typename U>
@@ -121,9 +122,10 @@ std::optional<Error> TypeComparator::Compare(const ast::Expression &expr) {
   return result;
 }
 
-std::optional<Error> TypeComparator::operator()(const ast::TypeExpression &) {
+std::optional<Error> TypeComparator::operator()(const ast::TypeExpression & /* expr */) {
   LOG(FATAL) << "TypeExpression should not be compared";
 }
+
 std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &expr) {
   DLOG(INFO) << "Checking binary expression " << expr;
   auto left_type_err = std::visit(*this, *expr.left);
@@ -141,27 +143,31 @@ std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &exp
         expected_.identifier.name == InternedString("String") || expected_.identifier.name == InternedString("Float")) {
       return {};
     }
-  }
-  if (expr.type == ast::BinaryExpressionType::Star) {
+  } else if (expr.type == ast::BinaryExpressionType::Star) {
     if (expected_.identifier.name == InternedString("Int") || expected_.identifier.name == InternedString("Unsigned") ||
         expected_.identifier.name == InternedString("Float")) {
       return {};
     }
-  }
-  if (expr.type == ast::BinaryExpressionType::Minus) {
+  } else if (expr.type == ast::BinaryExpressionType::Minus) {
     if (expected_.identifier.name == InternedString("Int") || expected_.identifier.name == InternedString("Float")) {
       return {};
     }
-  }
-  if (expr.type == ast::BinaryExpressionType::Slash) {
+  } else if (expr.type == ast::BinaryExpressionType::Slash) {
     if (expected_.identifier.name == InternedString("Float")) {
       return {};
     }
-  }
-  if (expr.type == ast::BinaryExpressionType::And || expr.type == ast::BinaryExpressionType::Or) {
+  } else if (expr.type == ast::BinaryExpressionType::And || expr.type == ast::BinaryExpressionType::Or || expr.type == ast::BinaryExpressionType::In) {
     if (expected_.identifier.name == InternedString("Bool")) {
       return {};
     }
+  } else if (expr.type == ast::BinaryExpressionType::DoubleAnd || expr.type == ast::BinaryExpressionType::BackSlash) {
+      if (expected_.identifier.name == InternedString("Set")) {
+        return {};
+      }
+  } else if (expr.type == ast::BinaryExpressionType::DoubleOr) {
+      if (expected_.identifier.name == InternedString("Array") || expected_.identifier.name == InternedString("Set")) {
+        return {};
+      }
   }
   DLOG(ERROR) << "Invalid operator use in expression " << expr;
   return Error(
@@ -169,6 +175,7 @@ std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &exp
                     << " is not supported by type " << expected_.identifier.name << "\" at " << expr.location);
   return {};
 }
+
 std::optional<Error> TypeComparator::operator()(const ast::UnaryExpression &expr) {
   DLOG(INFO) << "Checking unary expression " << expr;
   auto expr_err = std::visit(*this, *expr.expression);
@@ -191,31 +198,22 @@ std::optional<Error> TypeComparator::operator()(const ast::UnaryExpression &expr
                     << " is not supported by type " << expected_.identifier.name << "\" at " << expr.location);
   return {};
 }
+
 std::optional<Error> TypeComparator::operator()(const ast::VarAccess &expr) {
   const Scope &outer_scope = *context_.back();
   DLOG(INFO) << "Checking var access: " << expr;
-  // Case: does foo has type Foo?
   if (expr.field_identifiers.empty()) {
-    // We can find foo in scope and just compare its type
     return CompareTypeExpressions(expected_, outer_scope.LookupName(expr.var_identifier.name), z3_stuff_);
   }
-  // Else we have case: does foo.bar.buzz has type Buzz?
-
-  // First lets find typename of foo. We have foo in scope, so we can get it from there
-  InternedString message_name = outer_scope.LookupName(expr.var_identifier.name).identifier.name;
-  // The field we are looking for. In case foo.bar.buzz we are looking for bar
+  InternedString message_name   = outer_scope.LookupName(expr.var_identifier.name).identifier.name;
   InternedString expected_field = expr.field_identifiers[0].name;
-
-  const auto &type = ast_.types.at(message_name);
+  const auto &type              = ast_.types.at(message_name);
   if (std::holds_alternative<ast::Enum>(type)) {
     return Error(CreateError() << "Field access works only for messages, but \"" << message_name << "\" is enum");
   }
   const auto &message = std::get<ast::Message>(type);
+  bool found          = false;
 
-  bool found = false;
-
-  // Let's notice the Type(foo.bar.buzz) == Type(bar.buzz) == Type (buzz)
-  // We want to check type recursively, so I add new scope -- the scope of message Type(foo)
   Scope scope(&context_);
   for (const auto &dependencie : message.type_dependencies) {
     scope.AddName(dependencie.name, dependencie.type_expression);
@@ -227,20 +225,12 @@ std::optional<Error> TypeComparator::operator()(const ast::VarAccess &expr) {
       break;
     }
   }
-
-  // This case is not checked in name resolution checker, so I do it there
   if (!found) {
     return Error(CreateError() << "Field \"" << expected_field << "\" not found in message \"" << message_name << "\"");
   }
-
-  // Recursion
-  ast::VarAccess var_access;
-  var_access.var_identifier    = {{parser::location()}, {expected_field}};
-  var_access.field_identifiers = std::vector<ast::Identifier>();
-  for (size_t id = 1; id < expr.field_identifiers.size(); ++id) {
-    var_access.field_identifiers.push_back(expr.field_identifiers[id]);
-  }
-
+  ast::VarAccess var_access {
+      {{parser::location()}, {expected_field}},
+      std::vector<ast::Identifier>(expr.field_identifiers.begin() + 1, expr.field_identifiers.end())};
   return (*this)(var_access);
 };
 
@@ -250,7 +240,6 @@ std::optional<Error> TypeComparator::operator()(const ast::Value &val) {
 
 std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val) {
   const InternedString &type_name = ast_.constructor_to_type.at(val.constructor_identifier.name);
-
   if (type_name != expected_.identifier.name) {
     DLOG(ERROR) << "Invalid type of constructed value " << val << " expected " << expected_.identifier.name << " got "
                 << type_name << " at " << val.location;
@@ -259,8 +248,6 @@ std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val
                       << expected_.identifier.name << "\" at " << val.location);
   }
 
-  // If the base type is correct then we have two cases:
-  // 1. The value is a message. No extra work needed
   if (std::holds_alternative<ast::Message>(ast_.types.at(type_name))) {
     DLOG(INFO) << "Constructed value " << val << " has a message type " << type_name << ", checking fields";
     const auto &ast_message = std::get<ast::Message>(ast_.types.at(type_name));
@@ -269,9 +256,6 @@ std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val
   DLOG(INFO) << "Constructed value " << val << " has an enum type " << type_name
              << ", checking constructor availability";
   const auto &ast_enum = std::get<ast::Enum>(ast_.types.at(type_name));
-  // 2. The value is an enum. Then we need to check that the constructor can be used after pattern matching
-  // the arguments that were passed in our expected type expression
-  // To do this we need to iterate through rules and find the one that can be satisfied or throw an error if none can
   DLOG(INFO) << "Matching expression " << expected_ << " against enum " << type_name;
   for (const auto &rule : ast_enum.pattern_mapping) {
     DLOG(INFO) << "Trying input patterns " << rule.inputs;
@@ -282,7 +266,6 @@ std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val
         matches = false;
         break;
       }
-      // If the pattern matches, we need to add the bindings to the substitutor
       substitutor_.AddSubstitution(ast_enum.type_dependencies[i].name, expected_.parameters[i]);
     }
     if (!matches) {
@@ -290,7 +273,6 @@ std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val
       continue;
     }
     for (const auto &constructor : rule.outputs) {
-      // Skip if this is not the constructor we are looking for
       if (constructor.identifier.name != val.constructor_identifier.name) {
         continue;
       }
@@ -303,9 +285,38 @@ std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val
                     << val.location);
 }
 
+std::optional<Error> TypeComparator::operator()(const ast::CollectionValue &) {
+  return {};
+}
+
+[[nodiscard]] std::optional<Error> TypeComparator::CompareTypeExpressions(
+      const ast::TypeExpression &expected_type,
+      const ast::TypeExpression &expression,
+      Z3stuff &z3_stuff) {
+    if (expected_type.identifier.name != expression.identifier.name) {
+      return Error(
+          CreateError() << "Got type \"" << expression.identifier.name << "\", but expected type is \""
+                        << expected_type.identifier.name << "\" at " << expression.location);
+    }
+    if (expected_type.parameters.size() != expression.parameters.size()) {
+      return Error(
+          CreateError() << "Expected " << expected_type.parameters.size() << "type parametes, but got "
+                        << expression.parameters.size() << " at " << expression.location);
+    }
+    for (size_t id = 0; id < expected_type.parameters.size(); ++id) {
+      auto error =
+          CompareExpressions(*expected_type.parameters[id], *expression.parameters[id], z3_stuff, ast_, context_);
+      if (error) {
+        return Error(
+            CreateError() << "Type parameter " << id << " mismatch: " << error->message << " at "
+                          << expression.location);
+      }
+    }
+    return {};
+  }
+
 std::optional<Error>
 TypeComparator::CheckConstructedValue(const ast::ConstructedValue &val, const ast::TypeWithFields &constructor) {
-  // Check that all fields have the correct types
   for (size_t i = 0; i < constructor.fields.size(); ++i) {
     const auto &field         = constructor.fields[i];
     const auto &expected_type = std::get<ast::TypeExpression>(substitutor_(field.type_expression));

@@ -55,7 +55,7 @@ private:
 
   DependencyGraph dependency_graph_;
   InternedString current_type_;
-  bool add_self_;
+  // bool add_self_;
 };
 
 }; // namespace dbuf::checker

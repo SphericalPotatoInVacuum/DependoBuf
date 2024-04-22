@@ -44,6 +44,7 @@ struct Identifiable {
 
 /**
  * @brief Represents scalar values like numbers, booleans and strings
+ *
  * @tparam T The type of the value
  */
 template <typename T>
@@ -130,7 +131,7 @@ struct ConstructedValue : ASTNode {
  * @brief Represents a constructed value, like `{1, 2, 3, 4}`
  */
 struct CollectionValue : ASTNode {
-  Identifier collection_identifier;
+  // Identifier collection_identifier;
   std::vector<ExprPtr> values = {};
 };
 
