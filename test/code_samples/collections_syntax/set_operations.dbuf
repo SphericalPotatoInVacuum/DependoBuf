@@ -1,0 +1,13 @@
+message T {
+  set1 Set (Int);
+  set2 Set (Int);
+}
+
+message K (set Set (Int)) {
+}
+
+message P (t T) {
+  k1 K (t.set1 && t.set2);
+  k2 K (t.set1 || t.set2);
+  k3 K (t.set1 \ t.set2);
+}

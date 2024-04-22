@@ -1,0 +1,11 @@
+message T {
+  array1 Array (Int) 1;
+  array2 Array (Int) 2;
+}
+
+message K (array Array (Int) 4) {
+}
+
+message P (t T) {
+  k K (t.array1 || t.array2);
+}

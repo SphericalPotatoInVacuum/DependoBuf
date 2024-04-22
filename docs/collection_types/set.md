@@ -26,18 +26,18 @@ This snippet demonstrates checking if the integer 2 is in the set, utilizing the
 message C (b Bool) {
 }
 
-message E (set Set Int) {
+message E (set Set (Int)) {
   c C (2 in set);
 }
 ```
 Here, the intersection of set1 and set2 from message T is calculated using && and used to initialize message K.
 ```
 message T {
-  set1 Set Int;
-  set2 Set Int;
+  set1 Set (Int);
+  set2 Set (Int);
 }
 
-message K (set Set Int) {
+message K (set Set (Int)) {
 }
 
 message P (t T) {
