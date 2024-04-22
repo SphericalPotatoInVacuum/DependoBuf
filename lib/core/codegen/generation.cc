@@ -1,6 +1,7 @@
 #include "core/codegen/generation.h"
 
 #include "core/codegen/cpp_gen.h"
+#include "core/codegen/rust_gen.h"
 
 #include <filesystem>
 #include <set>
@@ -31,6 +32,15 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
         added_formats.insert("cpp");
       } else {
         throw std::string("You can add only one c++ file");
+      }
+    } else if ((format == "rs") || (format == "rust")) {
+      if (!added_formats.contains("rs")) {
+        std::stringstream full_path;
+        full_path << path << "/" << filename << ".rs";
+        targets_.emplace_back(std::make_shared<RustCodeGenerator>(RustCodeGenerator(full_path.str())));
+        added_formats.insert("rs");
+      } else {
+        throw std::string("You can add only one rust file");
       }
     } else {
       throw "Unsupported foramt: {}" + format;
