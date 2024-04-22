@@ -64,7 +64,7 @@ struct VarAccess {
  * @brief Represents array access expressions, like `array[0]`
  */
 struct ArrayAccess {
-  Identifier array_identifier;
+  ExprPtr array_identifier;
   ExprPtr ind;
 };
 
@@ -179,7 +179,7 @@ inline std::ostream &operator<<(std::ostream &os, const VarAccess &var) {
 }
 
 inline std::ostream &operator<<(std::ostream &os, const ArrayAccess &var) {
-  os << var.array_identifier.name << "[" << *var.ind << "]";
+  os << var.array_identifier << "[" << *var.ind << "]";
   return os;
 }
 
