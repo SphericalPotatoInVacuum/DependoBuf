@@ -140,11 +140,8 @@ void NameResolutionChecker::operator()(const ast::VarAccess &var_access) {
 }
 
 void NameResolutionChecker::operator()(const ast::ArrayAccess &array_access) {
-  if (!IsInScope(array_access.array_identifier.name)) {
-    errors_.emplace_back(Error(
-        CreateError() << "Undefined array: \"" << array_access.array_identifier.name.GetString() << "\" at "
-                      << array_access.array_identifier.location));
-  }
+  std::visit(*this, *array_access.array_identifier);
+  std::visit(*this, *array_access.ind);
 }
 
 void NameResolutionChecker::PushScope() {

@@ -24,52 +24,46 @@ the Free Software Foundation, either version 3 of the License, or
 
 namespace dbuf {
 
-struct Substitutor {
+class Substitutor {
+public:
   void AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression);
   void PushScope();
   void PopScope();
+
+  ast::Expression operator()(const ast::BinaryExpression &expression);
+  ast::Expression operator()(const ast::UnaryExpression &expression);
+  ast::Expression operator()(const ast::TypeExpression &type_expression);
+  ast::Expression operator()(const ast::VarAccess &value);
+  ast::Expression operator()(const ast::ArrayAccess &value);
+
+  ast::Expression operator()(const ast::Value &value);
 
   template <typename T>
   ast::Expression operator()(const ast::ScalarValue<T> &value) {
     return ast::ScalarValue<T>(value);
   }
 
-  ast::Expression operator()(const ast::BinaryExpression &expression);
-  ast::Expression operator()(const ast::UnaryExpression &expression);
+  ast::Expression operator()(const ast::ConstructedValue &value);
+  ast::Expression operator()(const ast::CollectionValue &value);
 
-  ast::Expression operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution);
-  ast::Expression operator()(const ast::VarAccess &value, const ast::VarAccess &substitution);
+  ast::Expression operator()(const ast::VarAccess &value, const ast::Value &substitution);
+
   template <typename T>
   ast::Expression operator()(const ast::VarAccess &value, const ast::ScalarValue<T> &substitution) {
     DCHECK(value.field_identifiers.empty()) << "Field access on scalar value";
     return substitution;
   }
-  ast::Expression operator()(const ast::VarAccess &value, const ast::Value &substitution) {
-    return std::visit(*this, ast::Expression(value), substitution);
-  }
+
+  ast::Expression operator()(const ast::VarAccess &value, const ast::VarAccess &substitution);
+  ast::Expression operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution);
+
   template <typename T, typename U>
   ast::Expression operator()(const T &, const U &) {
     throw std::runtime_error("Substitution error");
   }
 
-  ast::Expression operator()(const ast::VarAccess &value);
-  ast::Expression operator()(const ast::ArrayAccess & /*value*/) {
-    DLOG(FATAL) << "Unfinished function: "
-                << "ast::Expression operator()(const ast::ArrayAccess &value)";
-  }
-
-  ast::Expression operator()(const ast::ConstructedValue &value);
-  ast::Expression operator()(const ast::CollectionValue & /*value*/) {
-    DLOG(FATAL) << "Unfinished function: "
-                << "ast::Expression operator()(const ast::CollectionValue &value)";
-  }
-
-  ast::Expression operator()(const ast::Value &value);
-
-  ast::Expression operator()(const ast::TypeExpression &type_expression);
-
 private:
-  using Scope = std::unordered_map<InternedString, std::shared_ptr<const ast::Expression>>;
+  using Scope = std::unordered_map<InternedString, ast::ExprPtr>;
   std::deque<Scope> substitute_;
 };
 

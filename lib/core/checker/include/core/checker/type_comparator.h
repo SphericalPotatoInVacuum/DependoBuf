@@ -41,8 +41,8 @@ public:
   std::optional<Error> operator()(const ast::UnaryExpression &expr);
   std::optional<Error> operator()(const ast::VarAccess &expr);
   std::optional<Error> operator()(const ast::ArrayAccess & /* expr */) {
-    DLOG(FATAL) << "Unfinished function: "
-                << "std::optional<Error> operator()(const ast::ArrayAccess &expr)";
+    LOG(FATAL) << "Unfinished function: "
+               << "std::optional<Error> operator()(const ast::ArrayAccess &expr)";
   }
   std::optional<Error> operator()(const ast::Value &val);
 

@@ -18,6 +18,9 @@ the Free Software Foundation, either version 3 of the License, or
 #include <memory>
 #include <ranges>
 #include <stdexcept>
+#include <utility>
+#include <variant>
+#include <vector>
 
 namespace dbuf {
 
@@ -36,13 +39,14 @@ void Substitutor::PushScope() {
   substitute_.emplace_back();
 }
 
+// Delete the last scope
 void Substitutor::PopScope() {
   DCHECK(!substitute_.empty());
   DLOG(INFO) << "Popped a scope from substitutor";
   substitute_.pop_back();
 }
 
-// If we want to substitute a binary expression, we need to substitute its left and right parts
+// To substitute BinaryExpression, we need to substitute its left and right parts
 ast::Expression Substitutor::operator()(const ast::BinaryExpression &expression) {
   return ast::BinaryExpression {
       {expression.location},
@@ -51,7 +55,7 @@ ast::Expression Substitutor::operator()(const ast::BinaryExpression &expression)
       std::make_unique<ast::Expression>(std::visit(*this, *expression.right))};
 }
 
-// If we want to substitute an unary expression, we just need to substitute its expression part
+// To substitute UnaryExpression, we need to substitute its expression part
 ast::Expression Substitutor::operator()(const ast::UnaryExpression &expression) {
   return ast::UnaryExpression {
       {expression.location},
@@ -59,73 +63,7 @@ ast::Expression Substitutor::operator()(const ast::UnaryExpression &expression) 
       std::make_unique<ast::Expression>(std::visit(*this, *expression.expression))};
 }
 
-ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution) {
-  // If field identifiers are empty, we have the case: n -> Succ {prev: 5},
-  // so we just return Succ {prev: 5} as a result
-  if (value.field_identifiers.empty()) {
-    return substitution;
-  }
-
-  // Else we have case foo -> Foo {bar: some_value} and we need to substitute foo.bar
-  // First we need to find bar field in the substitution
-  size_t id = 0;
-  for (id = 0; id < substitution.fields.size(); ++id) {
-    if (substitution.fields[id].first.name == value.field_identifiers[0].name) {
-      break;
-    }
-  }
-
-  // Let's notice that foo.bar.buzz.far with Foo {bar: {buzz: varible}} should return the same
-  // expression as bar.buzz with Bar {buzz: variable}. The expected result in both cases is
-  // variable.bar. That means, that we can go deeper by one field each time
-  const ast::Expression next = ast::VarAccess {
-      value.field_identifiers[0],
-      std::vector<ast::Identifier>(value.field_identifiers.begin() + 1, value.field_identifiers.end())};
-
-  return std::visit(*this, next, *substitution.fields[id].second);
-}
-
-// Case foo -> var1.var2 for foo.bar, expected result if var1.var2.bar
-ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::VarAccess &substitution) {
-  // Push substitution fields (var1.var2) first and when all fields except first (bar) of value
-  std::vector<ast::Identifier> fields = substitution.field_identifiers;
-  fields.insert(fields.end(), value.field_identifiers.begin(), value.field_identifiers.end());
-
-  // So we return var1.var2.bar
-  return ast::VarAccess {substitution.var_identifier, fields};
-}
-
-ast::Expression Substitutor::operator()(const ast::VarAccess &value) {
-  for (const auto &scope : std::ranges::reverse_view(substitute_)) {
-    auto it = scope.find(value.var_identifier.name);
-    if (it != scope.end()) {
-      return std::visit(*this, ast::Expression(value), *it->second);
-    }
-  }
-
-  return value;
-}
-
-// To substitute constucted value we need to subtitute all fields of constructed value
-ast::Expression Substitutor::operator()(const ast::ConstructedValue &value) {
-  std::vector<std::pair<ast::Identifier, std::shared_ptr<const ast::Expression>>> fields;
-  fields.reserve(value.fields.size());
-  for (const auto &field : value.fields) {
-    fields.emplace_back(field.first, std::make_shared<const ast::Expression>(std::visit(*this, *field.second)));
-  }
-
-  ast::ConstructedValue res;
-  res.constructor_identifier.name = value.constructor_identifier.name;
-  res.fields                      = std::move(fields);
-
-  return res;
-}
-
-ast::Expression Substitutor::operator()(const ast::Value &value) {
-  return std::visit(*this, value);
-}
-
-// To substitute type_expression we need to substitute all of its parameters
+// To substitute TypeExpression we need to substitute all of its parameters
 ast::Expression Substitutor::operator()(const ast::TypeExpression &type_expression) {
   std::vector<std::shared_ptr<const ast::Expression>> parameters;
   parameters.reserve(type_expression.parameters.size());
@@ -134,12 +72,86 @@ ast::Expression Substitutor::operator()(const ast::TypeExpression &type_expressi
     parameters.emplace_back(std::make_shared<const ast::Expression>(std::visit(*this, *parameter)));
   }
 
-  ast::TypeExpression res {
-      {parser::location()},
-      {parser::location(), type_expression.identifier.name},
-      std::move(parameters)};
+  return ast::TypeExpression {{type_expression.location}, type_expression.identifier, std::move(parameters)};
+}
 
-  return res;
+// If VarAccess is in scope, we need to subsitute that VarAccess with corresponding Expression
+ast::Expression Substitutor::operator()(const ast::VarAccess &value) {
+  for (const auto &scope : std::ranges::reverse_view(substitute_)) {
+    auto it = scope.find(value.var_identifier.name);
+    if (it != scope.end()) {
+      DLOG(INFO) << value;
+      return std::visit(*this, ast::Expression(value), *it->second);
+    }
+  }
+  return value;
+}
+
+// To substitute ArrayAccess we need to subtitute array_identifier and index
+ast::Expression Substitutor::operator()(const ast::ArrayAccess &value) {
+  ast::Expression array_identifier = std::visit(*this, *value.array_identifier);
+  ast::Expression ind              = std::visit(*this, *value.ind);
+
+  return ast::ArrayAccess {
+      std::make_shared<const ast::Expression>(array_identifier),
+      std::make_shared<const ast::Expression>(ind)};
+}
+
+ast::Expression Substitutor::operator()(const ast::Value &value) {
+  return std::visit(*this, value);
+}
+
+// To substitute ConstructedValue we need to subtitute all fields of ConstructedValue
+ast::Expression Substitutor::operator()(const ast::ConstructedValue &value) {
+  std::vector<std::pair<ast::Identifier, ast::ExprPtr>> fields;
+  fields.reserve(value.fields.size());
+  for (const auto &field : value.fields) {
+    fields.emplace_back(field.first, std::make_shared<const ast::Expression>(std::visit(*this, *field.second)));
+  }
+
+  return ast::ConstructedValue {{value.location}, value.constructor_identifier, std::move(fields)};
+}
+
+// To substitute CollectionValue we need to subtitute all elements of CollectionValue
+ast::Expression Substitutor::operator()(const ast::CollectionValue &value) {
+  std::vector<ast::ExprPtr> values;
+  values.reserve(value.values.size());
+  for (const auto &elem : value.values) {
+    values.emplace_back(std::make_shared<const ast::Expression>(std::visit(*this, *elem)));
+  }
+  return ast::CollectionValue {{value.location}, std::move(values)};
+}
+
+ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::Value &substitution) {
+  return std::visit(*this, ast::Expression(value), substitution);
+}
+
+// Case foo -> var1.var2 for foo.bar, expected result is var1.var2.bar
+ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::VarAccess &substitution) {
+  std::vector<ast::Identifier> fields = substitution.field_identifiers;
+  fields.insert(fields.end(), value.field_identifiers.begin(), value.field_identifiers.end());
+
+  return ast::VarAccess {substitution.var_identifier, std::move(fields)};
+}
+
+// Case foo -> Foo {bar: some_value} and we need to substitute foo.bar
+ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution) {
+  if (value.field_identifiers.empty()) {
+    return substitution;
+  }
+
+  size_t id = 0;
+  for (id = 0; id < substitution.fields.size(); ++id) {
+    if (substitution.fields[id].first.name == value.field_identifiers[0].name) {
+      break;
+    }
+  }
+
+  const ast::Expression next = ast::VarAccess {
+      value.field_identifiers[0],
+      std::vector<ast::Identifier>(value.field_identifiers.begin() + 1, value.field_identifiers.end())};
+
+  return std::visit(*this, next, *substitution.fields[id].second);
 }
 
 } // namespace dbuf

@@ -50,14 +50,13 @@ private:
   void TopSortGraphCycle(Result &result) const;
   void TopSortGraphOrder(Result &result) const;
 
-  std::vector<InternedString> VisitCycle(
-      const InternedString &name,
-      std::map<InternedString, NodeState> &node_states) const;
+  std::vector<InternedString>
+  VisitCycle(const InternedString &name, std::map<InternedString, NodeState> &node_states) const;
 
   void VisitOrder(
-    const InternedString &name,
-    std::vector<InternedString> &sorted,
-    std::map<InternedString, NodeState> &node_states) const;
+      const InternedString &name,
+      std::vector<InternedString> &sorted,
+      std::map<InternedString, NodeState> &node_states) const;
 
   DependencyGraph cycle_graph_; // is used to find cycle
   DependencyGraph order_graph_; // is used to find order (only if there is not any cycle)

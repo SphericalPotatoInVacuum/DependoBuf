@@ -69,7 +69,8 @@ void PositivityChecker::operator()(const ast::Enum &ast_enum) {
 void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
   if (!is_enum_field_) {
     cycle_graph_.at(current_type_).insert(type_expression.identifier.name);
-    DLOG(INFO) << "Adding dependency: " << current_type_ << " -> " << type_expression.identifier.name << "to dependency graph";
+    DLOG(INFO) << "Adding dependency: " << current_type_ << " -> " << type_expression.identifier.name
+               << "to dependency graph";
   }
   order_graph_.at(current_type_).insert(type_expression.identifier.name);
   DLOG(INFO) << "Adding : " << current_type_ << " -> " << type_expression.identifier.name << "to order graph";
@@ -130,9 +131,8 @@ void PositivityChecker::TopSortGraphOrder(PositivityChecker::Result &result) con
   result.sorted_order = std::move(sorted);
 }
 
-std::vector<InternedString> PositivityChecker::VisitCycle(
-    const InternedString &name,
-    std::map<InternedString, NodeState> &node_states) const {
+std::vector<InternedString>
+PositivityChecker::VisitCycle(const InternedString &name, std::map<InternedString, NodeState> &node_states) const {
   if (!cycle_graph_.contains(name)) {
     return {};
   }

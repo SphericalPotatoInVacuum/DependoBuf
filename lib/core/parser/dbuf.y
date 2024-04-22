@@ -421,8 +421,8 @@ var_access
 
 %nterm <ast::ArrayAccess> array_access;
 array_access
-  : var_identifier "[" expression "]" {
-    $$ = ast::ArrayAccess{$1, std::move($3)};
+  : primary "[" expression "]" {
+    $$ = ast::ArrayAccess{std::move($1), std::move($3)};
   }
   ;
 
