@@ -23,50 +23,56 @@ PositivityChecker::Result PositivityChecker::operator()(const ast::AST &ast) {
   for (const auto &[_, type] : ast.types) {
     std::visit(*this, type);
   }
-  return TopSortGraph();
+  Result result;
+  TopSortGraphCycle(result);
+  if (!result.error.has_value()) {
+    TopSortGraphOrder(result);
+  }
+  return result;
 }
 
 void PositivityChecker::operator()(const ast::Message &ast_message) {
   DLOG(INFO) << "Checking message: " << ast_message.identifier.name;
   current_type_ = ast_message.identifier.name;
-  // add_self_     = true;
-  dependency_graph_.emplace(current_type_, std::set<InternedString> {});
+  cycle_graph_.emplace(current_type_, std::set<InternedString> {});
+  order_graph_.emplace(current_type_, std::set<InternedString> {});
   for (const auto &dep : ast_message.type_dependencies) {
     (*this)(dep.type_expression);
   }
-  // add_self_ = false;
-  // for (const auto &field : ast_message.fields) {
-  //   (*this)(field.type_expression);
-  // }
+  for (const auto &field : ast_message.fields) {
+    (*this)(field.type_expression);
+  }
 }
 
 void PositivityChecker::operator()(const ast::Enum &ast_enum) {
   DLOG(INFO) << "Checking enum: " << ast_enum.identifier.name;
   current_type_ = ast_enum.identifier.name;
-  // add_self_     = true;
-  dependency_graph_.emplace(current_type_, std::set<InternedString> {});
+  cycle_graph_.emplace(current_type_, std::set<InternedString> {});
+  order_graph_.emplace(current_type_, std::set<InternedString> {});
   for (const auto &dep : ast_enum.type_dependencies) {
     (*this)(dep.type_expression);
   }
-  // for (const auto &rule : ast_enum.pattern_mapping) {
-  //   add_self_ = true;
-  //   for (const auto &input : rule.inputs) {
-  //     std::visit(*this, input);
-  //   }
-  //   add_self_ = false;
-  //   for (const auto &output : rule.outputs) {
-  //     for (const auto &field : output.fields) {
-  //       (*this)(field.type_expression);
-  //     }
-  //   }
-  // }
+  for (const auto &rule : ast_enum.pattern_mapping) {
+    for (const auto &input : rule.inputs) {
+      std::visit(*this, input);
+    }
+    is_enum_field_ = true;
+    for (const auto &output : rule.outputs) {
+      for (const auto &field : output.fields) {
+        (*this)(field.type_expression);
+      }
+    }
+    is_enum_field_ = false;
+  }
 }
 
 void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
-  // if (add_self_ || (type_expression.identifier.name != current_type_)) {
-  dependency_graph_.at(current_type_).insert(type_expression.identifier.name);
-  DLOG(INFO) << "Adding dependency: " << current_type_ << " -> " << type_expression.identifier.name;
-  // }
+  if (!is_enum_field_) {
+    cycle_graph_.at(current_type_).insert(type_expression.identifier.name);
+    DLOG(INFO) << "Adding dependency: " << current_type_ << " -> " << type_expression.identifier.name << "to dependency graph";
+  }
+  order_graph_.at(current_type_).insert(type_expression.identifier.name);
+  DLOG(INFO) << "Adding : " << current_type_ << " -> " << type_expression.identifier.name << "to order graph";
   for (const auto &parameter : type_expression.parameters) {
     std::visit(*this, *parameter);
   }
@@ -89,14 +95,13 @@ void PositivityChecker::operator()(const ast::UnaryExpression &expr) {
   std::visit(*this, *expr.expression);
 }
 
-PositivityChecker::Result PositivityChecker::TopSortGraph() const {
-  std::vector<InternedString> sorted;
+void PositivityChecker::TopSortGraphCycle(PositivityChecker::Result &result) const {
   std::map<InternedString, NodeState> node_states;
   std::stringstream message_stream;
-  Result result;
-  for (const auto &[type_name, _] : dependency_graph_) {
+  for (const auto &[type_name, _] : cycle_graph_) {
     if (!node_states.contains(type_name)) {
-      std::vector<InternedString> cycle = Visit(type_name, sorted, node_states);
+      std::vector<InternedString> cycle = VisitCycle(type_name, node_states);
+
       if (!cycle.empty()) {
         message_stream << "Found dependency cycle: ";
         bool first_node = true;
@@ -107,30 +112,38 @@ PositivityChecker::Result PositivityChecker::TopSortGraph() const {
           message_stream << node.GetString();
           first_node = false;
         }
-        result.errors.push_back(Error {message_stream.str()});
-        return result;
+        result.error = Error {message_stream.str()};
+        break;
       }
     }
   }
-  result.sorted = std::move(sorted);
-  return result;
 }
 
-std::vector<InternedString> PositivityChecker::Visit(
+void PositivityChecker::TopSortGraphOrder(PositivityChecker::Result &result) const {
+  std::vector<InternedString> sorted;
+  std::map<InternedString, NodeState> node_states;
+  for (const auto &[type_name, _] : order_graph_) {
+    if (!node_states.contains(type_name)) {
+      VisitOrder(type_name, sorted, node_states);
+    }
+  }
+  result.sorted_order = std::move(sorted);
+}
+
+std::vector<InternedString> PositivityChecker::VisitCycle(
     const InternedString &name,
-    std::vector<InternedString> &sorted,
     std::map<InternedString, NodeState> &node_states) const {
-  if (!dependency_graph_.contains(name)) {
+  if (!cycle_graph_.contains(name)) {
     return {};
   }
   node_states[name] = NodeState::Visiting;
-  for (const auto &dep : dependency_graph_.at(name)) {
+  for (const auto &dep : cycle_graph_.at(name)) {
     if (node_states.contains(dep)) {
       if (node_states.at(dep) == NodeState::Visiting) {
         return {dep, name};
       }
     } else {
-      std::vector<InternedString> cycle = Visit(dep, sorted, node_states);
+      std::vector<InternedString> cycle = VisitCycle(dep, node_states);
       if (!cycle.empty()) {
         if (cycle.back() != cycle.front()) {
           cycle.push_back(name);
@@ -140,8 +153,24 @@ std::vector<InternedString> PositivityChecker::Visit(
     }
   }
   node_states[name] = NodeState::Visited;
-  sorted.push_back(name);
   return {};
+}
+
+void PositivityChecker::VisitOrder(
+    const InternedString &name,
+    std::vector<InternedString> &sorted,
+    std::map<InternedString, NodeState> &node_states) const {
+  if (!order_graph_.contains(name)) {
+    return;
+  }
+  node_states[name] = NodeState::Visiting;
+  for (const auto &dep : order_graph_.at(name)) {
+    if (!node_states.contains(dep)) {
+      VisitOrder(dep, sorted, node_states);
+    }
+  }
+  node_states[name] = NodeState::Visited;
+  sorted.push_back(name);
 }
 
 } // namespace dbuf::checker

@@ -67,10 +67,10 @@ TEST_P(WellFoundednessTest, TypeDependencyCycleDetection) {
   checker::PositivityChecker::Result result = checker::PositivityChecker()(*ast_);
 
   if (std::get<1>(GetParam()).empty()) {
-    ASSERT_EQ(result.errors.size(), 0) << std::get<1>(GetParam());
+    ASSERT_TRUE(!result.error.has_value());
   } else {
-    ASSERT_EQ(result.errors.size(), 1);
-    EXPECT_EQ(result.errors[0].message, std::get<1>(GetParam()));
+    ASSERT_TRUE(result.error.has_value());
+    EXPECT_EQ(result.error->message, std::get<1>(GetParam()));
   }
 }
 

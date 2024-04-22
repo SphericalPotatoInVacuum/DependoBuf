@@ -19,6 +19,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "glog/logging.h"
 
 #include <iostream>
+#include <optional>
 #include <sstream>
 
 namespace dbuf::checker {
@@ -27,13 +28,12 @@ ErrorList Checker::CheckNameResolution(const ast::AST &ast) {
   return NameResolutionChecker()(ast);
 }
 
-ErrorList Checker::CheckPositivity(const ast::AST &ast) {
+std::optional<Error> Checker::CheckPositivity(const ast::AST &ast) {
   PositivityChecker::Result result = PositivityChecker()(ast);
-  visit_order_                     = std::move(result.sorted);
-  if (!result.errors.empty()) {
-    DLOG(INFO) << "Positivity errors: " << result.errors.size();
-    return result.errors;
+  if (result.error.has_value()) {
+    return result.error;
   }
+  visit_order_                     = std::move(result.sorted_order);
   DLOG(INFO) << "Positivity check passed";
   std::stringstream ss;
   if (visit_order_.empty()) {
@@ -61,11 +61,9 @@ int Checker::CheckAll(const ast::AST &ast) {
     return EXIT_FAILURE;
   }
 
-  ErrorList positivity_errors = CheckPositivity(ast);
-  if (!positivity_errors.empty()) {
-    for (const auto &error : positivity_errors) {
-      std::cerr << error.message << std::endl;
-    }
+  std::optional<Error> positivity_error = CheckPositivity(ast);
+  if (positivity_error.has_value()) {
+    std::cerr << positivity_error->message << std::endl;
     return EXIT_FAILURE;
   }
 

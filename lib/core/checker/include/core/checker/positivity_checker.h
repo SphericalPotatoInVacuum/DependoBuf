@@ -16,6 +16,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/interning/interned_string.h"
 
 #include <map>
+#include <optional>
 #include <vector>
 
 namespace dbuf::checker {
@@ -23,8 +24,8 @@ namespace dbuf::checker {
 class PositivityChecker {
 public:
   struct Result {
-    std::vector<InternedString> sorted;
-    ErrorList errors;
+    std::vector<InternedString> sorted_order;
+    std::optional<Error> error;
   };
 
   Result operator()(const ast::AST &ast);
@@ -46,16 +47,22 @@ public:
 private:
   enum class NodeState { Visiting, Visited };
 
-  [[nodiscard]] Result TopSortGraph() const;
+  void TopSortGraphCycle(Result &result) const;
+  void TopSortGraphOrder(Result &result) const;
 
-  std::vector<InternedString> Visit( // NOLINT(misc-no-recursion)
+  std::vector<InternedString> VisitCycle(
       const InternedString &name,
-      std::vector<InternedString> &sorted,
       std::map<InternedString, NodeState> &node_states) const;
 
-  DependencyGraph dependency_graph_;
+  void VisitOrder(
+    const InternedString &name,
+    std::vector<InternedString> &sorted,
+    std::map<InternedString, NodeState> &node_states) const;
+
+  DependencyGraph cycle_graph_; // is used to find cycle
+  DependencyGraph order_graph_; // is used to find order (only if there is not any cycle)
   InternedString current_type_;
-  // bool add_self_;
+  bool is_enum_field_ = false;
 };
 
 }; // namespace dbuf::checker
