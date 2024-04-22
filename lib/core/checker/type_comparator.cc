@@ -128,6 +128,8 @@ std::optional<Error> TypeComparator::operator()(const ast::TypeExpression & /* e
 
 std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &expr) {
   DLOG(INFO) << "Checking binary expression " << expr;
+  DLOG(INFO) << "Left expression " << *expr.left;
+  DLOG(INFO) << "Right expression " << *expr.right;
   auto left_type_err = std::visit(*this, *expr.left);
   if (left_type_err) {
     return left_type_err;
@@ -205,7 +207,7 @@ std::optional<Error> TypeComparator::operator()(const ast::VarAccess &expr) {
   const Scope &outer_scope = *context_.back();
   DLOG(INFO) << "Checking var access: " << expr;
   if (expr.field_identifiers.empty()) {
-    return {};
+    return CompareTypeExpressions(expected_, outer_scope.LookupName(expr.var_identifier.name), z3_stuff_);;
   }
   InternedString message_name   = outer_scope.LookupName(expr.var_identifier.name).identifier.name;
   InternedString expected_field = expr.field_identifiers[0].name;
