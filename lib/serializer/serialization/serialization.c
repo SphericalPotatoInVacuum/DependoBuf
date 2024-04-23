@@ -1,4 +1,5 @@
 #include "serializer/serialization/serialization.h"
+#include "serializer/layout/layout.h"
 
 static int HandleSerializationOutOfSizeError() {
     perror("Calculated size of serialized data doesn't correspond to its input.\n");
@@ -21,6 +22,41 @@ static void HandleUknownKindError(List* list, char* byte_array) {
     free(byte_array);
     perror("Unidentified kind was used.\n");
     err_code = 1;
+}
+
+static int SerializeBARRAY(char *byte_array, size_t *byte_iter, char *barray_value, size_t data_size) {
+    while (*barray_value >> 7) {
+        if (*byte_iter >= data_size) {
+            return HandleSerializationOutOfSizeError();
+        }
+        byte_array[*byte_iter] = *barray_value;
+        *byte_iter += 1;
+        ++barray_value;
+    }
+    if (*byte_iter >= data_size) {
+        return HandleSerializationOutOfSizeError();
+    }
+    byte_array[*byte_iter] = *barray_value;
+    *byte_iter += 1;
+    return 0;
+}
+
+static int SerializeDOUBLE(char *byte_array, size_t *byte_iter, double inp, size_t data_size) {
+    if (*byte_iter >= data_size || data_size - *byte_iter < 8) {
+        return HandleSerializationOutOfSizeError();
+    }
+    memcpy(&byte_array[*byte_iter], &inp, 8);
+    *byte_iter += 8;
+    return 0;
+}
+
+static int SerializeFLOAT(char *byte_array, size_t *byte_iter, float inp, size_t data_size) {
+    if (*byte_iter >= data_size || data_size - *byte_iter < 8) {
+        return HandleSerializationOutOfSizeError();
+    }
+    memcpy(&byte_array[*byte_iter], &inp, 4);
+    *byte_iter += 4;
+    return 0;
 }
 
 static int SerializeVARINT(char* byte_array, size_t* byte_iter, char* varint, size_t data_size) {
@@ -209,6 +245,24 @@ char* Serialize(const Layout* layout, Value value) {
             }
         } else if (curr_node->layout->kind == STRING) {
             int exit_code = SerializeSTRING(byte_array, &byte_iter, curr_node->value_place->string_ptr, data_size);
+            if (exit_code) {
+                HandleMidSerializationError(&layer_list, byte_array);
+                return NULL;
+            }
+        } else if (curr_node->layout->kind == BARRAY) {
+            int exit_code = SerializeBARRAY(byte_array, &byte_iter, curr_node->value_place->barray_value, data_size);
+            if (exit_code) {
+                HandleMidSerializationError(&layer_list, byte_array);
+                return NULL;
+            }
+        } else if (curr_node->layout->kind == FLOAT) {
+            int exit_code = SerializeFLOAT(byte_array, &byte_iter, curr_node->value_place->float_value, data_size);
+            if (exit_code) {
+                HandleMidSerializationError(&layer_list, byte_array);
+                return NULL;
+            }
+        } else if (curr_node->layout->kind == DOUBLE) {
+            int exit_code = SerializeDOUBLE(byte_array, &byte_iter, curr_node->value_place->double_value, data_size);
             if (exit_code) {
                 HandleMidSerializationError(&layer_list, byte_array);
                 return NULL;

@@ -17,7 +17,9 @@ typedef enum Kind {
     BOOL,
     STRING,
     CONSTRUCTED,
-    DOUBLE
+    DOUBLE,
+    FLOAT,
+    BARRAY
 } Kind;
 
 //Layout is used to decribe layout of type. Can be constructed by user.
@@ -36,6 +38,8 @@ extern const Layout kDoubleLayout;
 extern const Layout kVarintLayout;
 extern const Layout kBoolLayout;
 extern const Layout kStringLayout;
+extern const Layout kFloatLayout;
+extern const Layout kBarrayLayout;
 
 typedef struct LayoutNode {
     struct LayoutNode* next;
@@ -62,5 +66,7 @@ typedef struct Value {
         char *string_ptr;
         char bool_value;
         double double_value;
+        float float_value;
+        char* barray_value;
     };
 } Value;

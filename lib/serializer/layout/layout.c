@@ -2,7 +2,6 @@
 
 #include <stdarg.h>
 
-//pre-defined layouts for built-in types
 const Layout kInt64Layout = {.fields = NULL, .kind = INT64,.field_q = 0};
 const Layout kUint64Layout = {.fields = NULL, .kind = UINT64, .field_q = 0};
 const Layout kInt32Layout = {.fields = NULL, .kind = INT32, .field_q = 0};
@@ -11,11 +10,11 @@ const Layout kDoubleLayout = {.fields = NULL, .kind = DOUBLE, .field_q = 0};
 const Layout kVarintLayout = {.fields = NULL, .kind = VARINT, .field_q = 0};
 const Layout kBoolLayout = {.fields = NULL, .kind = BOOL, .field_q = 0};
 const Layout kStringLayout = {.fields = NULL, .kind = STRING, .field_q = 0};
+const Layout kFloatLayout = {.fields = NULL, .kind = FLOAT, .field_q = 0};
+const Layout kBarrayLayout = {.fields = NULL, .kind = BARRAY, .field_q = 0};
 
-//Head of list with allocated layouts
 static LayoutNode* custom_layouts = NULL;
 
-//Pushes layout node into CUSTOM_LAYOUTS
 static void PushLayoutNode(LayoutNode* layout_node) {
     if (custom_layouts == NULL) {
         custom_layouts = layout_node;
@@ -26,7 +25,6 @@ static void PushLayoutNode(LayoutNode* layout_node) {
     custom_layouts = layout_node;
 }
 
-//Clears all layouts in CUSTOM_LAYOUTS
 void ClearLayouts() {
     LayoutNode* curr_node = custom_layouts;
     while (curr_node != NULL) {
@@ -36,7 +34,6 @@ void ClearLayouts() {
     }
 }
 
-//Creates layout with field_q fields and Layout* args as fields, and pushes new layout into CUSTOM_LAYOUTS. If error arises returns NULL.
 const Layout* CreateLayout(size_t field_q, ...) {
     va_list ap;
     va_start(ap, field_q);
@@ -62,7 +59,6 @@ const Layout* CreateLayout(size_t field_q, ...) {
     return new_layout;
 }
 
-//Deletes layout and returns 0. If layout is not founded returns 1.
 int DeleteLayout(const Layout* layout) {
     LayoutNode* curr_node = custom_layouts;
     while (curr_node != NULL) {
