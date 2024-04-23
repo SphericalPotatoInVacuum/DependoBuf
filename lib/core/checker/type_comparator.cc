@@ -128,45 +128,6 @@ std::optional<Error> TypeComparator::operator()(const ast::TypeExpression & /* e
   LOG(FATAL) << "TypeExpression should not be compared";
 }
 
-// ast::Expression left_expr = *expr.left;
-//   DLOG(INFO) << "Expression: " << expr;
-//   while (std::holds_alternative<ast::BinaryExpression>(left_expr)) {
-//     DLOG(INFO) << "Left Expression: " << left_expr;
-//     auto left_bin_expr = std::get<ast::BinaryExpression>(left_expr);
-//     ArrayConcatenation(left_bin_expr, result);
-//     left_expr = *left_bin_expr.left;
-//   }
-//   const auto *left_expr_ptr = std::get_if<ast::VarAccess>(&left_expr);
-//   DLOG(INFO) << *left_expr_ptr;
-//   ast::Expression left_size_expr;
-//   auto left_type_err = CheckVarAccess(*left_expr_ptr, left_size_expr, true);
-//   if (left_type_err) {
-//     return left_type_err;
-//   }
-//   const auto *right_expr_ptr = std::get_if<ast::VarAccess>(&*expr.right);
-//   DLOG(INFO) << *right_expr_ptr;
-//   ast::Expression right_size_expr;
-//   auto right_type_err = CheckVarAccess(*right_expr_ptr, right_size_expr, true);
-//   if (right_type_err) {
-//     return right_type_err;
-//   }
-//   const std::shared_ptr<ast::Expression> right_size_expr_ptr = std::make_shared<ast::Expression>(right_size_expr);
-//   if (result.left == nullptr && result.right == nullptr) {
-//     const std::shared_ptr<ast::Expression> left_size_expr_ptr = std::make_shared<ast::Expression>(left_size_expr);
-//     ast::BinaryExpression sum_of_sizes {
-//         {expr.location},
-//         ast::BinaryExpressionType::Plus,
-//         left_size_expr_ptr,
-//         right_size_expr_ptr};
-//     result = sum_of_sizes;
-//   } else {
-//     const std::shared_ptr<ast::Expression> result_ptr = std::make_shared<ast::Expression>(result);
-//     ast::BinaryExpression buf {{expr.location}, ast::BinaryExpressionType::Plus, result_ptr, right_size_expr_ptr};
-//     result = buf;
-//   }
-//   DLOG(INFO) << "Result: " << result;
-//   return {};
-
 void TypeComparator::ArrayConcatenation(ast::Expression &expr, ast::BinaryExpression &result, std::optional<Error> &err) {
   if (err){
     return;
