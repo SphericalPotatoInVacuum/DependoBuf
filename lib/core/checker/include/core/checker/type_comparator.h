@@ -15,6 +15,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/checker/expression_comparator.h"
 #include "core/substitutor/substitutor.h"
 
+#include <functional>
 #include <optional>
 
 namespace dbuf::checker {
@@ -72,7 +73,17 @@ private:
       const ast::TypeExpression &expression,
       Z3stuff &z3_stuff);
 
+  static std::optional<Error> CompareArrayForConcatenation(
+      const ast::TypeExpression &expected_type,
+      const ast::TypeExpression &expression,
+      ast::Expression &size_of_array);
+
+  std::optional<Error>
+  CheckVarAccess(const ast::VarAccess &expr, ast::Expression &size_of_array, bool flag_for_array_check = false);
+
   std::optional<Error> CheckConstructedValue(const ast::ConstructedValue &val, const ast::TypeWithFields &constructor);
+
+  void ArrayConcatenation(ast::Expression &expr, ast::BinaryExpression &result, std::optional<Error> &err);
 
   static InternedString GetTypename(const ast::ScalarValue<bool> &) {
     return InternedString("Bool");

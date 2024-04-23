@@ -1,11 +1,13 @@
 message T {
   array1 Array (Int) 1;
   array2 Array (Int) 2;
+  array3 Array (Int) 3;
+  array4 Array (Int) 4;
 }
 
-message K (array Array (Int) 4) {
+message K (array Array (Int) 10) {
 }
 
 message P (t T) {
-  k K (t.array1 || t.array2);
+  k K (t.array1 || t.array2 || t.array3 || t.array4);
 }

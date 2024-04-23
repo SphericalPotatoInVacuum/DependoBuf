@@ -17,7 +17,9 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/interning/interned_string.h"
 #include "core/substitutor/substitutor.h"
 #include "glog/logging.h"
+#include "location.hh"
 
+#include <memory>
 #include <optional>
 #include <variant>
 
@@ -126,19 +128,108 @@ std::optional<Error> TypeComparator::operator()(const ast::TypeExpression & /* e
   LOG(FATAL) << "TypeExpression should not be compared";
 }
 
+// ast::Expression left_expr = *expr.left;
+//   DLOG(INFO) << "Expression: " << expr;
+//   while (std::holds_alternative<ast::BinaryExpression>(left_expr)) {
+//     DLOG(INFO) << "Left Expression: " << left_expr;
+//     auto left_bin_expr = std::get<ast::BinaryExpression>(left_expr);
+//     ArrayConcatenation(left_bin_expr, result);
+//     left_expr = *left_bin_expr.left;
+//   }
+//   const auto *left_expr_ptr = std::get_if<ast::VarAccess>(&left_expr);
+//   DLOG(INFO) << *left_expr_ptr;
+//   ast::Expression left_size_expr;
+//   auto left_type_err = CheckVarAccess(*left_expr_ptr, left_size_expr, true);
+//   if (left_type_err) {
+//     return left_type_err;
+//   }
+//   const auto *right_expr_ptr = std::get_if<ast::VarAccess>(&*expr.right);
+//   DLOG(INFO) << *right_expr_ptr;
+//   ast::Expression right_size_expr;
+//   auto right_type_err = CheckVarAccess(*right_expr_ptr, right_size_expr, true);
+//   if (right_type_err) {
+//     return right_type_err;
+//   }
+//   const std::shared_ptr<ast::Expression> right_size_expr_ptr = std::make_shared<ast::Expression>(right_size_expr);
+//   if (result.left == nullptr && result.right == nullptr) {
+//     const std::shared_ptr<ast::Expression> left_size_expr_ptr = std::make_shared<ast::Expression>(left_size_expr);
+//     ast::BinaryExpression sum_of_sizes {
+//         {expr.location},
+//         ast::BinaryExpressionType::Plus,
+//         left_size_expr_ptr,
+//         right_size_expr_ptr};
+//     result = sum_of_sizes;
+//   } else {
+//     const std::shared_ptr<ast::Expression> result_ptr = std::make_shared<ast::Expression>(result);
+//     ast::BinaryExpression buf {{expr.location}, ast::BinaryExpressionType::Plus, result_ptr, right_size_expr_ptr};
+//     result = buf;
+//   }
+//   DLOG(INFO) << "Result: " << result;
+//   return {};
+
+void TypeComparator::ArrayConcatenation(ast::Expression &expr, ast::BinaryExpression &result, std::optional<Error> &err) {
+  if (err){
+    return;
+  }
+  if (std::holds_alternative<ast::VarAccess>(expr)) {
+    const auto *expr_ptr = std::get_if<ast::VarAccess>(&expr);
+    ast::Expression size_expr;
+    auto expr_type_err                                   = CheckVarAccess(*expr_ptr, size_expr, true);
+    if (expr_type_err) {
+      err = expr_type_err;
+    }
+    const std::shared_ptr<ast::Expression> size_expr_ptr = std::make_shared<ast::Expression>(size_expr);
+    if (result.left == nullptr && result.right == nullptr) {
+      ast::BinaryExpression buf {{parser::location()}, ast::BinaryExpressionType::Plus, size_expr_ptr, nullptr};
+      result = buf;
+    } else if (result.right == nullptr) {
+      const std::shared_ptr<ast::Expression> result_left_ptr = std::make_shared<ast::Expression>(*result.left);
+      ast::BinaryExpression buf {{parser::location()}, ast::BinaryExpressionType::Plus, result_left_ptr, size_expr_ptr};
+      result = buf;
+    } else {
+      const std::shared_ptr<ast::Expression> result_ptr = std::make_shared<ast::Expression>(result);
+      ast::BinaryExpression buf {{parser::location()}, ast::BinaryExpressionType::Plus, result_ptr, size_expr_ptr};
+      result = buf;
+    }
+    return;
+  }
+  if (std::holds_alternative<ast::BinaryExpression>(expr)) {
+    auto bin_expr      = std::get<ast::BinaryExpression>(expr);
+    auto bin_expr_left = *bin_expr.left;
+    ArrayConcatenation(bin_expr_left, result,err);
+    auto bin_expr_right = *bin_expr.right;
+    ArrayConcatenation(bin_expr_right, result,err);
+  }
+}
+
 std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &expr) {
   DLOG(INFO) << "Checking binary expression " << expr;
-  DLOG(INFO) << "Left expression " << *expr.left;
-  DLOG(INFO) << "Right expression " << *expr.right;
-  auto left_type_err = std::visit(*this, *expr.left);
+  std::optional<Error> left_type_err;
+  std::optional<Error> right_type_err;
+  std::optional<Error> size_err;
+  if (expr.type == ast::BinaryExpressionType::DoubleOr) {
+    ast::BinaryExpression result;
+    ast::Expression buf = expr;
+    std::optional<Error> concat_err;
+    ArrayConcatenation(buf, result, concat_err);
+    if (concat_err) {
+      return concat_err;
+    }
+    DLOG(INFO) << *expected_.parameters[1];
+    size_err = CompareExpressions(*expected_.parameters[1], result, z3_stuff_, ast_, context_);
+  } else {
+    left_type_err  = std::visit(*this, *expr.left);
+    right_type_err = std::visit(*this, *expr.right);
+  }
   if (left_type_err) {
     return left_type_err;
   }
-  auto right_type_err = std::visit(*this, *expr.right);
   if (right_type_err) {
     return right_type_err;
   }
-
+  if (size_err) {
+    return size_err;
+  }
   DLOG(INFO) << "Expression " << expr << " should be of type " << expected_;
   if (expr.type == ast::BinaryExpressionType::Plus) {
     if (expected_.identifier.name == InternedString("Int") || expected_.identifier.name == InternedString("Unsigned") ||
@@ -204,38 +295,8 @@ std::optional<Error> TypeComparator::operator()(const ast::UnaryExpression &expr
 }
 
 std::optional<Error> TypeComparator::operator()(const ast::VarAccess &expr) {
-  const Scope &outer_scope = *context_.back();
-  DLOG(INFO) << "Checking var access: " << expr;
-  if (expr.field_identifiers.empty()) {
-    return CompareTypeExpressions(expected_, outer_scope.LookupName(expr.var_identifier.name), z3_stuff_);;
-  }
-  InternedString message_name   = outer_scope.LookupName(expr.var_identifier.name).identifier.name;
-  InternedString expected_field = expr.field_identifiers[0].name;
-  const auto &type              = ast_.types.at(message_name);
-  if (std::holds_alternative<ast::Enum>(type)) {
-    return Error(CreateError() << "Field access works only for messages, but \"" << message_name << "\" is enum");
-  }
-  const auto &message = std::get<ast::Message>(type);
-  bool found          = false;
-
-  Scope scope(&context_);
-  for (const auto &dependencie : message.type_dependencies) {
-    scope.AddName(dependencie.name, dependencie.type_expression);
-  }
-  for (const auto &field : message.fields) {
-    scope.AddName(field.name, field.type_expression);
-    if (field.name == expected_field) {
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    return Error(CreateError() << "Field \"" << expected_field << "\" not found in message \"" << message_name << "\"");
-  }
-  ast::VarAccess var_access {
-      {{parser::location()}, {expected_field}},
-      std::vector<ast::Identifier>(expr.field_identifiers.begin() + 1, expr.field_identifiers.end())};
-  return (*this)(var_access);
+  ast::Expression buf = ast::Expression();
+  return CheckVarAccess(expr, buf);
 };
 
 std::optional<Error> TypeComparator::operator()(const ast::Value &val) {
@@ -307,15 +368,109 @@ std::optional<Error> TypeComparator::operator()(const ast::CollectionValue &) {
         CreateError() << "Expected " << expected_type.parameters.size() << "type parametes, but got "
                       << expression.parameters.size() << " at " << expression.location);
   }
-  for (size_t id = 0; id < expected_type.parameters.size(); ++id) {
-    auto error =
-        CompareExpressions(*expected_type.parameters[id], *expression.parameters[id], z3_stuff, ast_, context_);
-    if (error) {
-      return Error(
-          CreateError() << "Type parameter " << id << " mismatch: " << error->message << " at " << expression.location);
+  if (expected_type.identifier.name != InternedString("Array") &&
+      expected_type.identifier.name != InternedString("Set")) {
+    for (size_t id = 0; id < expected_type.parameters.size(); ++id) {
+      auto error =
+          CompareExpressions(*expected_type.parameters[id], *expression.parameters[id], z3_stuff, ast_, context_);
+      if (error) {
+        return Error(
+            CreateError() << "Type parameter " << id << " mismatch: " << error->message << " at "
+                          << expression.location);
+      }
+    }
+  } else {
+    const auto *expression_collection_type_ptr = std::get_if<ast::TypeExpression>(&*expression.parameters[0]);
+    const auto *expected_collection_type_ptr   = std::get_if<ast::TypeExpression>(&*expected_type.parameters[0]);
+    if (expression_collection_type_ptr != nullptr && expected_collection_type_ptr != nullptr) {
+      if (expression_collection_type_ptr->identifier.name != expected_collection_type_ptr->identifier.name) {
+        return Error(
+            CreateError() << "Expected " << expected_type.identifier.name << " of type "
+                          << expected_collection_type_ptr->identifier.name << " but got "
+                          << expression_collection_type_ptr->identifier.name);
+      }
+    } else {
+      return Error(CreateError() << *expression.parameters[0] << " is unexpected type for Array");
+    }
+    if (expected_type.identifier.name == InternedString("Array")) {
+      auto error =
+          CompareExpressions(*expected_type.parameters[1], *expression.parameters[1], z3_stuff, ast_, context_);
+      if (error) {
+        return Error(CreateError() << "Array size mismatch: " << error->message << " at " << expression.location);
+      }
     }
   }
   return {};
+}
+
+std::optional<Error> TypeComparator::CompareArrayForConcatenation(
+    const ast::TypeExpression &expected_type,
+    const ast::TypeExpression &expression,
+    ast::Expression &size_of_array) {
+  if (expected_type.identifier.name != expression.identifier.name) {
+    return Error(
+        CreateError() << "Got type \"" << expression.identifier.name << "\", but expected type is \""
+                      << expected_type.identifier.name << "\" at " << expression.location);
+  }
+  if (expected_type.parameters.size() != expression.parameters.size()) {
+    return Error(
+        CreateError() << "Expected " << expected_type.parameters.size() << "type parametes, but got "
+                      << expression.parameters.size() << " at " << expression.location);
+    return {};
+  }
+  const auto *expression_collection_type_ptr = std::get_if<ast::TypeExpression>(&*expression.parameters[0]);
+  const auto *expected_collection_type_ptr   = std::get_if<ast::TypeExpression>(&*expected_type.parameters[0]);
+  if (expression_collection_type_ptr != nullptr && expected_collection_type_ptr != nullptr) {
+    if (expression_collection_type_ptr->identifier.name != expected_collection_type_ptr->identifier.name) {
+      return Error(
+          CreateError() << "Expected " << expected_type.identifier.name << " of type "
+                        << expected_collection_type_ptr->identifier.name << " but got "
+                        << expression_collection_type_ptr->identifier.name);
+    }
+  } else {
+    return Error(CreateError() << *expression.parameters[0] << " is unexpected type for Array");
+  }
+  size_of_array = *expression.parameters[1];
+  return {};
+}
+
+std::optional<Error>
+TypeComparator::CheckVarAccess(const ast::VarAccess &expr, ast::Expression &size_of_array, bool flag_for_array_check) {
+  const Scope &outer_scope = *context_.back();
+  DLOG(INFO) << "Checking var access: " << expr;
+  if (expr.field_identifiers.empty()) {
+    if (!flag_for_array_check) {
+      return CompareTypeExpressions(expected_, outer_scope.LookupName(expr.var_identifier.name), z3_stuff_);
+    }
+    return CompareArrayForConcatenation(expected_, outer_scope.LookupName(expr.var_identifier.name), size_of_array);
+  }
+  InternedString message_name   = outer_scope.LookupName(expr.var_identifier.name).identifier.name;
+  InternedString expected_field = expr.field_identifiers[0].name;
+  const auto &type              = ast_.types.at(message_name);
+  if (std::holds_alternative<ast::Enum>(type)) {
+    return Error(CreateError() << "Field access works only for messages, but \"" << message_name << "\" is enum");
+  }
+  const auto &message = std::get<ast::Message>(type);
+  bool found          = false;
+
+  Scope scope(&context_);
+  for (const auto &dependencie : message.type_dependencies) {
+    scope.AddName(dependencie.name, dependencie.type_expression);
+  }
+  for (const auto &field : message.fields) {
+    scope.AddName(field.name, field.type_expression);
+    if (field.name == expected_field) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    return Error(CreateError() << "Field \"" << expected_field << "\" not found in message \"" << message_name << "\"");
+  }
+  ast::VarAccess var_access {
+      {{parser::location()}, {expected_field}},
+      std::vector<ast::Identifier>(expr.field_identifiers.begin() + 1, expr.field_identifiers.end())};
+  return CheckVarAccess(var_access, size_of_array, flag_for_array_check);
 }
 
 std::optional<Error>
