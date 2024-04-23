@@ -128,14 +128,17 @@ std::optional<Error> TypeComparator::operator()(const ast::TypeExpression & /* e
   LOG(FATAL) << "TypeExpression should not be compared";
 }
 
-void TypeComparator::ArrayConcatenation(ast::Expression &expr, ast::BinaryExpression &result, std::optional<Error> &err) {
-  if (err){
+void TypeComparator::ArrayConcatenation(
+    ast::Expression &expr,
+    ast::BinaryExpression &result,
+    std::optional<Error> &err) {
+  if (err) {
     return;
   }
   if (std::holds_alternative<ast::VarAccess>(expr)) {
     const auto *expr_ptr = std::get_if<ast::VarAccess>(&expr);
     ast::Expression size_expr;
-    auto expr_type_err                                   = CheckVarAccess(*expr_ptr, size_expr, true);
+    auto expr_type_err = CheckVarAccess(*expr_ptr, size_expr, true);
     if (expr_type_err) {
       err = expr_type_err;
     }
@@ -157,9 +160,9 @@ void TypeComparator::ArrayConcatenation(ast::Expression &expr, ast::BinaryExpres
   if (std::holds_alternative<ast::BinaryExpression>(expr)) {
     auto bin_expr      = std::get<ast::BinaryExpression>(expr);
     auto bin_expr_left = *bin_expr.left;
-    ArrayConcatenation(bin_expr_left, result,err);
+    ArrayConcatenation(bin_expr_left, result, err);
     auto bin_expr_right = *bin_expr.right;
-    ArrayConcatenation(bin_expr_right, result,err);
+    ArrayConcatenation(bin_expr_right, result, err);
   }
 }
 
@@ -168,7 +171,7 @@ std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &exp
   std::optional<Error> left_type_err;
   std::optional<Error> right_type_err;
   std::optional<Error> size_err;
-  if (expr.type == ast::BinaryExpressionType::DoubleOr) {
+  if (expr.type == ast::BinaryExpressionType::DoubleOr && expected_.identifier.name == InternedString("Array")) {
     ast::BinaryExpression result;
     ast::Expression buf = expr;
     std::optional<Error> concat_err;
@@ -311,7 +314,21 @@ std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val
                     << val.location);
 }
 
-std::optional<Error> TypeComparator::operator()(const ast::CollectionValue &) {
+std::optional<Error> TypeComparator::operator()(const ast::CollectionValue &val) {
+  if (expected_.identifier.name == InternedString("Array")) {
+    ast::ScalarValue<size_t> size_expr;
+    size_expr.value  = val.values.size();
+    auto compare_err = CompareExpressions(*expected_.parameters[1], size_expr, z3_stuff_, ast_, context_);
+    if (compare_err) {
+      return compare_err;
+    }
+  }
+  // for (const auto &elem : val.values) {
+  //   auto err = CompareExpressions(*expected_.parameters[0], *elem, z3_stuff_, ast_, context_);
+  //   if (err) {
+  //     return err;
+  //   }
+  // }
   return {};
 }
 
@@ -437,16 +454,17 @@ TypeComparator::CheckVarAccess(const ast::VarAccess &expr, ast::Expression &size
 std::optional<Error>
 TypeComparator::CheckConstructedValue(const ast::ConstructedValue &val, const ast::TypeWithFields &constructor) {
   for (size_t i = 0; i < constructor.fields.size(); ++i) {
-    const auto &field         = constructor.fields[i];
-    const auto &expected_type = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
-    DLOG(INFO) << "Checking that field " << field.name << " has type " << expected_type;
+    const auto &field              = constructor.fields[i];
+    const auto &expected_type      = substitutor_(field.type_expression);
+    const auto &expected_type_expr = std::get<ast::TypeExpression>(expected_type);
+    DLOG(INFO) << "Checking that field " << field.name << " has type " << expected_type_expr;
     if (std::holds_alternative<ast::VarAccess>(*val.fields[i].second)) {
       const auto &var_access = std::get<ast::VarAccess>(*val.fields[i].second);
-      context_.back()->AddName(var_access.var_identifier.name, expected_type);
+      context_.back()->AddName(var_access.var_identifier.name, expected_type_expr);
       continue;
     }
     auto field_err =
-        TypeComparator(expected_type, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*val.fields[i].second);
+        TypeComparator(expected_type_expr, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*val.fields[i].second);
     if (field_err) {
       DLOG(ERROR) << "Field " << field.name << " has incorrect type";
       return field_err;

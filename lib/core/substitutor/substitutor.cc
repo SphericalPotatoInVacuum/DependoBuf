@@ -67,12 +67,11 @@ ast::Expression Substitutor::operator()(const ast::UnaryExpression &expression) 
 ast::Expression Substitutor::operator()(const ast::TypeExpression &type_expression) {
   std::vector<std::shared_ptr<const ast::Expression>> parameters;
   parameters.reserve(type_expression.parameters.size());
-
   for (const auto &parameter : type_expression.parameters) {
     parameters.emplace_back(std::make_shared<const ast::Expression>(std::visit(*this, *parameter)));
   }
-
-  return ast::TypeExpression {{type_expression.location}, type_expression.identifier, std::move(parameters)};
+  auto ret = ast::TypeExpression {{type_expression.location}, type_expression.identifier, std::move(parameters)};
+  return ret;
 }
 
 // If VarAccess is in scope, we need to subsitute that VarAccess with corresponding Expression

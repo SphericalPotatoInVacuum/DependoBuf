@@ -330,7 +330,7 @@ std::optional<Error> TypeChecker::CheckFields(const ast::TypeWithFields &type) {
     DLOG(INFO) << "Checking field: " << field.name << " of type " << field.type_expression;
     auto after_substitution = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
     DLOG(INFO) << "After substitution: " << after_substitution;
-    auto type_expr_err = CheckTypeExpression(after_substitution);
+     auto type_expr_err = CheckTypeExpression(after_substitution);
     if (type_expr_err.has_value()) {
       return type_expr_err;
     }
