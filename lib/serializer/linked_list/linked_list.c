@@ -10,6 +10,7 @@ void PushBack(List *list, Node *node) {
         list->tail->next = node;
         list->tail = node;
     }
+    ++list->size;
 }
 
 void PushFront(List *list, Node *node) {
@@ -21,6 +22,7 @@ void PushFront(List *list, Node *node) {
         list->head->prev = node;
         list->head = node;
     }
+    ++list->size;
 }
 
 Node *PopBack(List *list) {
@@ -30,6 +32,7 @@ Node *PopBack(List *list) {
         perror("Could not pop from empty list\n");
         return NULL;
     } else {
+        --list->size;
         if (list->head == list->tail) {
             Node *node = list->tail;
             list->head = NULL;
@@ -51,6 +54,7 @@ Node *PopFront(List *list) {
         perror("Could not pop from empty list\n");
         return NULL;
     } else {
+        --list->size;
         if (list->head == list->tail) {
             Node *node = list->head;
             list->head = NULL;

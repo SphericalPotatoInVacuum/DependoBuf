@@ -46,9 +46,6 @@ typedef struct LayoutNode {
     struct LayoutNode* prev;
 } LayoutNode;
 
-//Head of list with allocated layouts
-static LayoutNode* custom_layouts;
-
 //Clears all custom layouts from memory
 void ClearLayouts();
 //Creates custom layout and returns pointer to it

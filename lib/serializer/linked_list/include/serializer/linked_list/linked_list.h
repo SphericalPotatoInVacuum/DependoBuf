@@ -15,6 +15,7 @@ typedef struct Node {
 typedef struct List {
     Node *head;
     Node *tail;
+    size_t size;
 } List;
 
 void PushBack(List *list, Node *node);

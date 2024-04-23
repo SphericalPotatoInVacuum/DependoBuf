@@ -1,5 +1,46 @@
 #include "serializer/serialization/serialization.h"
 #include "serializer/layout/layout.h"
+#include "serializer/linked_list/linked_list.h"
+
+//Counts bytes requierd for serialization of value
+static size_t SerializedDataSize(const Layout* layout, Value* value);
+
+//Handle serialization of certain kinds from Kind enum.
+static int SerializeVARINT(char* byte_array, size_t* byte_iter, char* varint, size_t data_size);
+static int SerializeINT64(char* byte_array, size_t* byte_iter, uint64_t inp, size_t data_size);
+static int SerializeINT32(char* byte_array, size_t* byte_iter, uint32_t inp, size_t data_size);
+static int SerializeBOOL(char* byte_array, size_t* byte_iter, char inp, size_t data_size);
+static int SerializeSTRING(char* byte_array, size_t* byte_iter, char* string_iter, size_t data_size);
+static int SerializeFLOAT(char* byte_array, size_t* byte_iter, float inp, size_t data_size);
+static int SerializeDOUBLE(char* byte_array, size_t* byte_iter, double inp, size_t data_size);
+static int SerializeBARRAY(char* byte_array, size_t* byte_iter, char* barray_value, size_t data_size);
+
+//Handle errors, mop up used heap memory in case of an error.
+static int HandleSerializationOutOfSizeError();
+static void HandleSerializationArrayAllocationError();
+static void HandleMidSerializationError(List* list, char* byte_array);
+static void HandleUknownKindError(List* list, char* byte_array);
+
+//Optimized Node retrieve
+static Node* GetNode();
+static void GiveNode(Node* node);
+List avalible_nodes = {.head = NULL, .tail = NULL, .size = 0};
+
+static Node* GetNode() {
+    if (!Empty(&avalible_nodes)) {
+        return PopBack(&avalible_nodes);
+    }
+    Node* new_node = calloc(1, sizeof(Node));
+    return new_node;
+}
+
+static void GiveNode(Node* node) {
+    if (avalible_nodes.size >= MAX_NODES_IN_STORAGE) {
+        DestroyNode(node);
+        return;
+    }
+    PushBack(&avalible_nodes, node);
+}
 
 static int HandleSerializationOutOfSizeError() {
     perror("Calculated size of serialized data doesn't correspond to its input.\n");
@@ -127,7 +168,7 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
     List layer_list = {.head = NULL, .tail = NULL};
     size_t res = 0;
 
-    Node* first_node = calloc(1, sizeof(Node));
+    Node* first_node = GetNode();
     if (first_node == NULL) {
         HandleNodeAllocationError(&layer_list);
         return 0;
@@ -139,13 +180,12 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
     while(!Empty(&layer_list)) {
         Node* curr_node = PopFront(&layer_list);
         if (curr_node->layout->kind == CONSTRUCTED) {
-            for (size_t i = 0; i < curr_node->layout->kind; ++i) {
-                Node* new_node = calloc(1, sizeof(Node));
+            for (size_t i = 0; i < curr_node->layout->field_q; ++i) {
+                Node* new_node = GetNode();
                 if (new_node == NULL) {
                     HandleNodeAllocationError(&layer_list);
                     return 0;
                 }
-
                 new_node->layout = curr_node->layout->fields[i];
                 new_node->value_place = &curr_node->value_place->children[i];
                 PushBack(&layer_list, new_node);
@@ -173,7 +213,7 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
             HandleUknownKindError(&layer_list, NULL);
             return 0;
         }
-        DestroyNode(curr_node);
+        GiveNode(curr_node);
     }
     return res;
 }
@@ -196,7 +236,7 @@ char* Serialize(const Layout* layout, Value value) {
 
     size_t byte_iter = 0;
     List layer_list = {.head = NULL, .tail = NULL};
-    Node* first_node = calloc(1, sizeof(Node));
+    Node* first_node = GetNode();
     if (first_node == NULL) {
         HandleNodeAllocationError(&layer_list);
         return NULL;
@@ -210,7 +250,7 @@ char* Serialize(const Layout* layout, Value value) {
         if (curr_node->layout->kind == CONSTRUCTED) {
             size_t iter = curr_node->layout->field_q - 1;
             for (size_t i = 0; i < curr_node->layout->field_q; ++i) {
-                Node* new_node = calloc(1, sizeof(Node));
+                Node* new_node = GetNode();
                 if (new_node == NULL) {
                     HandleNodeAllocationError(&layer_list);
                     return NULL;
@@ -271,7 +311,8 @@ char* Serialize(const Layout* layout, Value value) {
             HandleUknownKindError(&layer_list, byte_array);
             return NULL;
         }
-        DestroyNode(curr_node);
+        GiveNode(curr_node);
     }
+    Clear(&avalible_nodes);
     return byte_array;
 }
