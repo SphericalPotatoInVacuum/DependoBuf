@@ -24,7 +24,7 @@ the Free Software Foundation, either version 3 of the License, or
 
 namespace dbuf::checker {
 
-ErrorList Checker::CheckNameResolution(const ast::AST &ast) {
+std::optional<Error> Checker::CheckNameResolution(const ast::AST &ast) {
   return NameResolutionChecker()(ast);
 }
 
@@ -55,11 +55,9 @@ std::optional<Error> Checker::CheckTypeResolution(const ast::AST &ast, const std
 }
 
 int Checker::CheckAll(const ast::AST &ast) {
-  ErrorList name_resolution_errors = CheckNameResolution(ast);
-  if (!name_resolution_errors.empty()) {
-    for (const auto &error : name_resolution_errors) {
-      std::cerr << error.message << std::endl;
-    }
+  std::optional<Error> name_resolution_error = CheckNameResolution(ast);
+  if (name_resolution_error.has_value()) {
+    std::cerr << name_resolution_error->message << std::endl;
     return EXIT_FAILURE;
   }
 

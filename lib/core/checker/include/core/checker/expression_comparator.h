@@ -27,10 +27,10 @@ namespace dbuf::checker {
 struct Z3stuff {
   explicit Z3stuff();
 
-  using NameToSort        = std::unordered_map<InternedString, z3::sort>;
+  using NameToSort           = std::unordered_map<InternedString, z3::sort>;
   using NameToCollectionSort = std::unordered_map<InternedString, NameToSort>;
-  using FieldToFuncDecl   = std::unordered_map<InternedString, z3::func_decl>;
-  using NameToFields      = std::unordered_map<InternedString, FieldToFuncDecl>;
+  using FieldToFuncDecl      = std::unordered_map<InternedString, z3::func_decl>;
+  using NameToFields         = std::unordered_map<InternedString, FieldToFuncDecl>;
 
   z3::context context_;
   z3::solver solver_;

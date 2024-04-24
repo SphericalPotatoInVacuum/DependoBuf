@@ -143,7 +143,7 @@ z3::expr ExpressionToZ3::operator()(const ast::CollectionValue &value) {
   z3::expr vec = z3::const_array(z3_stuff.context_.int_sort(), z3_stuff.context_.int_val(0));
   for (size_t i = 0; i < value.values.size(); ++i) {
     z3::expr elem = std::visit(*this, *value.values[i]);
-    vec = z3::store(vec, z3_stuff.context_.int_val(i), elem);
+    vec           = z3::store(vec, z3_stuff.context_.int_val(i), elem);
   }
   return vec;
 }

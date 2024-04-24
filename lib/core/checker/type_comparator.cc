@@ -117,9 +117,23 @@ struct Matcher {
   }
 };
 
-TypeComparator::TypeComparator(const ast::TypeExpression &expected, const ast::AST &ast, std::deque<Scope *> *context_ptr, Substitutor *substitutor_ptr, Z3stuff *z3_stuff_ptr) : expected_(expected), ast_(ast), context_(*context_ptr), substitutor_(*substitutor_ptr), z3_stuff_(*z3_stuff_ptr)  {
+TypeComparator::TypeComparator(
+    const ast::TypeExpression &expected,
+    const ast::AST &ast,
+    std::deque<Scope *> *context_ptr,
+    Substitutor *substitutor_ptr,
+    Z3stuff *z3_stuff_ptr)
+    : expected_(expected)
+    , ast_(ast)
+    , context_(*context_ptr)
+    , substitutor_(*substitutor_ptr)
+    , z3_stuff_(*z3_stuff_ptr) {
   ast::Expression zero = ast::ScalarValue<uint64_t>({parser::location()}, 0);
-  bin_expr_ = ast::BinaryExpression({parser::location()}, ast::BinaryExpressionType::Plus, std::make_shared<const ast::Expression>(zero), std::make_shared<const ast::Expression>(zero));
+  bin_expr_            = ast::BinaryExpression(
+      {parser::location()},
+      ast::BinaryExpressionType::Plus,
+      std::make_shared<const ast::Expression>(zero),
+      std::make_shared<const ast::Expression>(zero));
 }
 
 std::optional<Error> TypeComparator::Compare(const ast::Expression &expr) {
@@ -127,8 +141,11 @@ std::optional<Error> TypeComparator::Compare(const ast::Expression &expr) {
   if (result) {
     DLOG(ERROR) << result->message;
   } else {
-    if (expected_.parameters.size() != 1 && expected_.identifier.name == InternedString("Array") && CompareExpressions(*expected_.parameters[1], bin_expr_, z3_stuff_, ast_, context_).has_value()) {
-      return Error (CreateError() << "Expected Array size of \"" << expected_ << "\" is not equal to size of Array \"" << expr << "\" at " << expected_.location);
+    if (expected_.parameters.size() != 1 && expected_.identifier.name == InternedString("Array") &&
+        CompareExpressions(*expected_.parameters[1], bin_expr_, z3_stuff_, ast_, context_).has_value()) {
+      return Error(
+          CreateError() << "Expected Array size of \"" << expected_ << "\" is not equal to size of Array \"" << expr
+                        << "\" at " << expected_.location);
     }
     DLOG(INFO) << "Expression " << expr << " is of expected type " << expected_;
   }
@@ -143,13 +160,20 @@ std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &exp
   DLOG(INFO) << "Checking binary expression " << expr;
 
   DLOG(INFO) << "Checking that operator " << static_cast<char>(expr.type) << " is correctly used";
-  Error oper_err = Error(CreateError() << "Operator \"" << static_cast<char>(expr.type) << "\"" << " is not supported by type " << expected_.identifier.name << "\" at " << expr.location);
+  Error oper_err = Error(
+      CreateError() << "Operator \"" << static_cast<char>(expr.type) << "\""
+                    << " is not supported by type " << expected_.identifier.name << "\" at " << expr.location);
   if (expr.type == ast::BinaryExpressionType::Plus) {
-    if (!(expected_.identifier.name == InternedString("Int") || expected_.identifier.name == InternedString("Unsigned") || expected_.identifier.name == InternedString("String") || expected_.identifier.name == InternedString("Float"))) {
+    if (!(expected_.identifier.name == InternedString("Int") ||
+          expected_.identifier.name == InternedString("Unsigned") ||
+          expected_.identifier.name == InternedString("String") ||
+          expected_.identifier.name == InternedString("Float"))) {
       return oper_err;
     }
   } else if (expr.type == ast::BinaryExpressionType::Star) {
-    if (!(expected_.identifier.name == InternedString("Int") || expected_.identifier.name == InternedString("Unsigned") || expected_.identifier.name == InternedString("Float"))) {
+    if (!(expected_.identifier.name == InternedString("Int") ||
+          expected_.identifier.name == InternedString("Unsigned") ||
+          expected_.identifier.name == InternedString("Float"))) {
       return oper_err;
     }
   } else if (expr.type == ast::BinaryExpressionType::Minus) {
@@ -160,7 +184,9 @@ std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &exp
     if (expected_.identifier.name != InternedString("Float")) {
       return oper_err;
     }
-  } else if (expr.type == ast::BinaryExpressionType::And || expr.type == ast::BinaryExpressionType::Or || expr.type == ast::BinaryExpressionType::In) {
+  } else if (
+      expr.type == ast::BinaryExpressionType::And || expr.type == ast::BinaryExpressionType::Or ||
+      expr.type == ast::BinaryExpressionType::In) {
     if (expected_.identifier.name != InternedString("Bool")) {
       return oper_err;
     }
@@ -175,14 +201,15 @@ std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &exp
   }
 
   if (expr.type == ast::BinaryExpressionType::In) {
-    // auto expected_type_expr_right = ast::TypeExpression({parser::location()}, ast::Identifier({expr.location}, {InternedString("Set")}), std::vector<ast::ExprPtr>());
-    // auto type_right_err = TypeComparator(expected_type_expr_right, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*expr.right);
-    // if (type_right_err) {
+    // auto expected_type_expr_right = ast::TypeExpression({parser::location()}, ast::Identifier({expr.location},
+    // {InternedString("Set")}), std::vector<ast::ExprPtr>()); auto type_right_err =
+    // TypeComparator(expected_type_expr_right, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*expr.right); if
+    // (type_right_err) {
     //   return type_right_err;
     // }
 
-    // auto type_left_err = TypeComparator(std::get<ast::TypeExpression>(*expected_.parameters[0]), ast_, &context_, &substitutor_, &z3_stuff_).Compare(*expr.left);
-    // if (type_left_err) {
+    // auto type_left_err = TypeComparator(std::get<ast::TypeExpression>(*expected_.parameters[0]), ast_, &context_,
+    // &substitutor_, &z3_stuff_).Compare(*expr.left); if (type_left_err) {
     //   return type_left_err;
     // }
 
@@ -226,10 +253,11 @@ std::optional<Error> TypeComparator::operator()(const ast::UnaryExpression &expr
 
 std::optional<Error> TypeComparator::operator()(const ast::VarAccess &expr) {
   DLOG(INFO) << "Checking var access: " << expr;
-  
+
   const Scope &outer_scope = *context_.back();
   if (expr.field_identifiers.empty()) {
-    return CompareTypeExpressions(expected_, outer_scope.LookupName(expr.var_identifier.name), z3_stuff_);;
+    return CompareTypeExpressions(expected_, outer_scope.LookupName(expr.var_identifier.name), z3_stuff_);
+    ;
   }
   InternedString message_name   = outer_scope.LookupName(expr.var_identifier.name).identifier.name;
   InternedString expected_field = expr.field_identifiers[0].name;
@@ -262,9 +290,11 @@ std::optional<Error> TypeComparator::operator()(const ast::VarAccess &expr) {
 
 std::optional<Error> TypeComparator::operator()(const ast::ArrayAccess &expr) {
   ast::Expression array_elem_type_expr = expected_;
-  std::vector<ast::ExprPtr> vec = {std::make_shared<const ast::Expression>(array_elem_type_expr)};
-  ast::TypeExpression array_type_expr = ast::TypeExpression({parser::location()}, ast::Identifier({parser::location()}, {InternedString("Array")}), vec);
-  auto array_access_err = TypeComparator(array_type_expr, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*expr.array_identifier);
+  std::vector<ast::ExprPtr> vec        = {std::make_shared<const ast::Expression>(array_elem_type_expr)};
+  ast::TypeExpression array_type_expr =
+      ast::TypeExpression({parser::location()}, ast::Identifier({parser::location()}, {InternedString("Array")}), vec);
+  auto array_access_err =
+      TypeComparator(array_type_expr, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*expr.array_identifier);
   if (array_access_err.has_value()) {
     return array_access_err;
   }
@@ -324,16 +354,27 @@ std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val
 
 std::optional<Error> TypeComparator::operator()(const ast::CollectionValue &val) {
   if (!(expected_.identifier.name == InternedString("Array") || expected_.identifier.name == InternedString("Set"))) {
-    return Error (CreateError() << "Expected type is \"" << expected_ << "\", but got \"" << val << " at " << val.location);
+    return Error(
+        CreateError() << "Expected type is \"" << expected_ << "\", but got \"" << val << " at " << val.location);
   }
   if (expected_.identifier.name == InternedString("Array")) {
-    ast::Expression zero = ast::ScalarValue<uint64_t>({parser::location()}, 0);
+    ast::Expression zero      = ast::ScalarValue<uint64_t>({parser::location()}, 0);
     ast::Expression coll_size = ast::ScalarValue<uint64_t>({parser::location()}, val.values.size());
-    bin_expr_.right = std::make_shared<const ast::Expression>(coll_size);
-    bin_expr_ = ast::BinaryExpression({parser::location()}, ast::BinaryExpressionType::Plus, std::make_shared<const ast::Expression>(bin_expr_), std::make_shared<const ast::Expression>(zero));
+    bin_expr_.right           = std::make_shared<const ast::Expression>(coll_size);
+    bin_expr_                 = ast::BinaryExpression(
+        {parser::location()},
+        ast::BinaryExpressionType::Plus,
+        std::make_shared<const ast::Expression>(bin_expr_),
+        std::make_shared<const ast::Expression>(zero));
   }
   for (const auto &value : val.values) {
-    auto elem_err = TypeComparator(std::get<ast::TypeExpression>(*expected_.parameters[0]), ast_, &context_, &substitutor_, &z3_stuff_).Compare(*value);
+    auto elem_err = TypeComparator(
+                        std::get<ast::TypeExpression>(*expected_.parameters[0]),
+                        ast_,
+                        &context_,
+                        &substitutor_,
+                        &z3_stuff_)
+                        .Compare(*value);
     if (elem_err.has_value()) {
       return elem_err;
     }
@@ -355,15 +396,23 @@ std::optional<Error> TypeComparator::operator()(const ast::CollectionValue &val)
         CreateError() << "Expected " << expected_type.parameters.size() << "type parametes, but got "
                       << expression.parameters.size() << " at " << expression.location);
   }
-  if (expected_type.identifier.name == InternedString("Array") || expected_type.identifier.name == InternedString("Set")) {
-    auto cmp_elem_type_err = CompareTypeExpressions(std::get<ast::TypeExpression>(*expected_type.parameters[0]), std::get<ast::TypeExpression>(*expression.parameters[0]), z3_stuff);
+  if (expected_type.identifier.name == InternedString("Array") ||
+      expected_type.identifier.name == InternedString("Set")) {
+    auto cmp_elem_type_err = CompareTypeExpressions(
+        std::get<ast::TypeExpression>(*expected_type.parameters[0]),
+        std::get<ast::TypeExpression>(*expression.parameters[0]),
+        z3_stuff);
     if (cmp_elem_type_err.has_value()) {
       return cmp_elem_type_err;
     }
     if (expected_type.identifier.name == InternedString("Array")) {
-      bin_expr_.right = expression.parameters[1];
+      bin_expr_.right      = expression.parameters[1];
       ast::Expression zero = ast::ScalarValue<uint64_t>({parser::location()}, 0);
-      bin_expr_ = ast::BinaryExpression({parser::location()}, ast::BinaryExpressionType::Plus, std::make_shared<const ast::Expression>(bin_expr_), std::make_shared<const ast::Expression>(zero));
+      bin_expr_            = ast::BinaryExpression(
+          {parser::location()},
+          ast::BinaryExpressionType::Plus,
+          std::make_shared<const ast::Expression>(bin_expr_),
+          std::make_shared<const ast::Expression>(zero));
     }
     return {};
   }

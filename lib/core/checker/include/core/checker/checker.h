@@ -20,7 +20,7 @@ class Checker {
 public:
   using ErrorList = std::vector<Error>;
 
-  static ErrorList CheckNameResolution(const ast::AST &ast);
+  static std::optional<Error> CheckNameResolution(const ast::AST &ast);
   std::optional<Error> CheckPositivity(const ast::AST &ast);
   static std::optional<Error> CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order);
 

@@ -28,11 +28,9 @@ namespace dbuf::checker {
 
 using DependencyGraph = std::map<InternedString, std::set<InternedString>>;
 
-struct Error { // NOLINT(bugprone-exception-escape)
+struct Error {
   std::string message;
 };
-
-using ErrorList = std::vector<Error>;
 
 class CreateError {
 public:

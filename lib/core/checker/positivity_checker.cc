@@ -73,7 +73,7 @@ void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
                << "to dependency graph";
   }
   order_graph_.at(current_type_).insert(type_expression.identifier.name);
-  DLOG(INFO) << "Adding : " << current_type_ << " -> " << type_expression.identifier.name << "to order graph";
+  DLOG(INFO) << "Adding : " << current_type_ << " -> " << type_expression.identifier.name << " to order graph";
   for (const auto &parameter : type_expression.parameters) {
     std::visit(*this, *parameter);
   }

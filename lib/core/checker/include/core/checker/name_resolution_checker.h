@@ -16,6 +16,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/interning/interned_string.h"
 
 #include <deque>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -24,41 +25,43 @@ namespace dbuf::checker {
 
 class NameResolutionChecker {
 public:
-  ErrorList operator()(const ast::AST &ast);
+  [[nodiscard]] std::optional<Error> operator()(const ast::AST &ast);
 
-  void operator()(const ast::Message &ast_message);
-  void operator()(const ast::Enum &ast_enum);
-  void operator()(const ast::Enum::Rule &rule);
-  void operator()(const ast::Constructor &constructor);
-  void operator()(const ast::TypedVariable &variable, bool allow_shadowing);
+  bool operator()(const ast::Message &ast_message);
+  bool operator()(const ast::Enum &ast_enum);
+  bool operator()(const ast::Enum::Rule &rule);
+  bool operator()(const ast::Constructor &constructor);
+  bool operator()(const ast::TypedVariable &variable, bool allow_shadowing);
 
 private:
   using Field = std::pair<ast::Identifier, ast::ExprPtr>;
 
 public:
-  void operator()(const Field &field);
+  bool operator()(const Field &field);
 
-  void operator()(const ast::Value &value);
+  bool operator()(const ast::Value &value);
 
   template <typename T>
-  void operator()(const ast::ScalarValue<T> &) {}
-  void operator()(const ast::ConstructedValue &value);
-  void operator()(const ast::CollectionValue &value);
+  bool operator()(const ast::ScalarValue<T> &) {
+    return true;
+  }
+  bool operator()(const ast::ConstructedValue &value);
+  bool operator()(const ast::CollectionValue &value);
 
-  void operator()(const ast::Star &value);
+  bool operator()(const ast::Star &value);
 
-  void operator()(const ast::BinaryExpression &expr);
-  void operator()(const ast::UnaryExpression &expr);
-  void operator()(const ast::TypeExpression &expr);
-  void operator()(const ast::VarAccess &var_access);
-  void operator()(const ast::ArrayAccess &array_access);
+  bool operator()(const ast::BinaryExpression &expr);
+  bool operator()(const ast::UnaryExpression &expr);
+  bool operator()(const ast::TypeExpression &expr);
+  bool operator()(const ast::VarAccess &var_access);
+  bool operator()(const ast::ArrayAccess &array_access);
 
 private:
   using Scope                = std::unordered_set<InternedString>;
   using ConstructorFields    = std::unordered_set<InternedString>;
   using ConstructorFieldsMap = std::unordered_map<InternedString, ConstructorFields>;
 
-  ErrorList errors_;
+  std::optional<Error> error_;
   std::deque<Scope> scopes_;
   ConstructorFieldsMap constructor_to_fields_;
 
@@ -69,10 +72,10 @@ private:
   void PopScope();
   bool IsInScope(InternedString name);
 
-  void AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing);
+  bool AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing);
   void AddFields(const InternedString &constructor_name, const ast::TypeWithFields &type);
 
-  void AddGlobalNames(const ast::AST &ast);
+  bool AddGlobalNames(const ast::AST &ast);
   void InitConstructorFields(const ast::AST &ast);
 };
 

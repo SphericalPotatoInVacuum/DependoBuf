@@ -126,15 +126,13 @@ TEST(NameResolutionTest, GlobalNamesRepetition) {
   ast::Enum enum_a               = NameResolutionTest::make_enum("A", {}, std::move(patterns));
   ast.types[InternedString("A")] = std::move(enum_a);
 
-  std::unordered_set<std::string> expected_errors {"Re-declaration of constructor: \"A\""};
+  std::string expected_error = "Re-declaration of constructor: \"A\"";
 
-  checker::ErrorList errors = checker::NameResolutionChecker()(ast);
+  std::optional<checker::Error> error = checker::NameResolutionChecker()(ast);
 
-  ASSERT_EQ(errors.size(), 1);
+  ASSERT_TRUE(error.has_value());
 
-  for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message));
-  }
+  ASSERT_TRUE(error->message == expected_error);
 }
 
 TEST(NameResolutionTest, ConstructorRedeclaration) {
@@ -160,15 +158,13 @@ TEST(NameResolutionTest, ConstructorRedeclaration) {
   ast::Enum enum_b               = NameResolutionTest::make_enum("B", {}, std::move(patterns_b));
   ast.types[InternedString("B")] = std::move(enum_b);
 
-  std::unordered_set<std::string> expected_errors {"Re-declaration of constructor: \"Constructor1\""};
+  std::string expected_error = "Re-declaration of constructor: \"Constructor1\"";
 
-  checker::ErrorList errors = checker::NameResolutionChecker()(ast);
+  std::optional<checker::Error> error = checker::NameResolutionChecker()(ast);
 
-  ASSERT_EQ(errors.size(), 1);
+  ASSERT_TRUE(error.has_value());
 
-  for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message));
-  }
+  ASSERT_TRUE(error->message == expected_error);
 }
 
 TEST(NameResolutionTest, UnknownTypename) {
@@ -183,17 +179,13 @@ TEST(NameResolutionTest, UnknownTypename) {
   ast::Message message_a         = NameResolutionTest::make_message("A", std::move(dependencies), std::move(fields));
   ast.types[InternedString("A")] = std::move(message_a);
 
-  std::unordered_set<std::string> expected_errors {
-      "Undefined type name: \"B\" at 1.1",
-      "Undefined type name: \"C\" at 1.1"};
+  std::string expected_error = "Undefined type name: \"B\" at 1.1";
 
-  checker::ErrorList errors = checker::NameResolutionChecker()(ast);
+  std::optional<checker::Error> error = checker::NameResolutionChecker()(ast);
 
-  ASSERT_EQ(errors.size(), 2);
+  ASSERT_TRUE(error.has_value());
 
-  for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message)) << error.message;
-  }
+  ASSERT_TRUE(error->message == expected_error);
 }
 
 TEST(NameResolutionTest, FieldRedeclaration) {
@@ -220,18 +212,13 @@ TEST(NameResolutionTest, FieldRedeclaration) {
   ast::Enum enum_b               = NameResolutionTest::make_enum("B", {}, std::move(patterns));
   ast.types[InternedString("B")] = std::move(enum_b);
 
-  std::unordered_set<std::string> expected_errors {
-      "Re-declaration of variable: \"field1\"",
-      "Re-declaration of variable: \"field1\"",
-      "Re-declaration of variable: \"field2\""};
+  std::string expected_error = "Re-declaration of variable: \"field2\"";
 
-  checker::ErrorList errors = checker::NameResolutionChecker()(ast);
+  std::optional<checker::Error> error = checker::NameResolutionChecker()(ast);
 
-  ASSERT_EQ(errors.size(), 3);
+  ASSERT_TRUE(error.has_value());
 
-  for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message)) << error.message;
-  }
+  ASSERT_TRUE(error->message == expected_error);
 }
 
 TEST(NameResolutionTest, UnknownConstructor) {
@@ -266,15 +253,13 @@ TEST(NameResolutionTest, UnknownConstructor) {
 
   ast.types[InternedString("B")] = std::move(enum2);
 
-  std::unordered_set<std::string> expected_errors {"Undefined constructor: \"Constructor2\""};
+  std::string expected_error = "Undefined constructor: \"Constructor2\"";
 
-  checker::ErrorList errors = checker::NameResolutionChecker()(ast);
+  std::optional<checker::Error> error = checker::NameResolutionChecker()(ast);
 
-  ASSERT_EQ(errors.size(), 1);
+  ASSERT_TRUE(error.has_value());
 
-  for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message)) << error.message;
-  }
+  ASSERT_TRUE(error->message == expected_error);
 }
 
 TEST(NameResolutionTest, UnknownFieldOfConstructor) {
@@ -312,15 +297,13 @@ TEST(NameResolutionTest, UnknownFieldOfConstructor) {
 
   ast.types[InternedString("B")] = std::move(enum2);
 
-  std::unordered_set<std::string> expected_errors {"No field with name field2 in constructor C1"};
+  std::string expected_error = "No field with name field2 in constructor C1";
 
-  checker::ErrorList errors = checker::NameResolutionChecker()(ast);
+  std::optional<checker::Error> error = checker::NameResolutionChecker()(ast);
 
-  ASSERT_EQ(errors.size(), 1);
+  ASSERT_TRUE(error.has_value());
 
-  for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message)) << error.message;
-  }
+  ASSERT_TRUE(error->message == expected_error);
 }
 
 TEST(NameResolutionTest, UnknownVariable) {
@@ -343,17 +326,13 @@ TEST(NameResolutionTest, UnknownVariable) {
   ast::Message message_a         = NameResolutionTest::make_message("A", {}, std::move(message_a_fields));
   ast.types[InternedString("A")] = std::move(message_a);
 
-  std::unordered_set<std::string> expected_errors {
-      "Undefined variable: \"a\" at 1.1",
-      "Undefined variable: \"b\" at 1.1"};
+  std::string expected_error = "Undefined variable: \"a\" at 1.1";
 
-  checker::ErrorList errors = checker::NameResolutionChecker()(ast);
+  std::optional<checker::Error> error = checker::NameResolutionChecker()(ast);
 
-  ASSERT_EQ(errors.size(), 2);
+  ASSERT_TRUE(error.has_value());
 
-  for (auto &error : errors) {
-    EXPECT_TRUE(expected_errors.contains(error.message)) << error.message;
-  }
+  ASSERT_TRUE(error->message == expected_error);
 }
 
 } // namespace dbuf

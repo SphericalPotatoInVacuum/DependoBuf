@@ -43,7 +43,9 @@ public:
   template <typename T>
   std::optional<Error> operator()(const ast::ScalarValue<T> &val) {
     if (expected_.identifier.name != GetTypename(val)) {
-      return Error(CreateError() << "Got value of type \"" << GetTypename(val) << "\", but expected type is \"" << expected_.identifier.name << "\" at " << val.location);
+      return Error(
+          CreateError() << "Got value of type \"" << GetTypename(val) << "\", but expected type is \""
+                        << expected_.identifier.name << "\" at " << val.location);
     }
     return {};
   }
