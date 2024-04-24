@@ -50,16 +50,16 @@ struct Enum
   struct Rule {
     using InputPattern = std::variant<Value, Star>;
 
-    std::vector<InputPattern> inputs = {};
-    std::vector<Constructor> outputs = {};
+    std::vector<InputPattern> inputs;
+    std::vector<Constructor> outputs;
   };
 
-  std::vector<Rule> pattern_mapping = {};
+  std::vector<Rule> pattern_mapping;
 };
 
 struct AST {
-  std::unordered_map<InternedString, std::variant<Message, Enum>> types  = {};
-  std::unordered_map<InternedString, InternedString> constructor_to_type = {};
+  std::unordered_map<InternedString, std::variant<Message, Enum>> types;
+  std::unordered_map<InternedString, InternedString> constructor_to_type;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const TypedVariable &var) {

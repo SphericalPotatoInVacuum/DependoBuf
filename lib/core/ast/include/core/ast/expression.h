@@ -131,7 +131,6 @@ struct ConstructedValue : ASTNode {
  * @brief Represents a constructed value, like `{1, 2, 3, 4}`
  */
 struct CollectionValue : ASTNode {
-  // Identifier collection_identifier;
   std::vector<ExprPtr> values = {};
 };
 
@@ -183,6 +182,19 @@ inline std::ostream &operator<<(std::ostream &os, const ArrayAccess &var) {
   return os;
 }
 
+inline std::ostream &operator<<(std::ostream &os, const TypeExpression &expr) {
+  os << expr.identifier.name;
+  for (const auto &param : expr.parameters) {
+    os << " " << *param;
+  }
+  return os;
+}
+
+inline std::ostream &operator<<(std::ostream &os, const Star & /*star*/) {
+  os << "*";
+  return os;
+}
+
 inline std::ostream &operator<<(std::ostream &os, const BinaryExpressionType &var) {
   if (var == BinaryExpressionType::DoubleAnd){
     os << "&&";
@@ -199,19 +211,6 @@ inline std::ostream &operator<<(std::ostream &os, const BinaryExpressionType &va
   else {
     os << static_cast<char>(var);
   }
-  return os;
-}
-
-inline std::ostream &operator<<(std::ostream &os, const TypeExpression &expr) {
-  os << expr.identifier.name;
-  for (const auto &param : expr.parameters) {
-    os << " " << *param;
-  }
-  return os;
-}
-
-inline std::ostream &operator<<(std::ostream &os, const Star & /*star*/) {
-  os << "*";
   return os;
 }
 
