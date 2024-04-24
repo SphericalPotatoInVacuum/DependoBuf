@@ -161,7 +161,7 @@ std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &exp
 
   DLOG(INFO) << "Checking that operator " << expr.type << " is correctly used";
   Error oper_err = Error(
-      CreateError() << "Operator \"" << static_cast<char>(expr.type) << "\""
+      CreateError() << "Operator \"" << expr.type << "\""
                     << " is not supported by type " << expected_.identifier.name << "\" at " << expr.location);
   if (expr.type == ast::BinaryExpressionType::Plus) {
     if (!(expected_.identifier.name == InternedString("Int") ||
