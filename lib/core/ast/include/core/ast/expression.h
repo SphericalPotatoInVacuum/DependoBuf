@@ -183,6 +183,25 @@ inline std::ostream &operator<<(std::ostream &os, const ArrayAccess &var) {
   return os;
 }
 
+inline std::ostream &operator<<(std::ostream &os, const BinaryExpressionType &var) {
+  if (var == BinaryExpressionType::DoubleAnd){
+    os << "&&";
+  }
+  else if (var == BinaryExpressionType::DoubleOr){
+    os << "||";
+  }
+  else if (var == BinaryExpressionType::BackSlash){
+    os << "\\";
+  }
+  else if (var == BinaryExpressionType::In){
+    os << "in";
+  }
+  else {
+    os << var;
+  }
+  return os;
+}
+
 inline std::ostream &operator<<(std::ostream &os, const TypeExpression &expr) {
   os << expr.identifier.name;
   for (const auto &param : expr.parameters) {
@@ -197,7 +216,7 @@ inline std::ostream &operator<<(std::ostream &os, const Star & /*star*/) {
 }
 
 inline std::ostream &operator<<(std::ostream &os, const BinaryExpression &expr) {
-  os << "(" << *expr.left << " " << static_cast<char>(expr.type) << " " << *expr.right << ")";
+  os << "(" << *expr.left << " " << expr.type << " " << *expr.right << ")";
   return os;
 }
 

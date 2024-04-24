@@ -159,7 +159,7 @@ std::optional<Error> TypeComparator::operator()(const ast::TypeExpression & /* e
 std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &expr) {
   DLOG(INFO) << "Checking binary expression " << expr;
 
-  DLOG(INFO) << "Checking that operator " << static_cast<char>(expr.type) << " is correctly used";
+  DLOG(INFO) << "Checking that operator " << expr.type << " is correctly used";
   Error oper_err = Error(
       CreateError() << "Operator \"" << static_cast<char>(expr.type) << "\""
                     << " is not supported by type " << expected_.identifier.name << "\" at " << expr.location);
