@@ -1,0 +1,17 @@
+message Number (x Int) {
+}
+
+enum D (array Array (Int) 3) {
+  <1, 1, 1> => {
+    Constuctor1 {
+      num Number array[0];
+    }
+  }
+  * => {
+    Constuctor2 {
+      num1 Number array[0];
+      num2 Number array[1];
+      num3 Number array[2];
+    }
+  }
+}

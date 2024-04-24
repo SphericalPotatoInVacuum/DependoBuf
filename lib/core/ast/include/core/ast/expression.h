@@ -179,7 +179,7 @@ inline std::ostream &operator<<(std::ostream &os, const VarAccess &var) {
 }
 
 inline std::ostream &operator<<(std::ostream &os, const ArrayAccess &var) {
-  os << var.array_identifier << "[" << *var.ind << "]";
+  os << *var.array_identifier << "[" << *var.ind << "]";
   return os;
 }
 
