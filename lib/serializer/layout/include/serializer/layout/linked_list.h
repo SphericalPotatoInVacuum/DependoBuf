@@ -1,9 +1,7 @@
 //Custom two-linked list
-
 #pragma once
 
 #include "serializer/layout/layout.h"
-#include "serializer/error_handler/error_handler.h"
 
 typedef struct Node {
     struct Node *prev;

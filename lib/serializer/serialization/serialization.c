@@ -1,6 +1,4 @@
 #include "serializer/serialization/serialization.h"
-#include "serializer/layout/layout.h"
-#include "serializer/linked_list/linked_list.h"
 
 //Counts bytes requierd for serialization of value
 static size_t SerializedDataSize(const Layout* layout, Value* value);

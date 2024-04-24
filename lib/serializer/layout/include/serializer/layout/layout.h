@@ -29,17 +29,19 @@ typedef struct Layout {
     size_t field_q;
 } Layout;
 
+//clang-for
+
 //pre-defined layouts for built-in types
-extern const Layout kInt64Layout;
-extern const Layout kUint64Layout;
-extern const Layout kInt32Layout;
-extern const Layout kUint32Layout;
-extern const Layout kDoubleLayout;
-extern const Layout kVarintLayout;
-extern const Layout kBoolLayout;
-extern const Layout kStringLayout;
-extern const Layout kFloatLayout;
-extern const Layout kBarrayLayout;
+extern const Layout* kInt64Layout; //NOLINT
+extern const Layout* kUint64Layout; //NOLINT
+extern const Layout* kInt32Layout; //NOLINT
+extern const Layout* kUint32Layout; //NOLINT
+extern const Layout* kDoubleLayout; //NOLINT
+extern const Layout* kVarintLayout; //NOLINT
+extern const Layout* kBoolLayout; //NOLINT
+extern const Layout* kStringLayout; //NOLINT
+extern const Layout* kFloatLayout; //NOLINT
+extern const Layout* kBarrayLayout; //NOLINT
 
 typedef struct LayoutNode {
     struct LayoutNode* next;
@@ -67,3 +69,7 @@ typedef struct Value {
         char* barray_value;
     };
 } Value;
+
+Value CreateValue(const Layout* layout, ...);
+Value CreateBoolValue(char bool);
+void DestroyValue(Value* value);

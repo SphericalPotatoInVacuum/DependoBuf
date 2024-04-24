@@ -1,17 +1,29 @@
 #include "serializer/layout/layout.h"
+#include "serializer/layout/linked_list.h"
 
 #include <stdarg.h>
 
-const Layout kInt64Layout = {.fields = NULL, .kind = INT64,.field_q = 0};
-const Layout kUint64Layout = {.fields = NULL, .kind = UINT64, .field_q = 0};
-const Layout kInt32Layout = {.fields = NULL, .kind = INT32, .field_q = 0};
-const Layout kUint32Layout = {.fields = NULL, .kind = UINT32, .field_q = 0};
-const Layout kDoubleLayout = {.fields = NULL, .kind = DOUBLE, .field_q = 0};
-const Layout kVarintLayout = {.fields = NULL, .kind = VARINT, .field_q = 0};
-const Layout kBoolLayout = {.fields = NULL, .kind = BOOL, .field_q = 0};
-const Layout kStringLayout = {.fields = NULL, .kind = STRING, .field_q = 0};
-const Layout kFloatLayout = {.fields = NULL, .kind = FLOAT, .field_q = 0};
-const Layout kBarrayLayout = {.fields = NULL, .kind = BARRAY, .field_q = 0};
+const Layout kInt64LayoutStatic = {.fields = NULL, .kind = INT64,.field_q = 0};
+const Layout kUint64LayoutStatic = {.fields = NULL, .kind = UINT64, .field_q = 0};
+const Layout kInt32LayoutStatic = {.fields = NULL, .kind = INT32, .field_q = 0};
+const Layout kUint32LayoutStatic = {.fields = NULL, .kind = UINT32, .field_q = 0};
+const Layout kDoubleLayoutStatic = {.fields = NULL, .kind = DOUBLE, .field_q = 0};
+const Layout kVarintLayoutStatic = {.fields = NULL, .kind = VARINT, .field_q = 0};
+const Layout kBoolLayoutStatic = {.fields = NULL, .kind = BOOL, .field_q = 0};
+const Layout kStringLayoutStatic = {.fields = NULL, .kind = STRING, .field_q = 0};
+const Layout kFloatLayoutStatic = {.fields = NULL, .kind = FLOAT, .field_q = 0};
+const Layout kBarrayLayoutStatic = {.fields = NULL, .kind = BARRAY, .field_q = 0};
+
+const Layout* kInt64Layout = &kInt64LayoutStatic;
+const Layout* kUint64Layout = &kUint64LayoutStatic;
+const Layout* kInt32Layout = &kInt32LayoutStatic;
+const Layout* kUint32Layout = &kUint32LayoutStatic;
+const Layout* kDoubleLayout = &kDoubleLayoutStatic;
+const Layout* kVarintLayout = &kVarintLayoutStatic;
+const Layout* kBoolLayout = &kBoolLayoutStatic;
+const Layout* kStringLayout = &kStringLayoutStatic;
+const Layout* kFloatLayout = &kFloatLayoutStatic;
+const Layout* kBarrayLayout = &kBarrayLayoutStatic;
 
 static LayoutNode* custom_layouts = NULL;
 
@@ -79,3 +91,58 @@ int DeleteLayout(const Layout* layout) {
     }
     return 1;
 }
+/* //ПОСТНАЯ ХУИТА :D
+Value CreateValue(const Layout* layout, ...) {
+    va_list ap;
+    va_start(ap, layout);
+
+    Value res = {.children = NULL, .uint_value = 0};
+    if (layout->kind == CONSTRUCTED) {
+        Value* children = calloc(layout->field_q, sizeof(Value));
+        if (children == NULL) {
+            err_code = 1;
+            return res;
+        }
+        for (size_t i = 0; i < layout->field_q; ++i) {
+            Value curr_val = va_arg(ap, Value);
+            children[i] = curr_val;
+        }
+        res.children = children;
+    } else if (layout->kind == UINT32 || layout->kind == INT32) {
+        uint32_t val = va_arg(ap, uint32_t);
+        res.uint_value = val;
+    } else if (layout->kind == UINT64 || layout->kind == INT64) {
+        uint64_t val = va_arg(ap, uint64_t);
+        res.uint_value = val;  
+    } else if (layout->kind == VARINT) {
+        char* val = va_arg(ap, char*);
+        res.varint_value = val;
+    } else if (layout->kind == BARRAY) {
+        char* val = va_arg(ap, char*);
+        res.barray_value = val;
+   } else if (layout->kind == STRING) {
+        char* val = va_arg(ap, char*);
+        res.string_ptr = val;
+   } else if (layout->kind == FLOAT) {
+        uint32_t float_bits = va_arg(ap, uint32_t);
+        res.float_value = *(float*)(&float_bits);
+   } else if (layout->kind == DOUBLE) {
+        double val = va_arg(ap, double);
+        res.double_value = val;
+   } else {
+        err_code = 1;
+   }
+   va_end(ap);
+   return res;
+}
+
+Value CreateBoolValue(char bool) {
+    Value res = {.bool_value = bool, .children = NULL};
+    return res;
+}
+
+void DestroyValue(Value* value) {
+    free(value->children);
+    value->children = NULL;
+}
+*/

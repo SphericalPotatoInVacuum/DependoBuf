@@ -14,7 +14,7 @@ set_target_properties(serializer_serialization PROPERTIES VERSION ${PROJECT_VERS
 set_target_properties(serializer_serialization PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR})
 
 target_link_libraries(serializer_serialization PUBLIC
-    serializer_list
+    serializer_layout
 )
 
 #target_compile_options(serializer_serialization PRIVATE -Werror -Wall -Wextra -Wpedantic -Wunused -Wunreachable-code)

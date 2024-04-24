@@ -1,5 +1,6 @@
 add_library(serializer_layout STATIC
     layout.c
+    linked_list.c
 )
 
 target_include_directories(serializer_layout PUBLIC

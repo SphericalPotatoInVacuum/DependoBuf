@@ -1,6 +1,6 @@
 #pragma once
 
-#include "serializer/linked_list/linked_list.h"
+#include "serializer/layout/linked_list.h"
 #include <string.h>
 
 //Defines how many nodes can be hanged simultaneously in serialization process.
