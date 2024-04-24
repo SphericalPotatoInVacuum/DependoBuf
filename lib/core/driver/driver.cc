@@ -44,8 +44,7 @@ int Driver::Run(const std::string &input_filename) {
     return EXIT_FAILURE;
   }
 
-  checker::Checker checker;
-  return checker.CheckAll(ast);
+  return checker::Checker::CheckAll(ast);
 }
 
 } // namespace dbuf

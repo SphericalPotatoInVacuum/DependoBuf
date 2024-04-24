@@ -21,8 +21,33 @@ the Free Software Foundation, either version 3 of the License, or
 #include <iostream>
 #include <optional>
 #include <sstream>
+#include <vector>
 
 namespace dbuf::checker {
+
+int Checker::CheckAll(const ast::AST &ast) {
+  std::optional<Error> name_resolution_error = CheckNameResolution(ast);
+  if (name_resolution_error.has_value()) {
+    std::cerr << name_resolution_error->message << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  std::optional<Error> positivity_error = CheckPositivity(ast);
+  if (positivity_error.has_value()) {
+    std::cerr << positivity_error->message << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  std::optional<Error> type_error = CheckTypeResolution(ast, visit_order_);
+  if (type_error.has_value()) {
+    std::cerr << type_error->message << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  return EXIT_SUCCESS;
+}
+
+std::vector<InternedString> Checker::visit_order_ = {};
 
 std::optional<Error> Checker::CheckNameResolution(const ast::AST &ast) {
   return NameResolutionChecker()(ast);
@@ -52,28 +77,6 @@ std::optional<Error> Checker::CheckPositivity(const ast::AST &ast) {
 
 std::optional<Error> Checker::CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order) {
   return TypeChecker(ast, visit_order).CheckTypes();
-}
-
-int Checker::CheckAll(const ast::AST &ast) {
-  std::optional<Error> name_resolution_error = CheckNameResolution(ast);
-  if (name_resolution_error.has_value()) {
-    std::cerr << name_resolution_error->message << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  std::optional<Error> positivity_error = CheckPositivity(ast);
-  if (positivity_error.has_value()) {
-    std::cerr << positivity_error->message << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  std::optional<Error> type_error = CheckTypeResolution(ast, visit_order_);
-  if (type_error.has_value()) {
-    std::cerr << type_error->message << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  return EXIT_SUCCESS;
 }
 
 } // namespace dbuf::checker

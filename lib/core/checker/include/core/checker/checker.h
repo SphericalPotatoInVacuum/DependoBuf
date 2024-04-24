@@ -18,16 +18,14 @@ namespace dbuf::checker {
 
 class Checker {
 public:
-  using ErrorList = std::vector<Error>;
-
-  static std::optional<Error> CheckNameResolution(const ast::AST &ast);
-  std::optional<Error> CheckPositivity(const ast::AST &ast);
-  static std::optional<Error> CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order);
-
-  int CheckAll(const ast::AST &ast);
+  static int CheckAll(const ast::AST &ast);
 
 private:
-  std::vector<InternedString> visit_order_;
+  static std::vector<InternedString> visit_order_;
+
+  static std::optional<Error> CheckNameResolution(const ast::AST &ast);
+  static std::optional<Error> CheckPositivity(const ast::AST &ast);
+  static std::optional<Error> CheckTypeResolution(const ast::AST &ast, const std::vector<InternedString> &visit_order);
 };
 
 } // namespace dbuf::checker

@@ -197,7 +197,7 @@ inline std::ostream &operator<<(std::ostream &os, const BinaryExpressionType &va
     os << "in";
   }
   else {
-    os << var;
+    os << static_cast<char>(var);
   }
   return os;
 }
