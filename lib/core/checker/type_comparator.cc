@@ -23,7 +23,6 @@ the Free Software Foundation, either version 3 of the License, or
 #include <cstdint>
 #include <memory>
 #include <optional>
-#include <pthread.h>
 #include <variant>
 #include <vector>
 
