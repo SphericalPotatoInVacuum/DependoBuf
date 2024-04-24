@@ -12,8 +12,11 @@ the Free Software Foundation, either version 3 of the License, or
 
 #include "core/ast/ast.h"
 #include "core/checker/common.h"
+#include "z3++.h"
 
+#include <cstddef>
 #include <optional>
+#include <variant>
 
 namespace dbuf::checker {
 
@@ -96,9 +99,10 @@ z3::expr ExpressionToZ3::operator()(const ast::VarAccess &var_access) {
   return expr_base;
 }
 
-z3::expr ExpressionToZ3::operator()(const ast::ArrayAccess & /*value*/) {
-  LOG(FATAL) << "Unfinished function: "
-             << "operator()(const ast::CollectionValue &value)";
+z3::expr ExpressionToZ3::operator()(const ast::ArrayAccess &value) {
+  z3::expr vec = std::visit(*this, *value.array_identifier);
+  z3::expr ind = std::visit(*this, *value.ind);
+  return z3::select(vec, ind);
 }
 
 z3::expr ExpressionToZ3::operator()(const ast::Value &value) {
@@ -133,9 +137,13 @@ z3::expr ExpressionToZ3::operator()(const ast::ConstructedValue &value) {
   return z3_stuff.constructors_.at(value.constructor_identifier.name)(args);
 }
 
-z3::expr ExpressionToZ3::operator()(const ast::CollectionValue & /*value*/) {
-  LOG(FATAL) << "Unfinished function: "
-             << "operator()(const ast::CollectionValue &value)";
+z3::expr ExpressionToZ3::operator()(const ast::CollectionValue &value) {
+  z3::expr vec = z3::const_array(z3_stuff.context_.int_sort(), z3_stuff.context_.int_val(0));
+  for (size_t i = 0; i < value.values.size(); ++i) {
+    z3::expr elem = std::visit(*this, *value.values[i]);
+    vec = z3::store(vec, z3_stuff.context_.int_val(i), elem);
+  }
+  return vec;
 }
 
 std::optional<Error> CompareExpressions(

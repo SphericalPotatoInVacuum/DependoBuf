@@ -56,6 +56,7 @@ public:
 
   ast::Expression operator()(const ast::VarAccess &value, const ast::VarAccess &substitution);
   ast::Expression operator()(const ast::VarAccess &value, const ast::ConstructedValue &substitution);
+  ast::Expression operator()(const ast::VarAccess &value, const ast::CollectionValue &substitution);
 
   template <typename T, typename U>
   ast::Expression operator()(const T &, const U &) {

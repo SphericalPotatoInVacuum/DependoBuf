@@ -154,4 +154,8 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::
   return std::visit(*this, next, *substitution.fields[id].second);
 }
 
+ast::Expression Substitutor::operator()(const ast::VarAccess & /* value */, const ast::CollectionValue &substitution) {
+  return substitution;
+}
+
 } // namespace dbuf

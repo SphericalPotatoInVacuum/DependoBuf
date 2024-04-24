@@ -471,6 +471,7 @@ collection_elements
     $$.emplace_back(std::move($1));
   }
   | collection_elements "," expression {
+    $$ = std::move($1);
     $$.emplace_back(std::move($3));
   }
   ;

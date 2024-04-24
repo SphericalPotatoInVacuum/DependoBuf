@@ -70,37 +70,37 @@ std::optional<Error> TypeChecker::operator()(const ast::Message &ast_message) {
   z3_stuff_.sorts_.emplace(ast_message.identifier.name, z3_stuff_.context_.datatype_sort(name_symbol));
   DLOG(INFO) << ast_message.identifier.name;
 
-  for (const auto &field : ast_message.fields) {
-    if (field.type_expression.identifier.name.GetString() == "Array" ||
-        field.type_expression.identifier.name.GetString() == "Set") {
-      const auto *type_expr = std::get_if<ast::TypeExpression>(&*field.type_expression.parameters[0]);
-      if (type_expr != nullptr) {
-        if (type_expr->identifier.name.GetString() == "Int" || type_expr->identifier.name.GetString() == "Unsigned") {
-          z3_stuff_.sorts_.emplace(
-              field.type_expression.identifier.name,
-              z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.int_sort()));
-        } else if (type_expr->identifier.name.GetString() == "Bool") {
-          z3_stuff_.sorts_.emplace(
-              field.type_expression.identifier.name,
-              z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.bool_sort()));
-        } else if (type_expr->identifier.name.GetString() == "String") {
-          z3_stuff_.sorts_.emplace(
-              field.type_expression.identifier.name,
-              z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.string_sort()));
-        } else if (type_expr->identifier.name.GetString() == "Float") {
-          z3_stuff_.sorts_.emplace(
-              field.type_expression.identifier.name,
-              z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.fpa_sort(11, 53)));
-        } else {
-          z3_stuff_.sorts_.emplace(
-              field.type_expression.identifier.name,
-              z3_stuff_.context_.array_sort(
-                  z3_stuff_.context_.int_sort(),
-                  z3_stuff_.sorts_.at(type_expr->identifier.name)));
-        }
-      }
-    }
-  }
+  // for (const auto &field : ast_message.fields) {
+  //   if (field.type_expression.identifier.name.GetString() == "Array" ||
+  //       field.type_expression.identifier.name.GetString() == "Set") {
+  //     const auto *type_expr = std::get_if<ast::TypeExpression>(&*field.type_expression.parameters[0]);
+  //     if (type_expr != nullptr) {
+  //       if (type_expr->identifier.name.GetString() == "Int" || type_expr->identifier.name.GetString() == "Unsigned") {
+  //         z3_stuff_.sorts_.emplace(
+  //             field.type_expression.identifier.name,
+  //             z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.int_sort()));
+  //       } else if (type_expr->identifier.name.GetString() == "Bool") {
+  //         z3_stuff_.sorts_.emplace(
+  //             field.type_expression.identifier.name,
+  //             z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.bool_sort()));
+  //       } else if (type_expr->identifier.name.GetString() == "String") {
+  //         z3_stuff_.sorts_.emplace(
+  //             field.type_expression.identifier.name,
+  //             z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.string_sort()));
+  //       } else if (type_expr->identifier.name.GetString() == "Float") {
+  //         z3_stuff_.sorts_.emplace(
+  //             field.type_expression.identifier.name,
+  //             z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.fpa_sort(11, 53)));
+  //       } else {
+  //         z3_stuff_.sorts_.emplace(
+  //             field.type_expression.identifier.name,
+  //             z3_stuff_.context_.array_sort(
+  //                 z3_stuff_.context_.int_sort(),
+  //                 z3_stuff_.sorts_.at(type_expr->identifier.name)));
+  //       }
+  //     }
+  //   }
+  // }
 
   z3::symbol recognizer_symbol =
       z3_stuff_.context_.str_symbol(("is_" + ast_message.identifier.name.GetString()).c_str());
@@ -303,8 +303,6 @@ std::optional<Error> TypeChecker::operator()(const ast::Enum &ast_enum) {
 
 // Checks that all dependencies are correctly defined
 std::optional<Error> TypeChecker::CheckDependencies(const ast::DependentType &type) {
-  DLOG(INFO) << "Checking dependencies";
-
   Scope &scope = *context_.back();
   for (const auto &dependency : type.type_dependencies) {
     DLOG(INFO) << "Checking dependency: " << dependency;
@@ -313,23 +311,19 @@ std::optional<Error> TypeChecker::CheckDependencies(const ast::DependentType &ty
     if (type_expr_err.has_value()) {
       return type_expr_err;
     }
-    // After we checked the depdency we can add it to scope to be seen by other dependencies
     scope.AddName(dependency.name, dependency.type_expression);
   }
-
-  DLOG(INFO) << "Finished checking dependencies";
   return {};
 }
 
 // Checks that all fields are correctly defined
 std::optional<Error> TypeChecker::CheckFields(const ast::TypeWithFields &type) {
-  DLOG(INFO) << "Checking fields";
   Scope scope(&context_);
-
   for (const auto &field : type.fields) {
     DLOG(INFO) << "Checking field: " << field.name << " of type " << field.type_expression;
     auto after_substitution = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
     DLOG(INFO) << "After substitution: " << after_substitution;
+    
     auto type_expr_err = CheckTypeExpression(after_substitution);
     if (type_expr_err.has_value()) {
       return type_expr_err;
@@ -339,50 +333,60 @@ std::optional<Error> TypeChecker::CheckFields(const ast::TypeWithFields &type) {
   return {};
 }
 
+// Checks that TypeExpression is correctly defined
 std::optional<Error> TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression) {
-  DLOG(INFO) << "Checking type expression: " << type_expression;
   if (type_expression.identifier.name == InternedString("Int") ||
       type_expression.identifier.name == InternedString("Unsigned") ||
       type_expression.identifier.name == InternedString("Bool") ||
       type_expression.identifier.name == InternedString("String") ||
-      type_expression.identifier.name == InternedString("Float") ||
-      type_expression.identifier.name == InternedString("Array") ||
-      type_expression.identifier.name == InternedString("Set")) {
+      type_expression.identifier.name == InternedString("Float")) {
+    return {};
+  } 
+
+  if (type_expression.identifier.name == InternedString("Array")) {
+    if (type_expression.parameters.size() != 2) {
+      return Error (CreateError() << "Expected 2 parmeters in Array constructor, but got " << type_expression.parameters.size() << " at " << type_expression.location);
+    }
+    if (!std::holds_alternative<ast::TypeExpression>(*type_expression.parameters[0])) {
+      return Error (CreateError() << "Expected first parmeter of Array to be a TypeExpression, but got " << *type_expression.parameters[0] << " at " << type_expression.location);
+    }
+    auto expected_type_expr = ast::TypeExpression({parser::location()}, ast::Identifier({type_expression.location}, {InternedString("Unsigned")}), std::vector<ast::ExprPtr>());
+    auto type_err = TypeComparator(expected_type_expr, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*type_expression.parameters[1]);
+    if (type_err.has_value()) {
+      return type_err;
+    }
+    return {};
+  }
+  
+  if (type_expression.identifier.name == InternedString("Set")) {
+    if (type_expression.parameters.size() != 1) {
+      return Error (CreateError() << "Expected 1 parmeter in Array constructor, but got " << type_expression.parameters.size());
+    }
+    if (!std::holds_alternative<ast::TypeExpression>(*type_expression.parameters[0])) {
+      return Error (CreateError() << "Expected first parmeter of Array to be a TypeExpression, but got " << *type_expression.parameters[0]);
+    }
     return {};
   }
 
-  const auto &type_variant = ast_.types.at(type_expression.identifier.name);
-  const ast::DependentType &type =
-      std::visit([](const auto &type) { return static_cast<ast::DependentType>(type); }, type_variant);
-
-  // Number of parameters should be equal to number of dependencies of message/enum
+  const ast::DependentType &type = std::visit([](const auto &type) { return static_cast<ast::DependentType>(type); }, ast_.types.at(type_expression.identifier.name));
   if (type.type_dependencies.size() != type_expression.parameters.size()) {
-    return Error (CreateError() << "Expected " << type.type_dependencies.size() << " parameters for typename \"" << type_expression.identifier.name << "\", but got " << type_expression.parameters.size() << " at " << type_expression.location);
+    return Error (CreateError() << "Expected " << type.type_dependencies.size() << " parameters in " << type_expression.identifier.name << ", but got " << type_expression.parameters.size() << " at " << type_expression.location);
   }
-
-  DLOG(INFO) << "Checking parameters";
-
-  // Next step is to check parameters
   substitutor_.PushScope();
+
   for (size_t id = 0; id < type.type_dependencies.size(); ++id) {
-    DLOG(INFO) << "Comparing argument " << *type_expression.parameters[id] << " against type "
-               << type.type_dependencies[id].type_expression;
-    // Update type using already known substitutions
+    DLOG(INFO) << "Comparing parameter " << *type_expression.parameters[id] << " with type " << type.type_dependencies[id].type_expression;
     DLOG(INFO) << "Type before substitution: " << type.type_dependencies[id].type_expression;
-    ast::TypeExpression substituted_type =
-        std::get<ast::TypeExpression>(substitutor_(type.type_dependencies[id].type_expression));
+    ast::TypeExpression substituted_type = std::get<ast::TypeExpression>(substitutor_(type.type_dependencies[id].type_expression));
     DLOG(INFO) << "Type after substitution: " << substituted_type;
 
-    // Check that parameter hase exprected type
-    auto type_err = TypeComparator(substituted_type, ast_, &context_, &substitutor_, &z3_stuff_)
-                        .Compare(*type_expression.parameters[id]);
+    auto type_err = TypeComparator(substituted_type, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*type_expression.parameters[id]);
     if (type_err) {
       return type_err;
     }
-
-    // Now we can update substitutions
     substitutor_.AddSubstitution(type.type_dependencies[id].name, type_expression.parameters[id]);
   }
+
   substitutor_.PopScope();
   return {};
 }

@@ -15,6 +15,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/checker/expression_comparator.h"
 #include "core/substitutor/substitutor.h"
 
+#include <cstdint>
 #include <optional>
 
 namespace dbuf::checker {
@@ -26,33 +27,23 @@ public:
       const ast::AST &ast,
       std::deque<Scope *> *context_ptr,
       Substitutor *substitutor_ptr,
-      Z3stuff *z3_stuff_ptr)
-      : expected_(expected)
-      , ast_(ast)
-      , context_(*context_ptr)
-      , substitutor_(*substitutor_ptr)
-      , z3_stuff_(*z3_stuff_ptr) {}
+      Z3stuff *z3_stuff_ptr);
 
   [[nodiscard]] std::optional<Error> Compare(const ast::Expression &expr);
 
   // Expression specifications
-  std::optional<Error> operator()(const ast::TypeExpression &expr);
+  std::optional<Error> operator()(const ast::TypeExpression & /* expr */);
   std::optional<Error> operator()(const ast::BinaryExpression &expr);
   std::optional<Error> operator()(const ast::UnaryExpression &expr);
   std::optional<Error> operator()(const ast::VarAccess &expr);
-  std::optional<Error> operator()(const ast::ArrayAccess & /* expr */) {
-    LOG(FATAL) << "Unfinished function: "
-               << "std::optional<Error> operator()(const ast::ArrayAccess &expr)";
-  }
+  std::optional<Error> operator()(const ast::ArrayAccess &expr);
   std::optional<Error> operator()(const ast::Value &val);
 
   // Value specifications
   template <typename T>
   std::optional<Error> operator()(const ast::ScalarValue<T> &val) {
     if (expected_.identifier.name != GetTypename(val)) {
-      return Error(
-          CreateError() << "Got value of type \"" << GetTypename(val) << "\", but expected type is \""
-                        << expected_.identifier.name << "\" at " << val.location);
+      return Error(CreateError() << "Got value of type \"" << GetTypename(val) << "\", but expected type is \"" << expected_.identifier.name << "\" at " << val.location);
     }
     return {};
   }
@@ -66,6 +57,8 @@ private:
   std::deque<Scope *> &context_;
   Substitutor &substitutor_;
   Z3stuff &z3_stuff_;
+
+  ast::BinaryExpression bin_expr_;
 
   [[nodiscard]] std::optional<Error> CompareTypeExpressions(
       const ast::TypeExpression &expected_type,
