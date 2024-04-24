@@ -1,11 +1,11 @@
 message T {
-  array1 Array (Int) 1;
-  array2 Array (Int) 2;
-  array3 Array (Int) 3;
-  array4 Array (Int) 4;
+  array1 Array (Int) 1u;
+  array2 Array (Int) 2u;
+  array3 Array (Int) 3u;
+  array4 Array (Int) 4u;
 }
 
-message K (array Array (Int) 10) {
+message K (array Array (Int) 10u) {
 }
 
 message P (t T) {

@@ -1,7 +1,7 @@
 message Number (x Int) {
 }
 
-enum D (array Array (Int) 3) {
+enum D (array Array (Int) 3u) {
   <1, 1, 1> => {
     Constuctor1 {
       num Number array[0];

@@ -12,6 +12,7 @@ the Free Software Foundation, either version 3 of the License, or
 
 #include "core/ast/ast.h"
 #include "core/checker/common.h"
+#include "core/interning/interned_string.h"
 #include "z3++.h"
 
 #include <cstddef>
@@ -27,7 +28,8 @@ Z3stuff::Z3stuff()
            {InternedString("Unsigned"), context_.int_sort()},
            {InternedString("Bool"), context_.bool_sort()},
            {InternedString("String"), context_.string_sort()},
-           {InternedString("Float"), context_.fpa_sort(11, 53)}}) {}
+           {InternedString("Float"), context_.fpa_sort(11, 53)}})
+    , collection_sorts_({{InternedString("Array"), NameToSort()}, {InternedString("Set"), NameToSort()}}) {}
 
 z3::expr ExpressionToZ3::operator()(const ast::Expression &expression) {
   return std::visit(*this, expression);

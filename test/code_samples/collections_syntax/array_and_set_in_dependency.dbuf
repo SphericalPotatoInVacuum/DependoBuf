@@ -2,7 +2,7 @@ message A (x Unsigned) {
   array Array (Int) x;
 }
 
-message B{
+message B {
     set Set (String);
 }
 

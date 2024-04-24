@@ -19,6 +19,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "z3++.h"
 
 #include <sstream>
+#include <unordered_map>
 #include <vector>
 
 namespace dbuf::checker {
@@ -27,14 +28,15 @@ struct Z3stuff {
   explicit Z3stuff();
 
   using NameToSort        = std::unordered_map<InternedString, z3::sort>;
-  using NameToConstructor = std::unordered_map<InternedString, z3::func_decl>;
-  using FieldToAccessor   = std::unordered_map<InternedString, z3::func_decl>;
-  using NameToFields      = std::unordered_map<InternedString, FieldToAccessor>;
+  using NameToCollectionSort = std::unordered_map<InternedString, NameToSort>;
+  using FieldToFuncDecl   = std::unordered_map<InternedString, z3::func_decl>;
+  using NameToFields      = std::unordered_map<InternedString, FieldToFuncDecl>;
 
   z3::context context_;
   z3::solver solver_;
   NameToSort sorts_;
-  NameToConstructor constructors_;
+  NameToCollectionSort collection_sorts_;
+  FieldToFuncDecl constructors_;
   NameToFields accessors_;
 };
 
