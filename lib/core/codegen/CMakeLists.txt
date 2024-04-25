@@ -2,6 +2,8 @@ add_library(codegen STATIC
   generation.cc
   cpp_gen.cc
   rust_gen.cc
+  rust_check_gen.cc
+  rust_struct_gen.cc
 )
 target_include_directories(codegen PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}
