@@ -1,18 +1,19 @@
 #include "serializer/serialization/serialization.h"
+#include "serializer/error_handler/error_handler.h"
 #include "serializer/serialization/node_handler.h"
 
 //Counts bytes requierd for serialization of value
 static size_t SerializedDataSize(const Layout* layout, Value* value);
 
 //Handle serialization of certain kinds from Kind enum.
-static int SerializeVARINT(char* byte_array, size_t* byte_iter, char* varint, size_t data_size);
+static int SerializeVARINT(char* byte_array, size_t* byte_iter, const char* varint, size_t data_size);
 static int SerializeINT64(char* byte_array, size_t* byte_iter, uint64_t inp, size_t data_size);
 static int SerializeINT32(char* byte_array, size_t* byte_iter, uint32_t inp, size_t data_size);
 static int SerializeBOOL(char* byte_array, size_t* byte_iter, char inp, size_t data_size);
 static int SerializeSTRING(char* byte_array, size_t* byte_iter, char* string_iter, size_t data_size);
 static int SerializeFLOAT(char* byte_array, size_t* byte_iter, float inp, size_t data_size);
 static int SerializeDOUBLE(char* byte_array, size_t* byte_iter, double inp, size_t data_size);
-static int SerializeBARRAY(char* byte_array, size_t* byte_iter, char* barray_value, size_t data_size);
+static int SerializeBARRAY(char* byte_array, size_t* byte_iter, const char* barray_value, size_t data_size);
 
 //Handle errors, mop up used heap memory in case of an error.
 static int HandleSerializationOutOfSizeError();
@@ -40,7 +41,7 @@ static void HandleUknownKindError(List* list, char* byte_array) {
     err_code = UNKNKIND;
 }
 
-static int SerializeBARRAY(char *byte_array, size_t *byte_iter, char *barray_value, size_t data_size) {
+static int SerializeBARRAY(char *byte_array, size_t *byte_iter, const char *barray_value, size_t data_size) {
     while (*barray_value >> 7) {
         if (*byte_iter >= data_size) {
             return HandleSerializationOutOfSizeError();
@@ -67,7 +68,7 @@ static int SerializeDOUBLE(char *byte_array, size_t *byte_iter, double inp, size
 }
 
 static int SerializeFLOAT(char *byte_array, size_t *byte_iter, float inp, size_t data_size) {
-    if (*byte_iter >= data_size || data_size - *byte_iter < 8) {
+    if (*byte_iter >= data_size || data_size - *byte_iter < 4) {
         return HandleSerializationOutOfSizeError();
     }
     memcpy(&byte_array[*byte_iter], &inp, 4);
@@ -75,7 +76,7 @@ static int SerializeFLOAT(char *byte_array, size_t *byte_iter, float inp, size_t
     return 0;
 }
 
-static int SerializeVARINT(char* byte_array, size_t* byte_iter, char* varint, size_t data_size) {
+static int SerializeVARINT(char* byte_array, size_t* byte_iter, const char* varint, size_t data_size) {
     while (*varint >> 7) {
         if (*byte_iter >= data_size) {
             return HandleSerializationOutOfSizeError();
@@ -114,7 +115,7 @@ static int SerializeBOOL(char *byte_array, size_t *byte_iter, char inp, size_t d
     if (*byte_iter >= data_size) {
         return HandleSerializationOutOfSizeError();
     }
-    memcpy(&byte_array[*byte_iter], &inp, 1);
+    byte_array[*byte_iter] = inp;
     *byte_iter += 1;
     return 0;
 }
@@ -135,6 +136,8 @@ static int SerializeSTRING(char *byte_array, size_t *byte_iter, char *string_ite
     *byte_iter += 1;
     return 0;
 }
+
+
 
 static size_t SerializedDataSize(const Layout* layout, Value* value) {
     if (err_code != NOERR) {
@@ -193,28 +196,16 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
     return res;
 }
 
-char* Serialize(const Layout* layout, Value value) {
-    if (err_code != NOERR) {
-        return NULL;
+void SerializeInBuffer(const Layout *layout, Value value, char *byte_array, size_t data_size) {
+    if (err_code) {
+        return;
     }
-
-    size_t data_size = SerializedDataSize(layout, &value);
-    if (err_code != NOERR) {
-        return NULL;
-    }
-
-    char* byte_array = malloc(SerializedDataSize(layout, &value));
-    if (byte_array == NULL) {
-        HandleSerializationArrayAllocationError();
-        return NULL;
-    }
-
     size_t byte_iter = 0;
     List layer_list = {.head = NULL, .tail = NULL};
     Node* first_node = GetNode();
     if (first_node == NULL) {
         HandleNodeAllocationError(&layer_list);
-        return NULL;
+        return;
     }
     first_node->layout = layout;
     first_node->value_place = &value;
@@ -228,7 +219,7 @@ char* Serialize(const Layout* layout, Value value) {
                 Node* new_node = GetNode();
                 if (new_node == NULL) {
                     HandleNodeAllocationError(&layer_list);
-                    return NULL;
+                    return;
                 }
                 new_node->layout = curr_node->layout->fields[curr_node->layout->field_q - 1 - i];
                 new_node->value_place = &curr_node->value_place->children[curr_node->layout->field_q - 1 - i];
@@ -238,56 +229,78 @@ char* Serialize(const Layout* layout, Value value) {
             int exit_code = SerializeVARINT(byte_array, &byte_iter, curr_node->value_place->varint_value, data_size);
             if (exit_code) {
                 HandleMidSerializationError(&layer_list, byte_array);
-                return NULL;
+                return;
             }
         } else if (curr_node->layout->kind == INT32 || curr_node->layout->kind == UINT32) {
             int exit_code = SerializeINT32(byte_array, &byte_iter, curr_node->value_place->uint_value, data_size);
             if (exit_code) {
                 HandleMidSerializationError(&layer_list, byte_array);
-                return NULL;
+                return;
             }
         } else if (curr_node->layout->kind == INT64 || curr_node->layout->kind == UINT64) {
             int exit_code = SerializeINT64(byte_array, &byte_iter, curr_node->value_place->uint_value, data_size);
             if (exit_code) {
                 HandleMidSerializationError(&layer_list, byte_array); 
-                return NULL;
+                return;
             }
         } else if (curr_node->layout->kind == BOOL) {
             int exit_code = SerializeBOOL(byte_array, &byte_iter, curr_node->value_place->bool_value, data_size);
             if (exit_code) {
                 HandleMidSerializationError(&layer_list, byte_array);
-                return NULL;
+                return;
             }
         } else if (curr_node->layout->kind == STRING) {
             int exit_code = SerializeSTRING(byte_array, &byte_iter, curr_node->value_place->string_ptr, data_size);
             if (exit_code) {
                 HandleMidSerializationError(&layer_list, byte_array);
-                return NULL;
+                return;
             }
         } else if (curr_node->layout->kind == BARRAY) {
             int exit_code = SerializeBARRAY(byte_array, &byte_iter, curr_node->value_place->barray_value, data_size);
             if (exit_code) {
                 HandleMidSerializationError(&layer_list, byte_array);
-                return NULL;
+                return;
             }
         } else if (curr_node->layout->kind == FLOAT) {
             int exit_code = SerializeFLOAT(byte_array, &byte_iter, curr_node->value_place->float_value, data_size);
             if (exit_code) {
                 HandleMidSerializationError(&layer_list, byte_array);
-                return NULL;
+                return;
             }
         } else if (curr_node->layout->kind == DOUBLE) {
             int exit_code = SerializeDOUBLE(byte_array, &byte_iter, curr_node->value_place->double_value, data_size);
             if (exit_code) {
                 HandleMidSerializationError(&layer_list, byte_array);
-                return NULL;
+                return;
             }
         } else {
             HandleUknownKindError(&layer_list, byte_array);
-            return NULL;
+            return;
         }
         GiveNode(curr_node);
     }
     Clear(&avalible_nodes);
+}
+
+char* Serialize(const Layout* layout, Value value) {
+    if (err_code) {
+        return NULL;
+    }
+
+    size_t data_size = SerializedDataSize(layout, &value);
+    if (err_code) {
+        return NULL;
+    }
+
+    char* byte_array = malloc(SerializedDataSize(layout, &value));
+    if (byte_array == NULL) {
+        HandleSerializationArrayAllocationError();
+        return NULL;
+    }
+    SerializeInBuffer(layout, value, byte_array, data_size);
+    if (err_code) {
+        free(byte_array);
+        return NULL;
+    }
     return byte_array;
 }

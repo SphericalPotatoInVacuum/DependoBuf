@@ -8,6 +8,7 @@
 
 //Serializes values by layout. Returns bytes of serialized data.
 char* Serialize(const Layout* layout, Value value);
+void SerializeInBuffer(const Layout* layout, Value value, char* byte_array, size_t data_size);
 //Deserializes bytes by layout. Returns constructed value.
 Value Deserialize(const Layout *layout, char *buffer);
 
