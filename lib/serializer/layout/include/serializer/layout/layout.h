@@ -25,6 +25,7 @@ typedef enum Kind {
 //Layout is used to decribe layout of type. Can be constructed by user.
 typedef struct Layout {
     const struct Layout **fields;
+
     Kind kind;
     size_t field_q;
 } Layout;
@@ -73,5 +74,4 @@ typedef struct Value {
 Value ConstructValue(const Layout* layout, void **values);
 Value ConstructPrimitiveValue(const Layout* layout, ...);
 Value CopyValue(const Layout *layout, const Value *value);
-Value CreateBoolValue(char bool);
-void DestroyValue(Value* value);
+void DestroyValue(const Layout *layout, Value* value);

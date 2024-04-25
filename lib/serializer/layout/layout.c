@@ -93,51 +93,6 @@ int DeleteLayout(const Layout* layout) {
     }
     return 1;
 }
-
-Value CreateValue(const Layout* layout, ...) {
-    va_list ap;
-    va_start(ap, layout);
-
-    Value res = {.children = NULL, .uint_value = 0};
-    if (layout->kind == CONSTRUCTED) {
-        Value* children = calloc(layout->field_q, sizeof(Value));
-        if (children == NULL) {
-            err_code = 1;
-            return res;
-        }
-        for (size_t i = 0; i < layout->field_q; ++i) {
-            Value curr_val = va_arg(ap, Value);
-            children[i] = curr_val;
-        }
-        res.children = children;
-    } else if (layout->kind == UINT32 || layout->kind == INT32) {
-        uint32_t val = va_arg(ap, uint32_t);
-        res.uint_value = val;
-    } else if (layout->kind == UINT64 || layout->kind == INT64) {
-        uint64_t val = va_arg(ap, uint64_t);
-        res.uint_value = val;
-    } else if (layout->kind == VARINT) {
-        char* val = va_arg(ap, char*);
-        res.varint_value = val;
-    } else if (layout->kind == BARRAY) {
-        char* val = va_arg(ap, char*);
-        res.barray_value = val;
-   } else if (layout->kind == STRING) {
-        char* val = va_arg(ap, char*);
-        res.string_ptr = val;
-   } else if (layout->kind == FLOAT) {
-        uint32_t float_bits = va_arg(ap, uint32_t);
-        res.float_value = *(float*)(&float_bits);
-   } else if (layout->kind == DOUBLE) {
-        double val = va_arg(ap, double);
-        res.double_value = val;
-   } else {
-        err_code = 1;
-   }
-   va_end(ap);
-   return res;
-}
-
 Value ConstructValue(const Layout *layout, void **values) {
     err_code = NOERR;
     Value constructed_value = {NULL, 0};
@@ -294,7 +249,7 @@ Value CopyValue(const Layout *layout, const Value *value) {
             char *barr_ptr = value->barray_value;
             char *barr_copy = calloc(strlen(barr_ptr), sizeof(*barr_copy));
             strcpy(barr_copy, barr_ptr);
-            copy.string_ptr = barr_copy;
+            copy.barray_value = barr_copy;
         } else {
             err_code = UNKNKIND;
         }
@@ -351,12 +306,49 @@ Value CopyValue(const Layout *layout, const Value *value) {
     return copy;
 }
 
-Value CreateBoolValue(char bool) {
-    Value res = {.bool_value = bool, .children = NULL};
-    return res;
-}
+void DestroyValue(const Layout *layout, Value* value) {
+    err_code = NOERR;
+    if (layout->kind != CONSTRUCTED) {
+        if (layout->kind == VARINT) {
+            free(value->varint_value);
+        } else if (layout->kind == STRING) {
+            free(value->string_ptr);
+        } else if (layout->kind == BARRAY) {
+            free(value->barray_value);
+        } else {
+            err_code = UNKNKIND;
+        }
+    } else {
+        Node *initial_node = GetNode();
+        if (initial_node == NULL) {
+            err_code = ALLOCERR;
+            return;
+        }
+        initial_node->next = NULL;
+        initial_node->prev = NULL;
+        initial_node->layout = layout;
+        initial_node->value_place = value;
+        List nodes = {initial_node, initial_node};
 
-void DestroyValue(Value* value) {
-    free(value->children);
-    value->children = NULL;
+        while (Empty(&nodes) == 0) {
+            Node *cur_node = PopFront(&nodes);
+            if (cur_node->layout->kind != CONSTRUCTED) {
+                DestroyValue(cur_node->layout, cur_node->value_place);
+                if (err_code != NOERR) {
+                    Clear(&nodes);
+                    DestroyNode(cur_node);
+                    return;
+                }
+            } else {
+                Value *cur_value = cur_node->value_place;
+                for (ssize_t i = cur_node->layout->field_q - 1; i >= 0; --i) {
+                    Node *node = GetNode();
+                    node->layout = cur_node->layout->fields[i];
+                    node->value_place = &cur_value->children[i];
+                    PushFront(&nodes, node);
+                }
+            }
+            GiveNode(cur_node);
+        }
+    }
 }
