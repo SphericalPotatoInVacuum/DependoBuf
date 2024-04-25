@@ -2,6 +2,7 @@
 
 #include "stdio.h"
 
+//Handled errors
 enum {
     NOERR,
     EMPTYLIST,
@@ -14,5 +15,5 @@ enum {
 
 //Represents whether function ended normally or not.
 extern int err_code;
-
+//Decodes error by its index.
 const char *GetErrorDescription(int err_no);

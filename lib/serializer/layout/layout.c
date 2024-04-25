@@ -94,50 +94,6 @@ int DeleteLayout(const Layout* layout) {
     return 1;
 }
 
-Value CreateValue(const Layout* layout, ...) {
-    va_list ap;
-    va_start(ap, layout);
-
-    Value res = {.children = NULL, .uint_value = 0};
-    if (layout->kind == CONSTRUCTED) {
-        Value* children = calloc(layout->field_q, sizeof(Value));
-        if (children == NULL) {
-            err_code = 1;
-            return res;
-        }
-        for (size_t i = 0; i < layout->field_q; ++i) {
-            Value curr_val = va_arg(ap, Value);
-            children[i] = curr_val;
-        }
-        res.children = children;
-    } else if (layout->kind == UINT32 || layout->kind == INT32) {
-        uint32_t val = va_arg(ap, uint32_t);
-        res.uint_value = val;
-    } else if (layout->kind == UINT64 || layout->kind == INT64) {
-        uint64_t val = va_arg(ap, uint64_t);
-        res.uint_value = val;
-    } else if (layout->kind == VARINT) {
-        char* val = va_arg(ap, char*);
-        res.varint_value = val;
-    } else if (layout->kind == BARRAY) {
-        char* val = va_arg(ap, char*);
-        res.barray_value = val;
-   } else if (layout->kind == STRING) {
-        char* val = va_arg(ap, char*);
-        res.string_ptr = val;
-   } else if (layout->kind == FLOAT) {
-        uint32_t float_bits = va_arg(ap, uint32_t);
-        res.float_value = *(float*)(&float_bits);
-   } else if (layout->kind == DOUBLE) {
-        double val = va_arg(ap, double);
-        res.double_value = val;
-   } else {
-        err_code = 1;
-   }
-   va_end(ap);
-   return res;
-}
-
 Value ConstructValue(const Layout *layout, void **values) {
     err_code = NOERR;
     Value constructed_value = {NULL, 0};
@@ -221,6 +177,7 @@ Value ConstructValue(const Layout *layout, void **values) {
             GiveNode(cur_node);
         }
     }
+    Clear(&avalible_nodes);
     return constructed_value;
 }
 
@@ -348,6 +305,7 @@ Value CopyValue(const Layout *layout, const Value *value) {
             GiveNode(cur_node);
         }
     }
+    Clear(&avalible_nodes);
     return copy;
 }
 

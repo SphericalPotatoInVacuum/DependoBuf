@@ -7,7 +7,7 @@
 #include "stdlib.h"
 #include "string.h"
 
-//Enumerates all possible types that can be used in protocol (Type string is a zero-terminated string).
+//Enumerates all possible types that can be used in protocol (Type string is a zero-terminated string)
 typedef enum Kind {
     INT64,
     UINT64,
@@ -22,7 +22,7 @@ typedef enum Kind {
     BARRAY
 } Kind;
 
-//Layout is used to decribe layout of type. Can be constructed by user.
+//Layout is used to decribe layout of type. Can be constructed by user
 typedef struct Layout {
     const struct Layout **fields;
     Kind kind;
@@ -52,10 +52,10 @@ typedef struct LayoutNode {
 void ClearLayouts();
 //Creates custom layout and returns pointer to it
 const Layout* CreateLayout(size_t field_q, ...);
-//Deletes layout by its pointer and returns 0. If layout doesn't exists, returns 1.
+//Deletes layout by its pointer and returns 0. If layout doesn't exists, returns 1
 int DeleteLayout(const Layout* layout);
 
-//Value is used to fill fields of certain defined layout by values.
+//Value is used to fill fields of certain defined layout by values
 typedef struct Value {
     struct Value* children;
     union {
@@ -70,8 +70,13 @@ typedef struct Value {
     };
 } Value;
 
+//Constructs Value by its layout and pure values
 Value ConstructValue(const Layout* layout, void **values);
+//Constructs value based on Built-in Layout and pure value
 Value ConstructPrimitiveValue(const Layout* layout, ...);
+//Non-recursive DeepCopy of Value
 Value CopyValue(const Layout *layout, const Value *value);
+//Separate bool constructor (due to constraints in stdarg.h)
 Value CreateBoolValue(char bool);
+//Deallocates objects used in Value.
 void DestroyValue(Value* value);
