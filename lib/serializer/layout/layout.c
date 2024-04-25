@@ -314,7 +314,7 @@ Value CopyValue(const Layout *layout, const Value *value) {
         while (Empty(&nodes) == 0) {
             Node *cur_node = PopFront(&nodes);
             if (cur_node->layout->kind != CONSTRUCTED) {
-                *cur_node->value_place = ConstructPrimitiveValue(cur_node->layout, cur_node->value_place->uint_value);
+                *cur_node->value_place = CopyValue(cur_node->layout, cur_node->value);
                 if (err_code != NOERR) {
                     Clear(&nodes);
                     DestroyNode(cur_node);
