@@ -1,5 +1,6 @@
 #include "serializer/layout/layout.h"
 #include "serializer/layout/linked_list.h"
+#include "serializer/layout/node_handler.h"
 
 #include <stdarg.h>
 
@@ -58,6 +59,7 @@ const Layout* CreateLayout(size_t field_q, ...) {
     new_layout_node->next = NULL;
     new_layout_node->prev = NULL;
     Layout* new_layout = (Layout*)(new_layout_node + 1);
+    new_layout->field_q = field_q;
     new_layout->fields = (const Layout**)(new_layout + 1);
     new_layout->kind = CONSTRUCTED;
 
@@ -113,7 +115,7 @@ Value CreateValue(const Layout* layout, ...) {
         res.uint_value = val;
     } else if (layout->kind == UINT64 || layout->kind == INT64) {
         uint64_t val = va_arg(ap, uint64_t);
-        res.uint_value = val;  
+        res.uint_value = val;
     } else if (layout->kind == VARINT) {
         char* val = va_arg(ap, char*);
         res.varint_value = val;
@@ -134,6 +136,130 @@ Value CreateValue(const Layout* layout, ...) {
    }
    va_end(ap);
    return res;
+}
+
+Value ConstructValue(const Layout *layout, void **values) {
+    err_code = NOERR;
+    Value constructed_value = {NULL, 0};
+    if (layout->kind != CONSTRUCTED) {
+        if (layout->kind == INT64) {
+            constructed_value.int_value = *(int64_t *)values;
+        } else if (layout->kind == UINT64) {
+            constructed_value.uint_value = *(uint64_t *)values;
+        } else if (layout->kind == INT32) {
+            constructed_value.int_value = *(int32_t *)values;
+        } else if (layout->kind == UINT32) {
+            constructed_value.uint_value = *(uint32_t *)values;
+        } else if (layout->kind == VARINT) {
+            constructed_value.varint_value = *(char **)values;
+        } else if (layout->kind == DOUBLE) {
+            constructed_value.double_value = *(double *)values;
+        } else if (layout->kind == FLOAT) {
+            constructed_value.float_value = *(float *)values;
+        } else if (layout->kind == BOOL) {
+            constructed_value.bool_value = *(char *)values;
+        } else if (layout->kind == STRING) {
+            char *str_ptr = *(char **) values;
+            char *str_copy = calloc(strlen(str_ptr), sizeof(*str_copy));
+            strcpy(str_copy, str_ptr);
+            constructed_value.string_ptr = str_copy;
+        } else if (layout->kind == BARRAY) {
+            constructed_value.barray_value = *(char **)values;
+        } else {
+            err_code = UNKNKIND;
+        }
+    } else {
+        Node *initial_node = GetNode();
+        if (initial_node == NULL) {
+            err_code = ALLOCERR;
+            return constructed_value;
+        }
+        initial_node->next = NULL;
+        initial_node->prev = NULL;
+        initial_node->value_place = &constructed_value;
+        initial_node->layout = layout;
+        initial_node->data = values;
+        List nodes = {initial_node, initial_node};
+
+        while (Empty(&nodes) == 0) {
+            Node *cur_node = PopFront(&nodes);
+            if (cur_node->layout->kind != CONSTRUCTED) {
+                *cur_node->value_place = ConstructValue(cur_node->layout, cur_node->data);
+                if (err_code != NOERR) {
+                    Clear(&nodes);
+                    DestroyNode(cur_node);
+                    return constructed_value;
+                }
+            } else {
+                Value *cur_value = cur_node->value_place;
+                cur_value->children = calloc(cur_node->layout->field_q,
+                                             sizeof(*cur_value->children));
+                if (cur_value->children == NULL) {
+                    err_code = ALLOCERR;
+                    Clear(&nodes);
+                    DestroyNode(cur_node);
+                    return constructed_value;
+                }
+                for (ssize_t i = cur_node->layout->field_q - 1; i >= 0; --i) {
+                    Node *node = GetNode();
+                    void **data_ptr = cur_node->data;
+                    if (node == NULL) {
+                        err_code = ALLOCERR;
+                        Clear(&nodes);
+                        DestroyNode(cur_node);
+                        return constructed_value;
+                    }
+                    node->layout = cur_node->layout->fields[i];
+                    node->value_place = &cur_value->children[i];
+                    node->data = (void **)data_ptr[i];
+                    PushFront(&nodes, node);
+                }
+            }
+            GiveNode(cur_node);
+        }
+    }
+    return constructed_value;
+}
+
+Value ConstructPrimitiveValue(const Layout* layout, ...) {
+    err_code = NOERR;
+
+    va_list ap;
+    va_start(ap, layout);
+
+    Value constructed_value = {NULL, 0};
+    if (layout->kind != CONSTRUCTED) {
+        if (layout->kind == INT64) {
+            constructed_value.int_value = va_arg(ap, int64_t);
+        } else if (layout->kind == UINT64) {
+            constructed_value.uint_value = va_arg(ap, uint64_t);
+        } else if (layout->kind == INT32) {
+            constructed_value.int_value = va_arg(ap, int32_t);
+        } else if (layout->kind == UINT32) {
+            constructed_value.uint_value = va_arg(ap, uint32_t);
+        } else if (layout->kind == VARINT) {
+            constructed_value.varint_value = va_arg(ap, char *);
+        } else if (layout->kind == DOUBLE) {
+            constructed_value.double_value = va_arg(ap, double);
+        } else if (layout->kind == FLOAT) {
+            constructed_value.float_value = va_arg(ap, double);
+        } else if (layout->kind == BOOL) {
+            constructed_value.bool_value = va_arg(ap, int);
+        } else if (layout->kind == STRING) {
+            char *str_ptr = va_arg(ap, char *);
+            char *str_copy = calloc(strlen(str_ptr), sizeof(*str_copy));
+            strcpy(str_copy, str_ptr);
+            constructed_value.string_ptr = str_copy;
+        } else if (layout->kind == BARRAY) {
+            constructed_value.barray_value = va_arg(ap, char *);
+        } else {
+            err_code = UNKNKIND;
+        }
+    } else {
+        err_code = CONSTRERR;
+    }
+
+    return constructed_value;
 }
 
 Value CreateBoolValue(char bool) {

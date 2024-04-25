@@ -25,10 +25,9 @@ void PushFront(List *list, Node *node) {
 }
 
 Node *PopBack(List *list) {
-    err_code = 0;
+    err_code = NOERR;
     if (Empty(list)) {
-        err_code = 1;
-        perror("Could not pop from empty list\n");
+        err_code = EMPTYLIST;
         return NULL;
     } else { //NOLINT
         --list->size;
@@ -47,10 +46,9 @@ Node *PopBack(List *list) {
 }
 
 Node *PopFront(List *list) {
-    err_code = 0;
+    err_code = NOERR;
     if (Empty(list)) {
-        err_code = 1;
-        perror("Could not pop from empty list\n");
+        err_code = EMPTYLIST;
         return NULL;
     } else { //NOLINT
         --list->size;
@@ -84,5 +82,5 @@ void Clear(List *list) {
 
 void HandleNodeAllocationError(List *list) {
     Clear(list);
-    err_code = 1;
+    err_code = ALLOCERR;
 }

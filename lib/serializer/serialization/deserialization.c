@@ -3,6 +3,7 @@
 #include "serializer/serialization/node_handler.h"
 
 static char *DeserializeVARINT(char **cur_buf_pos) {
+    err_code = NOERR;
     char tmp[8];
     size_t size = 0;
     while (**cur_buf_pos >> 7) {
@@ -15,7 +16,7 @@ static char *DeserializeVARINT(char **cur_buf_pos) {
     ++*cur_buf_pos;
     char *varint = calloc(size, sizeof(*varint));
     if (varint == NULL) {
-        err_code = 1;
+        err_code = ALLOCERR;
         return NULL;
     }
     for (size_t i = 0; i < size; ++i) {
@@ -26,6 +27,7 @@ static char *DeserializeVARINT(char **cur_buf_pos) {
 }
 
 static char* DeserializeBARRAY(char **cur_buf_pos) {
+    err_code = NOERR;
     char* start_point = *cur_buf_pos;
     while (**cur_buf_pos >> 7) {
         ++(*cur_buf_pos);
@@ -34,7 +36,7 @@ static char* DeserializeBARRAY(char **cur_buf_pos) {
     size_t barray_size = *cur_buf_pos - start_point;
     char* barray = calloc(barray_size, sizeof(char));
     if (barray == NULL) {
-        err_code = 1;
+        err_code = ALLOCERR;
         return NULL;
     }
     
@@ -46,6 +48,7 @@ static char* DeserializeBARRAY(char **cur_buf_pos) {
 }  
 
 static char* DeserializeSTRING(char **cur_buf_pos) {
+    err_code = NOERR;
     char* start_point = *cur_buf_pos;
     while (**cur_buf_pos) {
         ++(*cur_buf_pos);
@@ -63,10 +66,8 @@ static char* DeserializeSTRING(char **cur_buf_pos) {
 
 //Deserializes built-in types.
 static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
+    err_code = NOERR;
     Value value = {NULL, 0};
-    if (err_code) {
-        return value;
-    }
     if (layout->kind == INT64) {
         int64_t val = *(int64_t *) (*cur_buf_pos);
         *cur_buf_pos += 8;
@@ -84,7 +85,7 @@ static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
         *cur_buf_pos += 4;
         value.uint_value = val;
     } else if (layout->kind == VARINT) {
-        value.varint_value = DeserializeVARINT(cur_buf_pos);;
+        value.varint_value = DeserializeVARINT(cur_buf_pos);
     } else if (layout->kind == BARRAY) {
         value.barray_value = DeserializeBARRAY(cur_buf_pos);
     } else if (layout->kind == DOUBLE) {
@@ -97,8 +98,11 @@ static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
         value.float_value = val;
     } else if (layout->kind == STRING) {
         value.string_ptr = DeserializeSTRING(cur_buf_pos);
+    } else if (layout->kind == BOOL) {
+        value.bool_value = *(char *)(*cur_buf_pos);
+        ++*cur_buf_pos;
     } else {
-        err_code = 1;
+        err_code = UNKNKIND;
     }
 
     return value;
@@ -106,18 +110,14 @@ static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
 
 //Deserializes one element from layout. Returns constructed value.
 static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
+    err_code = NOERR;
     Value value = {NULL, 0};
-    if (err_code) {
-        return value;
-    }
     if (layout->kind != CONSTRUCTED) {
         value = DeserializePrimitive(layout, cur_buf_pos);
-        if (err_code != 0) {
-        }
     } else {
         Node *initial_node = GetNode();
         if (initial_node == NULL) {
-            err_code = 1;
+            err_code = ALLOCERR;
             return value;
         }
         initial_node->next = NULL;
@@ -130,7 +130,7 @@ static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
             Node *cur_node = PopFront(&nodes);
             if (cur_node->layout->kind != CONSTRUCTED) {
                 *cur_node->value_place = DeserializePrimitive(cur_node->layout, cur_buf_pos);
-                if (err_code != 0) {
+                if (err_code != NOERR) {
                     Clear(&nodes);
                     DestroyNode(cur_node);
                     return value;
@@ -140,7 +140,7 @@ static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
                 cur_value->children = calloc(cur_node->layout->field_q,
                                                          sizeof(*cur_value->children));
                 if (cur_value->children == NULL) {
-                    err_code = 1;
+                    err_code = ALLOCERR;
                     Clear(&nodes);
                     DestroyNode(cur_node);
                     return value;
@@ -148,7 +148,7 @@ static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
                 for (ssize_t i = cur_node->layout->field_q - 1; i >= 0; --i) {
                     Node *node = GetNode();
                     if (node == NULL) {
-                        err_code = 1;
+                        err_code = ALLOCERR;
                         Clear(&nodes);
                         DestroyNode(cur_node);
                         return value;
@@ -167,12 +167,13 @@ static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
 
 //Deserializes bytes by layout. Returns constructed value.
 Value Deserialize(const Layout *layout, char *buffer) {
-    if (err_code) {
-        Value value = {.children = NULL, .uint_value = 0};
-        return value;
-    }
+    err_code = NOERR;
     Value value = DeserializeUnit(layout, &buffer);
     Clear(&avalible_nodes);
+
+    if (err_code != NOERR) {
+        err_code = DESERERR;
+    }
 
     return value;
 }

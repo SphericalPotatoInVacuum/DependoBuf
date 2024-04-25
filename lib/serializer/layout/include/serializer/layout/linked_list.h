@@ -8,6 +8,7 @@ typedef struct Node {
     struct Node *next;
     Value *value_place;
     const Layout *layout;
+    void **data;
 } Node;
 
 typedef struct List {

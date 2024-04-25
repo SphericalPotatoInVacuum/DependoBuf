@@ -21,12 +21,12 @@ static void HandleMidSerializationError(List* list, char* byte_array);
 static void HandleUknownKindError(List* list, char* byte_array);
 
 static int HandleSerializationOutOfSizeError() {
-    err_code = 1;
+    err_code = SERSIZEERR;
     return err_code;
 }
 
 static void HandleSerializationArrayAllocationError() {
-    err_code = 1;
+    err_code = ALLOCERR;
 }
 
 static void HandleMidSerializationError(List* list, char* byte_array) {
@@ -37,7 +37,7 @@ static void HandleMidSerializationError(List* list, char* byte_array) {
 static void HandleUknownKindError(List* list, char* byte_array) {
     Clear(list);
     free(byte_array);
-    err_code = 1;
+    err_code = UNKNKIND;
 }
 
 static int SerializeBARRAY(char *byte_array, size_t *byte_iter, char *barray_value, size_t data_size) {
@@ -137,7 +137,7 @@ static int SerializeSTRING(char *byte_array, size_t *byte_iter, char *string_ite
 }
 
 static size_t SerializedDataSize(const Layout* layout, Value* value) {
-    if (err_code) {
+    if (err_code != NOERR) {
         return 0;
     }
     List layer_list = {.head = NULL, .tail = NULL};
@@ -194,12 +194,12 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
 }
 
 char* Serialize(const Layout* layout, Value value) {
-    if (err_code) {
+    if (err_code != NOERR) {
         return NULL;
     }
 
     size_t data_size = SerializedDataSize(layout, &value);
-    if (err_code) {
+    if (err_code != NOERR) {
         return NULL;
     }
 
