@@ -176,6 +176,7 @@ Value ConstructValue(const Layout *layout, void **values) {
             GiveNode(cur_node);
         }
     }
+    Clear(&avalible_nodes);
     return constructed_value;
 }
 
@@ -303,6 +304,7 @@ Value CopyValue(const Layout *layout, const Value *value) {
             GiveNode(cur_node);
         }
     }
+    Clear(&avalible_nodes);
     return copy;
 }
 

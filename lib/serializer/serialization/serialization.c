@@ -174,10 +174,10 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
                 ++res;
                 ++varint_byte;
             }
-            ++varint_byte;
-        } else if (curr_node->layout->kind == INT64 || curr_node->layout->kind == UINT64) {
+            ++res;
+        } else if (curr_node->layout->kind == INT64 || curr_node->layout->kind == UINT64 || curr_node->layout->kind == DOUBLE) {
             res += 8;
-        } else if (curr_node->layout->kind == UINT32 || curr_node->layout->kind == INT32) {
+        } else if (curr_node->layout->kind == UINT32 || curr_node->layout->kind == INT32 || curr_node->layout->kind == FLOAT) {
             res += 4;
         } else if (curr_node->layout->kind == BOOL) {
             ++res;
@@ -187,6 +187,14 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
                 ++res;
                 ++str_byte;
             }
+            ++res;
+        } else if (curr_node->layout->kind == BARRAY) {
+            char* barray_byte = curr_node->value_place->varint_value;
+            while (*barray_byte >> 7) {
+                ++res;
+                ++barray_byte;
+            }
+            res += 2;
         } else {
             HandleUknownKindError(&layer_list, NULL);
             return 0;
