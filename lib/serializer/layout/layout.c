@@ -269,9 +269,9 @@ Value CopyValue(const Layout *layout, const Value *value) {
     err_code = NOERR;
     Value copy = {NULL, 0};
     if (layout->kind != CONSTRUCTED) {
-        if (layout->kind == INT64) {
+        if (layout->kind == INT64) { //NOLINT
             copy.int_value = value->int_value;
-        } else if (layout->kind == UINT64) {
+        } else if (layout->kind == UINT64) { //NOLINT
             copy.uint_value = value->uint_value;
         } else if (layout->kind == INT32) {
             copy.int_value = value->int_value;
@@ -314,7 +314,7 @@ Value CopyValue(const Layout *layout, const Value *value) {
         while (Empty(&nodes) == 0) {
             Node *cur_node = PopFront(&nodes);
             if (cur_node->layout->kind != CONSTRUCTED) {
-                *cur_node->value_place = ConstructValue(cur_node->layout, &cur_node->value->uint_value);
+                *cur_node->value_place = ConstructPrimitiveValue(cur_node->layout, cur_node->value_place->uint_value);
                 if (err_code != NOERR) {
                     Clear(&nodes);
                     DestroyNode(cur_node);

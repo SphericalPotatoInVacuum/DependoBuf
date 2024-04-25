@@ -128,7 +128,7 @@ static int TestBARRAYNotEnoughSizeReverse() {
 static int TestUINT32(uint32_t val) {
     err_code = 0;
 
-    Value inp = CreateValue(kUint32Layout, val);
+    Value inp = ConstructPrimitiveValue(kUint32Layout, val);
     Value out = Deserialize(kUint32Layout, Serialize(kUint32Layout, inp));
 
     return (!err_code && CompareValues(kUint32Layout, &inp, &out));
@@ -137,7 +137,7 @@ static int TestUINT32(uint32_t val) {
 static int TestUINT64(uint64_t val) {
     err_code = 0;
 
-    Value inp = CreateValue(kUint64Layout, val);
+    Value inp = ConstructPrimitiveValue(kUint64Layout, val);
     Value out = Deserialize(kUint64Layout, Serialize(kUint64Layout, inp));
     return (!err_code && CompareValues(kUint64Layout, &inp, &out));
 }
@@ -145,7 +145,7 @@ static int TestUINT64(uint64_t val) {
 static int TestINT32(int32_t val) {
     err_code = 0;
 
-    Value inp = CreateValue(kInt32Layout, val);
+    Value inp = ConstructPrimitiveValue(kInt32Layout, val);
     Value out = Deserialize(kInt32Layout, Serialize(kInt32Layout, inp));
     return (!err_code && CompareValues(kInt32Layout, &inp, &out));
 }
@@ -153,7 +153,7 @@ static int TestINT32(int32_t val) {
 static int TestINT64(int64_t val) {
     err_code = 0;
 
-    Value inp = CreateValue(kInt64Layout, val);
+    Value inp = ConstructPrimitiveValue(kInt64Layout, val);
     Value out = Deserialize(kInt64Layout, Serialize(kInt64Layout, inp));
     return (!err_code && CompareValues(kInt64Layout, &inp, &out));
 }
@@ -161,7 +161,7 @@ static int TestINT64(int64_t val) {
 static int TestFLOAT(float val) {
     err_code = 0;
     
-    Value inp = CreateValue(kFloatLayout, val);
+    Value inp = ConstructPrimitiveValue(kFloatLayout, val);
     Value out = Deserialize(kFloatLayout, Serialize(kFloatLayout, inp));
     return (!err_code && CompareValues(kFloatLayout, &inp, &out));
 }
@@ -169,7 +169,7 @@ static int TestFLOAT(float val) {
 static int TestDOUBLE(double val) {
     err_code = 0;
 
-    Value inp = CreateValue(kDoubleLayout, val);
+    Value inp = ConstructPrimitiveValue(kDoubleLayout, val);
     Value out = Deserialize(kDoubleLayout, Serialize(kDoubleLayout, inp));
     return (!err_code && CompareValues(kDoubleLayout, &inp, &out));
 }
@@ -184,7 +184,7 @@ static int TestBOOL(char bool) {
 
 static int TestSTRING(const char* val) {
     err_code = 0;
-    Value inp = CreateValue(kStringLayout, val);
+    Value inp = ConstructPrimitiveValue(kStringLayout, val);
     Value out = Deserialize(kStringLayout, Serialize(kStringLayout, inp));
     return (!err_code && CompareValues(kStringLayout, &inp, &out));
 }
@@ -200,7 +200,7 @@ static int TestVARINT(uint64_t val) {
         free(varint);
         return !exit_code;
     }
-    Value inp = CreateValue(kVarintLayout, varint);
+    Value inp = ConstructPrimitiveValue(kVarintLayout, varint);
     Value out = Deserialize(kVarintLayout, Serialize(kVarintLayout, inp));
     if (err_code) {
         free(varint);
@@ -227,7 +227,7 @@ static int TestBARRAY(const char* bool_array, size_t bool_array_size) {
         return !exit_code;
     }
     
-    Value inp = CreateValue(kBarrayLayout, barray);
+    Value inp = ConstructPrimitiveValue(kBarrayLayout, barray);
     Value out = Deserialize(kBarrayLayout, Serialize(kBarrayLayout, inp));
     if (err_code || bool_array_size != GetBoolArraySizeofBarray(out.barray_value)) {
         free(barray);

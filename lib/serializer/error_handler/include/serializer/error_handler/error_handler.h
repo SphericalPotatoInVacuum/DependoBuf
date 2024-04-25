@@ -15,4 +15,4 @@ enum {
 //Represents whether function ended normally or not.
 extern int err_code;
 
-char *GetErrorDescription(int err_no);
+const char *GetErrorDescription(int err_no);

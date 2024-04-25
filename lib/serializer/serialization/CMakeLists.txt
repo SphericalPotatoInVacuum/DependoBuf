@@ -3,7 +3,6 @@ project(serializer_serialization VERSION 1.0.0 DESCRIPTION "C Library with seria
 add_library(serializer_serialization STATIC
     serialization.c
     deserialization.c
-    node_handler.c
 )
 
 target_include_directories(serializer_serialization PUBLIC

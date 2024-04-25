@@ -1,6 +1,6 @@
 #include "serializer/serialization/serialization.h"
 #include "serializer/error_handler/error_handler.h"
-#include "serializer/serialization/node_handler.h"
+#include "serializer/layout/node_handler.h"
 
 //Counts bytes requierd for serialization of value
 static size_t SerializedDataSize(const Layout* layout, Value* value);

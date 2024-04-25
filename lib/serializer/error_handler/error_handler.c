@@ -2,10 +2,10 @@
 
 int err_code = NOERR;
 
-char *GetErrorDesription(int err_no) {
+const char *GetErrorDesription(int err_no) {
     if (err_no == NOERR) {
         return "No errors occurred\n";
-    } else if (err_no == EMPTYLIST) {
+    } else if (err_no == EMPTYLIST) { //NOLINT
         return "Popping from empty list\n";
     } else if (err_no == ALLOCERR) {
         return "Could not allocate space on heap\n";

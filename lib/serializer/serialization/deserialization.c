@@ -1,6 +1,6 @@
 #include "serializer/error_handler/error_handler.h"
 #include "serializer/serialization/serialization.h"
-#include "serializer/serialization/node_handler.h"
+#include "serializer/layout/node_handler.h"
 
 static char *DeserializeVARINT(char **cur_buf_pos) {
     err_code = NOERR;
@@ -99,7 +99,7 @@ static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
     } else if (layout->kind == STRING) {
         value.string_ptr = DeserializeSTRING(cur_buf_pos);
     } else if (layout->kind == BOOL) {
-        value.bool_value = *(char *)(*cur_buf_pos);
+        value.bool_value = **cur_buf_pos;
         ++*cur_buf_pos;
     } else {
         err_code = UNKNKIND;
