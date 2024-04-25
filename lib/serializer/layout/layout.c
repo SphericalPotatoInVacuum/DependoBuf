@@ -164,7 +164,10 @@ Value ConstructValue(const Layout *layout, void **values) {
             strcpy(str_copy, str_ptr);
             constructed_value.string_ptr = str_copy;
         } else if (layout->kind == BARRAY) {
-            constructed_value.barray_value = *(char **)values;
+            char *barr_ptr = *(char **) values;
+            char *barr_copy = calloc(strlen(barr_ptr), sizeof(*barr_copy));
+            strcpy(barr_copy, barr_ptr);
+            constructed_value.string_ptr = barr_copy;
         } else {
             err_code = UNKNKIND;
         }
@@ -260,6 +263,92 @@ Value ConstructPrimitiveValue(const Layout* layout, ...) {
     }
 
     return constructed_value;
+}
+
+Value CopyValue(const Layout *layout, const Value *value) {
+    err_code = NOERR;
+    Value copy = {NULL, 0};
+    if (layout->kind != CONSTRUCTED) {
+        if (layout->kind == INT64) {
+            copy.int_value = value->int_value;
+        } else if (layout->kind == UINT64) {
+            copy.uint_value = value->uint_value;
+        } else if (layout->kind == INT32) {
+            copy.int_value = value->int_value;
+        } else if (layout->kind == UINT32) {
+            copy.uint_value = value->uint_value;
+        } else if (layout->kind == VARINT) {
+            copy.varint_value = value->varint_value;
+        } else if (layout->kind == DOUBLE) {
+            copy.double_value = value->double_value;
+        } else if (layout->kind == FLOAT) {
+            copy.float_value = value->float_value;
+        } else if (layout->kind == BOOL) {
+            copy.bool_value = value->bool_value;
+        } else if (layout->kind == STRING) {
+            char *str_ptr = value->string_ptr;
+            char *str_copy = calloc(strlen(str_ptr), sizeof(*str_copy));
+            strcpy(str_copy, str_ptr);
+            copy.string_ptr = str_copy;
+        } else if (layout->kind == BARRAY) {
+            char *barr_ptr = value->barray_value;
+            char *barr_copy = calloc(strlen(barr_ptr), sizeof(*barr_copy));
+            strcpy(barr_copy, barr_ptr);
+            copy.string_ptr = barr_copy;
+        } else {
+            err_code = UNKNKIND;
+        }
+    } else {
+        Node *initial_node = GetNode();
+        if (initial_node == NULL) {
+            err_code = ALLOCERR;
+            return copy;
+        }
+        initial_node->next = NULL;
+        initial_node->prev = NULL;
+        initial_node->value_place = &copy;
+        initial_node->layout = layout;
+        initial_node->value = value;
+        List nodes = {initial_node, initial_node};
+
+        while (Empty(&nodes) == 0) {
+            Node *cur_node = PopFront(&nodes);
+            if (cur_node->layout->kind != CONSTRUCTED) {
+                *cur_node->value_place = ConstructValue(cur_node->layout, &cur_node->value->uint_value);
+                if (err_code != NOERR) {
+                    Clear(&nodes);
+                    DestroyNode(cur_node);
+                    return copy;
+                }
+            } else {
+                Value *cur_value = cur_node->value_place;
+                cur_value->children = calloc(cur_node->layout->field_q,
+                                             sizeof(*cur_value->children));
+                if (cur_value->children == NULL) {
+                    err_code = ALLOCERR;
+                    Clear(&nodes);
+                    DestroyNode(cur_node);
+                    return copy;
+                }
+                for (ssize_t i = cur_node->layout->field_q - 1; i >= 0; --i) {
+                    Node *node = GetNode();
+                    const Value *value_ptr = cur_node->value;
+                    if (node == NULL) {
+                        err_code = ALLOCERR;
+                        Clear(&nodes);
+                        DestroyNode(cur_node);
+                        return copy;
+                    }
+                    node->layout = cur_node->layout->fields[i];
+                    node->value_place = &cur_value->children[i];
+                    node->value = &value_ptr->children[i];
+                    PushFront(&nodes, node);
+                }
+            }
+            GiveNode(cur_node);
+        }
+    }
+    return copy;
 }
 
 Value CreateBoolValue(char bool) {

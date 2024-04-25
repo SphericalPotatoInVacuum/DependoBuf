@@ -72,6 +72,6 @@ typedef struct Value {
 
 Value ConstructValue(const Layout* layout, void **values);
 Value ConstructPrimitiveValue(const Layout* layout, ...);
-Value CopyValue(const Value *other);
+Value CopyValue(const Layout *layout, const Value *value);
 Value CreateBoolValue(char bool);
 void DestroyValue(Value* value);
