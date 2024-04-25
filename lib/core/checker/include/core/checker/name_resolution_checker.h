@@ -20,6 +20,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace dbuf::checker {
 
@@ -58,7 +59,7 @@ public:
 
 private:
   using Scope                = std::unordered_set<InternedString>;
-  using ConstructorFields    = std::unordered_set<InternedString>;
+  using ConstructorFields    = std::vector<InternedString>;
   using ConstructorFieldsMap = std::unordered_map<InternedString, ConstructorFields>;
 
   std::optional<Error> error_;

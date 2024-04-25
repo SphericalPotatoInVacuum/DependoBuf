@@ -34,23 +34,24 @@ class TypeChecker {
 public:
   explicit TypeChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph);
 
-  std::optional<Error> CheckTypes();
+  [[nodiscard]] std::optional<Error> CheckTypes();
 
-  std::optional<Error> operator()(const ast::Message &ast_message);
-  std::optional<Error> operator()(const ast::Enum &ast_enum);
+  bool operator()(const ast::Message &ast_message);
+  bool operator()(const ast::Enum &ast_enum);
 
 private:
   const ast::AST &ast_;
-  const std::vector<InternedString> sorted_graph_;
+  const std::vector<InternedString> &sorted_graph_;
 
   std::deque<Scope *> context_;
   Substitutor substitutor_;
   Z3stuff z3_stuff_;
+  std::optional<Error> error_;
 
-  std::optional<Error> CheckDependencies(const ast::DependentType &type);
-  std::optional<Error> CheckFields(const ast::TypeWithFields &type);
+  bool CheckDependencies(const ast::DependentType &type);
+  bool CheckFields(const ast::TypeWithFields &type);
 
-  std::optional<Error> CheckTypeExpression(const ast::TypeExpression &type_expression);
+  bool CheckTypeExpression(const ast::TypeExpression &type_expression);
 };
 
 } // namespace dbuf::checker

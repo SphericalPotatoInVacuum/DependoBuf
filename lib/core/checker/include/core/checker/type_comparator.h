@@ -32,7 +32,7 @@ public:
   [[nodiscard]] std::optional<Error> Compare(const ast::Expression &expr);
 
   // Expression specifications
-  std::optional<Error> operator()(const ast::TypeExpression & /* expr */);
+  std::optional<Error> operator()(const ast::TypeExpression &expr);
   std::optional<Error> operator()(const ast::BinaryExpression &expr);
   std::optional<Error> operator()(const ast::UnaryExpression &expr);
   std::optional<Error> operator()(const ast::VarAccess &expr);

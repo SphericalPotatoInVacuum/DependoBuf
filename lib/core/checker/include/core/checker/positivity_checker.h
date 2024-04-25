@@ -28,7 +28,7 @@ public:
     std::optional<Error> error;
   };
 
-  Result operator()(const ast::AST &ast);
+  [[nodiscard]] Result operator()(const ast::AST &ast);
 
   void operator()(const ast::Message &ast_message);
   void operator()(const ast::Enum &ast_enum);

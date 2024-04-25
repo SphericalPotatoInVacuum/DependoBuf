@@ -152,8 +152,8 @@ std::optional<Error> TypeComparator::Compare(const ast::Expression &expr) {
   return result;
 }
 
-std::optional<Error> TypeComparator::operator()(const ast::TypeExpression & /* expr */) {
-  LOG(FATAL) << "TypeExpression should not be compared";
+std::optional<Error> TypeComparator::operator()(const ast::TypeExpression &expr) {
+  return Error(CreateError() << "Can't use TypeExpression \"" << expr << "\" at " << expr.location);
 }
 
 std::optional<Error> TypeComparator::operator()(const ast::BinaryExpression &expr) {

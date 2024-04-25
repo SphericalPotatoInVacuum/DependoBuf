@@ -17,9 +17,11 @@ the Free Software Foundation, either version 3 of the License, or
 #include "glog/logging.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <optional>
 #include <ranges>
 #include <sstream>
+#include <unordered_set>
 #include <variant>
 
 namespace dbuf::checker {
@@ -122,22 +124,27 @@ bool NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
     error_ = Error {"Undefined constructor: \"" + value.constructor_identifier.name.GetString() + "\""};
     return false;
   }
-  return std::ranges::all_of(value.fields.begin(), value.fields.end(), [this, &value](auto field) {
-    if (!constructor_to_fields_[value.constructor_identifier.name].contains(field.first.name)) {
-      error_ = Error(
-          CreateError() << "No field with name " << field.first.name.GetString() << " in constructor "
-                        << value.constructor_identifier.name.GetString());
+  if (constructor_to_fields_[value.constructor_identifier.name].size() != value.fields.size()) {
+    error_ = Error (CreateError() << "Expected " << constructor_to_fields_[value.constructor_identifier.name].size() << " parameters, but got " << value.fields.size() << " in ConstructedValue " << value);
+    return false;
+  }
+  for (size_t i = 0; i < value.fields.size(); ++i) {
+    if (constructor_to_fields_[value.constructor_identifier.name][i] != value.fields[i].first.name) {
+      error_ = Error(CreateError() << "Expected field " << constructor_to_fields_[value.constructor_identifier.name][i] << ", but got " << value.fields[i].first.name << " in ConstructedValue " << value);
       return false;
     }
-    return (*this)(field);
-  });
+    if (!(*this)(value.fields[i])) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool NameResolutionChecker::operator()(const ast::CollectionValue & /* value */) {
   return true;
 }
 
-bool NameResolutionChecker::operator()(const ast::Star &) {
+bool NameResolutionChecker::operator()(const ast::Star & /* value */) {
   return true;
 }
 
@@ -200,7 +207,7 @@ bool NameResolutionChecker::AddName(InternedString name, std::string &&identifie
 
 void NameResolutionChecker::AddFields(const InternedString &constructor_name, const ast::TypeWithFields &type) {
   for (const auto &field : type.fields) {
-    constructor_to_fields_[constructor_name].insert(field.name);
+    constructor_to_fields_[constructor_name].emplace_back(field.name);
   }
 }
 

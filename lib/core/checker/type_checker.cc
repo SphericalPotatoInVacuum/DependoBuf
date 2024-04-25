@@ -36,39 +36,25 @@ TypeChecker::TypeChecker(const ast::AST &ast, const std::vector<InternedString> 
 
 std::optional<Error> TypeChecker::CheckTypes() {
   for (const auto &node : sorted_graph_) {
-    auto error = std::visit(*this, ast_.types.at(node));
-    if (error.has_value()) {
-      return error;
+    if (!std::visit(*this, ast_.types.at(node))) {
+      return error_;
     }
   }
-
   return {};
 }
 
-std::optional<Error> TypeChecker::operator()(const ast::Message &ast_message) {
+bool TypeChecker::operator()(const ast::Message &ast_message) {
   DLOG(INFO) << "Checking message: " << ast_message.identifier.name;
 
-  // Scope of the message checked
   auto scope = Scope(&context_);
-
-  // First step is to check if dependencies' types are correctly constructed
-  auto error_dependency = CheckDependencies(ast_message);
-  if (error_dependency.has_value()) {
-    return error_dependency;
+  if (!CheckDependencies(ast_message)) {
+    return false;
+  }
+  if (!CheckFields(ast_message)) {
+    return false;
   }
 
-  // Same with fields
-  auto error_fields = CheckFields(ast_message);
-  if (error_fields.has_value()) {
-    return error_fields;
-  }
-
-  // Create a z3 datatype for this message
-  z3::symbol name_symbol = z3_stuff_.context_.str_symbol(ast_message.identifier.name.GetString().c_str());
-
-  z3::constructors cs(z3_stuff_.context_);
-  z3_stuff_.sorts_.emplace(ast_message.identifier.name, z3_stuff_.context_.datatype_sort(name_symbol));
-
+  // adding sorts for each field, which is Array or Set
   for (const auto &field : ast_message.fields) {
     if (field.type_expression.identifier.name.GetString() == "Array" ||
         field.type_expression.identifier.name.GetString() == "Set") {
@@ -104,11 +90,12 @@ std::optional<Error> TypeChecker::operator()(const ast::Message &ast_message) {
     }
   }
 
+  // initializing everything, that is used for the constructor
+  z3::constructors cs(z3_stuff_.context_);
   z3::symbol recognizer_symbol =
       z3_stuff_.context_.str_symbol(("is_" + ast_message.identifier.name.GetString()).c_str());
   std::vector<z3::symbol> accessor_names;
   std::vector<z3::sort> accessor_sorts;
-
   for (const auto &field : ast_message.fields) {
     accessor_names.push_back(z3_stuff_.context_.str_symbol(field.name.GetString().c_str()));
     if (field.type_expression.identifier.name.GetString() == "Array" ||
@@ -121,11 +108,11 @@ std::optional<Error> TypeChecker::operator()(const ast::Message &ast_message) {
     }
   }
 
+  // Creating a z3 datatype for this message
+  z3::symbol name_symbol = z3_stuff_.context_.str_symbol(ast_message.identifier.name.GetString().c_str());
   cs.add(name_symbol, recognizer_symbol, ast_message.fields.size(), accessor_names.data(), accessor_sorts.data());
-
-  z3_stuff_.sorts_.at(ast_message.identifier.name) = z3_stuff_.context_.datatype(name_symbol, cs);
-  DLOG(INFO) << "Created a message sort: " << z3_stuff_.sorts_.at(ast_message.identifier.name);
-
+  z3_stuff_.sorts_.try_emplace(ast_message.identifier.name, z3_stuff_.context_.datatype(name_symbol, cs));
+ 
   // Declare a constructor and accessors for this message
   z3::func_decl message_constructor(z3_stuff_.context_);
   z3::func_decl is_message_constructor_recognizer(z3_stuff_.context_);
@@ -134,126 +121,40 @@ std::optional<Error> TypeChecker::operator()(const ast::Message &ast_message) {
   // Query them from the constructors
   cs.query(0, message_constructor, is_message_constructor_recognizer, field_accessors);
 
-  z3_stuff_.constructors_.emplace(ast_message.identifier.name, message_constructor);
-  DLOG(INFO) << "Constructor: " << message_constructor;
-
-  z3_stuff_.accessors_.emplace(ast_message.identifier.name, Z3stuff::FieldToFuncDecl());
+  z3_stuff_.constructors_.try_emplace(ast_message.identifier.name, message_constructor);
+  z3_stuff_.accessors_.try_emplace(ast_message.identifier.name, Z3stuff::FieldToFuncDecl());
   for (size_t i = 0; i < ast_message.fields.size(); ++i) {
-    z3_stuff_.accessors_.at(ast_message.identifier.name).emplace(ast_message.fields[i].name, field_accessors[i]);
-    DLOG(INFO) << "Accessor for field " << ast_message.fields[i].name << ": " << field_accessors[i];
+    z3_stuff_.accessors_.at(ast_message.identifier.name).try_emplace(ast_message.fields[i].name, field_accessors[i]);
   }
 
   DLOG(INFO) << "Finished checking message: " << ast_message.identifier.name;
-
-  return {};
+  return true;
 }
 
-std::optional<Error> TypeChecker::operator()(const ast::Enum &ast_enum) {
+bool TypeChecker::operator()(const ast::Enum &ast_enum) {
   DLOG(INFO) << "Checking enum: " << ast_enum.identifier.name;
-  // Scope of the enum checked
-  auto scope = Scope(&context_);
 
-  // First step is to check if dependencies' types are correctly constructed
-  auto error_dependency = CheckDependencies(ast_enum);
-  if (error_dependency.has_value()) {
-    return error_dependency;
+  auto scope = Scope(&context_);
+  if (!CheckDependencies(ast_enum)) {
+    return false;
   }
 
   // The next step is to check the pattern mathcing
   for (const auto &rule : ast_enum.pattern_mapping) {
     DLOG(INFO) << "Checking rule with inputs " << rule.inputs;
-    // We need separate scope for each pattern
-    auto scope = Scope(&context_);
-    substitutor_.PushScope();
-
+    
     if (rule.inputs.size() != ast_enum.type_dependencies.size()) {
-      return Error(
+      error_ = Error(
           CreateError() << "Expected " << ast_enum.type_dependencies.size() << " inputs in pattern for enum \""
                         << ast_enum.identifier.name << "\", but got " << rule.inputs.size());
-    }
-
-    // Check input patterns
-    for (size_t id = 0; id < rule.inputs.size(); ++id) {
-      // We ignore Stars as they match any type and do not declare new variables
-      if (std::holds_alternative<ast::Star>(rule.inputs[id])) {
-        continue;
-      }
-
-      const auto &value = std::get<ast::Value>(rule.inputs[id]);
-      substitutor_.AddSubstitution(ast_enum.type_dependencies[id].name, std::make_shared<const ast::Expression>(value));
-
-      // Check that value has expected type in this context
-      auto type_err =
-          TypeComparator(ast_enum.type_dependencies[id].type_expression, ast_, &context_, &substitutor_, &z3_stuff_)
-              .Compare(ast::Expression(value));
-      if (type_err.has_value()) {
-        return type_err;
-      }
-
-      // Now we need to add newly declared variables to the context
-
-      // Scalar values do not declare new variables, so we skip them
-      if (!std::holds_alternative<ast::ConstructedValue>(value)) {
-        continue;
-      }
-
-      const auto &constructed_value = std::get<ast::ConstructedValue>(value);
-
-      // Find constructor used to construct the value
-      InternedString type_name            = ast_enum.type_dependencies[id].type_expression.identifier.name;
-      const auto &type                    = ast_.types.at(type_name);
-      ast::TypeWithFields const *type_ptr = nullptr;
-      ast::Identifier identifier;
-      if (std::holds_alternative<ast::Enum>(type)) {
-        const auto &target_enum = std::get<ast::Enum>(type);
-
-        // Looking for the constructor
-        for (const auto &pattern : target_enum.pattern_mapping) {
-          for (const auto &output : pattern.outputs) {
-            if (output.identifier.name == constructed_value.constructor_identifier.name) {
-              type_ptr   = &output;
-              identifier = output.identifier;
-              break;
-            }
-          }
-        }
-      } else {
-        type_ptr   = &std::get<ast::Message>(type);
-        identifier = std::get<ast::Message>(type).identifier;
-      }
-
-      const auto &type_with_fields = *type_ptr;
-
-      if (type_with_fields.fields.size() != constructed_value.fields.size()) {
-        return Error(
-            CreateError() << "Expected " << type_with_fields.fields.size() << " fields in constructor \""
-                          << identifier.name << "\", but got " << constructed_value.fields.size() << " at "
-                          << constructed_value.location);
-      }
-
-      // Adding new variables to scope
-      for (size_t j = 0; j < type_with_fields.fields.size(); ++j) {
-        if (!std::holds_alternative<ast::VarAccess>(*constructed_value.fields[j].second)) {
-          continue;
-        }
-        ast::VarAccess var_access = std::get<ast::VarAccess>(*constructed_value.fields[j].second);
-
-        // If new variable
-        if (var_access.field_identifiers.empty()) {
-          scope.AddName(var_access.var_identifier.name, type_with_fields.fields[j].type_expression);
-        }
-      }
+      return false;
     }
 
     for (const auto &constructor : rule.outputs) {
-      DLOG(INFO) << "Checking constructor: " << constructor.identifier.name;
-      auto error_fields = CheckFields(constructor);
-      if (error_fields.has_value()) {
-        return error_fields;
+      if (!CheckFields(constructor)) {
+        return false;
       }
     }
-
-    substitutor_.PopScope();
   }
 
   // Create a z3 sort for this enum
@@ -349,95 +250,95 @@ std::optional<Error> TypeChecker::operator()(const ast::Enum &ast_enum) {
   }
 
   DLOG(INFO) << "Finished checking enum: " << ast_enum.identifier.name;
-  return {};
+  return true;
 }
 
 // Checks that all dependencies are correctly defined
-std::optional<Error> TypeChecker::CheckDependencies(const ast::DependentType &type) {
+bool TypeChecker::CheckDependencies(const ast::DependentType &type) {
   Scope &scope = *context_.back();
   for (const auto &dependency : type.type_dependencies) {
     DLOG(INFO) << "Checking dependency: " << dependency;
 
-    auto type_expr_err = CheckTypeExpression(dependency.type_expression);
-    if (type_expr_err.has_value()) {
-      return type_expr_err;
+    if (!CheckTypeExpression(dependency.type_expression)) {
+      return false;
     }
     scope.AddName(dependency.name, dependency.type_expression);
   }
-  return {};
+  return true;
 }
 
 // Checks that all fields are correctly defined
-std::optional<Error> TypeChecker::CheckFields(const ast::TypeWithFields &type) {
+bool TypeChecker::CheckFields(const ast::TypeWithFields &type) {
   Scope scope(&context_);
   for (const auto &field : type.fields) {
     DLOG(INFO) << "Checking field: " << field.name << " of type " << field.type_expression;
     auto after_substitution = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
     DLOG(INFO) << "After substitution: " << after_substitution;
 
-    auto type_expr_err = CheckTypeExpression(after_substitution);
-    if (type_expr_err.has_value()) {
-      return type_expr_err;
+    if (!CheckTypeExpression(after_substitution)) {
+      return false;
     }
     scope.AddName(field.name, after_substitution);
   }
-  return {};
+  return true;
 }
 
 // Checks that TypeExpression is correctly defined
-std::optional<Error> TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression) {
+bool TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression) {
   if (type_expression.identifier.name == InternedString("Int") ||
       type_expression.identifier.name == InternedString("Unsigned") ||
       type_expression.identifier.name == InternedString("Bool") ||
       type_expression.identifier.name == InternedString("String") ||
       type_expression.identifier.name == InternedString("Float")) {
-    return {};
+    return true;
   }
 
   if (type_expression.identifier.name == InternedString("Array")) {
     if (type_expression.parameters.size() != 2) {
-      return Error(
+      error_ = Error(
           CreateError() << "Expected 2 parmeters in Array constructor, but got " << type_expression.parameters.size()
                         << " at " << type_expression.location);
+      return false;
     }
     if (!std::holds_alternative<ast::TypeExpression>(*type_expression.parameters[0])) {
-      return Error(
+      error_ = Error(
           CreateError() << "Expected first parmeter of Array to be a TypeExpression, but got "
                         << *type_expression.parameters[0] << " at " << type_expression.location);
+      return false;
     }
     auto expected_type_expr = ast::TypeExpression(
         {parser::location()},
         ast::Identifier({type_expression.location}, {InternedString("Unsigned")}),
         std::vector<ast::ExprPtr>());
-    auto type_err = TypeComparator(expected_type_expr, ast_, &context_, &substitutor_, &z3_stuff_)
+    error_ = TypeComparator(expected_type_expr, ast_, &context_, &substitutor_, &z3_stuff_)
                         .Compare(*type_expression.parameters[1]);
-    if (type_err.has_value()) {
-      return type_err;
-    }
-    return {};
+    return !error_.has_value();
   }
 
   if (type_expression.identifier.name == InternedString("Set")) {
     if (type_expression.parameters.size() != 1) {
-      return Error(
+      error_ = Error(
           CreateError() << "Expected 1 parmeter in Array constructor, but got " << type_expression.parameters.size());
+      return false;
     }
     if (!std::holds_alternative<ast::TypeExpression>(*type_expression.parameters[0])) {
-      return Error(
+       error_ =  Error(
           CreateError() << "Expected first parmeter of Array to be a TypeExpression, but got "
                         << *type_expression.parameters[0]);
+        return false;
     }
-    return {};
+    return true;
   }
 
   const ast::DependentType &type = std::visit(
       [](const auto &type) { return static_cast<ast::DependentType>(type); },
       ast_.types.at(type_expression.identifier.name));
   if (type.type_dependencies.size() != type_expression.parameters.size()) {
-    return Error(
+    error_ = Error(
         CreateError() << "Expected " << type.type_dependencies.size() << " parameters in "
                       << type_expression.identifier.name << ", but got " << type_expression.parameters.size() << " at "
                       << type_expression.location);
+      return false;
   }
   substitutor_.PushScope();
 
@@ -449,16 +350,16 @@ std::optional<Error> TypeChecker::CheckTypeExpression(const ast::TypeExpression 
         std::get<ast::TypeExpression>(substitutor_(type.type_dependencies[id].type_expression));
     DLOG(INFO) << "Type after substitution: " << substituted_type;
 
-    auto type_err = TypeComparator(substituted_type, ast_, &context_, &substitutor_, &z3_stuff_)
+    error_ = TypeComparator(substituted_type, ast_, &context_, &substitutor_, &z3_stuff_)
                         .Compare(*type_expression.parameters[id]);
-    if (type_err) {
-      return type_err;
+    if (error_.has_value()) {
+      return false;
     }
     substitutor_.AddSubstitution(type.type_dependencies[id].name, type_expression.parameters[id]);
   }
 
   substitutor_.PopScope();
-  return {};
+  return true;
 }
 
 } // namespace dbuf::checker

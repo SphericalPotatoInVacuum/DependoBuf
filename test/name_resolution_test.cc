@@ -297,7 +297,7 @@ TEST(NameResolutionTest, UnknownFieldOfConstructor) {
 
   ast.types[InternedString("B")] = std::move(enum2);
 
-  std::string expected_error = "No field with name field2 in constructor C1";
+  std::string expected_error = "Expected 1 parameters, but got 2 in ConstructedValue C1{field1: 0, field2: \"string\"}";
 
   std::optional<checker::Error> error = checker::NameResolutionChecker()(ast);
 
