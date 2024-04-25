@@ -10,7 +10,7 @@ static int SerializeVARINT(char* byte_array, size_t* byte_iter, const char* vari
 static int SerializeINT64(char* byte_array, size_t* byte_iter, uint64_t inp, size_t data_size);
 static int SerializeINT32(char* byte_array, size_t* byte_iter, uint32_t inp, size_t data_size);
 static int SerializeBOOL(char* byte_array, size_t* byte_iter, char inp, size_t data_size);
-static int SerializeSTRING(char* byte_array, size_t* byte_iter, char* string_iter, size_t data_size);
+static int SerializeSTRING(char* byte_array, size_t* byte_iter, const char* string_iter, size_t data_size);
 static int SerializeFLOAT(char* byte_array, size_t* byte_iter, float inp, size_t data_size);
 static int SerializeDOUBLE(char* byte_array, size_t* byte_iter, double inp, size_t data_size);
 static int SerializeBARRAY(char* byte_array, size_t* byte_iter, const char* barray_value, size_t data_size);
@@ -120,7 +120,7 @@ static int SerializeBOOL(char *byte_array, size_t *byte_iter, char inp, size_t d
     return 0;
 }
 
-static int SerializeSTRING(char *byte_array, size_t *byte_iter, char *string_iter, size_t data_size) {
+static int SerializeSTRING(char *byte_array, size_t *byte_iter, const char *string_iter, size_t data_size) {
     while (*string_iter) {
         if (*byte_iter >= data_size) {
             return HandleSerializationOutOfSizeError();
@@ -197,7 +197,7 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
 }
 
 void SerializeInBuffer(const Layout *layout, Value value, char *byte_array, size_t data_size) {
-    if (err_code) {
+    if (err_code != NOERR) {
         return;
     }
     size_t byte_iter = 0;
@@ -283,12 +283,12 @@ void SerializeInBuffer(const Layout *layout, Value value, char *byte_array, size
 }
 
 char* Serialize(const Layout* layout, Value value) {
-    if (err_code) {
+    if (err_code != NOERR) {
         return NULL;
     }
 
     size_t data_size = SerializedDataSize(layout, &value);
-    if (err_code) {
+    if (err_code != NOERR) {
         return NULL;
     }
 
@@ -298,7 +298,7 @@ char* Serialize(const Layout* layout, Value value) {
         return NULL;
     }
     SerializeInBuffer(layout, value, byte_array, data_size);
-    if (err_code) {
+    if (err_code != NOERR) {
         free(byte_array);
         return NULL;
     }
