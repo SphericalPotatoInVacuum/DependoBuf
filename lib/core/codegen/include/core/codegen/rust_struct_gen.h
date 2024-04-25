@@ -18,7 +18,6 @@ private:
 
   bool IsPrimitiveType(const InternedString &type);
   std::string GetPrimitiveTypeInRust(const InternedString &type);
-  std::string Tab(size_t n);
   void DeclareFields(const std::vector<ast::TypedVariable> &fields, size_t indent);
 
   const std::unordered_map<InternedString, std::string> kPrimitiveTypes_ {
