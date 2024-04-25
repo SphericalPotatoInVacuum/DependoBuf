@@ -30,14 +30,14 @@ Node *PopBack(List *list) {
         err_code = 1;
         perror("Could not pop from empty list\n");
         return NULL;
-    } else {
+    } else { //NOLINT
         --list->size;
         if (list->head == list->tail) {
             Node *node = list->tail;
             list->head = NULL;
             list->tail = NULL;
             return node;
-        } else {
+        } else { //NOLINT
             Node *node = list->tail;
             list->tail->prev->next = NULL;
             list->tail = list->tail->prev;
@@ -52,14 +52,14 @@ Node *PopFront(List *list) {
         err_code = 1;
         perror("Could not pop from empty list\n");
         return NULL;
-    } else {
+    } else { //NOLINT
         --list->size;
         if (list->head == list->tail) {
             Node *node = list->head;
             list->head = NULL;
             list->tail = NULL;
             return node;
-        } else {
+        } else { //NOLINT
             Node *node = list->head;
             list->head->next->prev = NULL;
             list->head = list->head->next;
@@ -84,6 +84,5 @@ void Clear(List *list) {
 
 void HandleNodeAllocationError(List *list) {
     Clear(list);
-    perror("Unable to allocate memory on heap.\n");
     err_code = 1;
 }

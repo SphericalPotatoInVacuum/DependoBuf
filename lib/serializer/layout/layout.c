@@ -91,7 +91,7 @@ int DeleteLayout(const Layout* layout) {
     }
     return 1;
 }
-/* //ПОСТНАЯ ХУИТА :D
+
 Value CreateValue(const Layout* layout, ...) {
     va_list ap;
     va_start(ap, layout);
@@ -145,4 +145,3 @@ void DestroyValue(Value* value) {
     free(value->children);
     value->children = NULL;
 }
-*/

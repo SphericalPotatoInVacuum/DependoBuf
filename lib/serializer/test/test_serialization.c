@@ -13,6 +13,7 @@ static int CompareValues(const Layout* layout, const Value* first_val, const Val
     if ((first_val->children == NULL && second_val->children != NULL) || (first_val->children != NULL && second_val->children == NULL)) {
         return 0;
     }
+
     if (first_val->uint_value != second_val->uint_value) {
         return 0;
     }
@@ -181,38 +182,104 @@ static int TestBOOL(char bool) {
     return (!err_code && CompareValues(kBoolLayout, &inp, &out));
 }
 
-static int TestString(const char* val) {
+static int TestSTRING(const char* val) {
     err_code = 0;
     Value inp = CreateValue(kStringLayout, val);
     Value out = Deserialize(kStringLayout, Serialize(kStringLayout, inp));
     return (!err_code && CompareValues(kStringLayout, &inp, &out));
 }
 
+static int TestVARINT(uint64_t val) {
+    err_code = 0;
+    int exit_code = 0;
+
+    size_t varint_size = GetVarintSizeOfUINT(val);
+    char* varint = calloc(varint_size, sizeof(char));
+    exit_code = ConvertUINTtoVARINT(varint, val, varint_size);
+    if (exit_code) {
+        free(varint);
+        return !exit_code;
+    }
+    Value inp = CreateValue(kVarintLayout, varint);
+    Value out = Deserialize(kVarintLayout, Serialize(kVarintLayout, inp));
+    if (err_code) {
+        free(varint);
+        free(out.varint_value);
+        return !err_code;
+    }
+    uint64_t out_val = 0;
+    exit_code = ConvertVARINTtoUINT64(out.varint_value, &out_val);
+
+    free(varint);
+    free(out.varint_value);
+    return !exit_code && val == out_val;
+}
+
+static int TestBARRAY(const char* bool_array, size_t bool_array_size) {
+    err_code = 0;
+    int exit_code = 0;
+
+    size_t barray_size = GetBarraySizeOfBoolArray(bool_array_size);
+    char* barray = calloc(barray_size, sizeof(char));
+    exit_code = ConvertBoolArrayToBarray(barray, bool_array, bool_array_size, barray_size);
+    if (exit_code) {
+        free(barray);
+        return !exit_code;
+    }
+    
+    Value inp = CreateValue(kBarrayLayout, barray);
+    Value out = Deserialize(kBarrayLayout, Serialize(kBarrayLayout, inp));
+    if (err_code || bool_array_size != GetBoolArraySizeofBarray(out.barray_value)) {
+        free(barray);
+        free(out.barray_value);
+        return 0;
+    }
+
+    char* out_bool_array = calloc(bool_array_size, sizeof(char));
+    exit_code = ConvertBarrayToBoolArray(out.barray_value, out_bool_array, bool_array_size);
+    int is_correct = 1;
+    for (size_t i = 0; i < bool_array_size; ++i) {
+        if ((out_bool_array[i] && !bool_array[i]) || (!out_bool_array[i] && bool_array[i])) {
+            is_correct = 0;
+            break;
+        }
+    }
+    free(barray);
+    free(out.barray_value);
+    free(out_bool_array);
+
+    return is_correct;
+}
+
 int main() {
+
+    //TEST BASIC SER
     assert(TestUINT32(50));
     assert(TestUINT64(50));
-
     assert(TestINT32(-50));
     assert(TestINT64(-50));
     assert(TestINT32(50));
     assert(TestINT64(50));
-
     assert(TestFLOAT(0.5));
     assert(TestFLOAT(-0.5));
     assert(TestDOUBLE(0.5));
     assert(TestDOUBLE(-0.5));
-
     assert(TestBOOL(1));
     assert(TestBOOL(0));
+    assert(TestSTRING("Hello, bebra!"));
+    //TEST BASIC SER
 
+    // TEST VARINT
     assert(TestUINT32VARINTConversion(50));
     assert(TestUINT64VARINTConversion(50));
     assert(TestUINT32VARINTConversion(0));
     assert(TestUINT64VARINTConversion(0));
-
     assert(!TestUINT32VARINTConversion(UINT64_MAX));
     assert(TestVARINTNotEnoughSize());
+    assert(TestVARINT(50));
+    // TEST VARINT
 
+    //TEST BARRAY
     size_t bool_array_size = 50;
     char* bool_array = calloc(bool_array_size, sizeof(char));
     for (size_t i = 0; i < bool_array_size; ++i) {
@@ -220,8 +287,11 @@ int main() {
     }
     assert(TestBARRAYConversion(bool_array, bool_array_size));
     assert(!TestBARRAYConversion(bool_array, 0));
-    free(bool_array);
-
     assert(TestBARRAYNotEnoughSize());
     assert(TestBARRAYNotEnoughSizeReverse());
+    assert(TestBARRAY(bool_array, bool_array_size));
+    free(bool_array);
+    //TEST BARRAY
+
+
 }

@@ -1,4 +1,5 @@
 #include "serializer/serialization/serialization.h"
+#include "serializer/serialization/node_handler.h"
 
 //Counts bytes requierd for serialization of value
 static size_t SerializedDataSize(const Layout* layout, Value* value);
@@ -19,35 +20,12 @@ static void HandleSerializationArrayAllocationError();
 static void HandleMidSerializationError(List* list, char* byte_array);
 static void HandleUknownKindError(List* list, char* byte_array);
 
-//Optimized Node retrieve
-static Node* GetNode();
-static void GiveNode(Node* node);
-List avalible_nodes = {.head = NULL, .tail = NULL, .size = 0};
-
-static Node* GetNode() {
-    if (!Empty(&avalible_nodes)) {
-        return PopBack(&avalible_nodes);
-    }
-    Node* new_node = calloc(1, sizeof(Node));
-    return new_node;
-}
-
-static void GiveNode(Node* node) {
-    if (avalible_nodes.size >= MAX_NODES_IN_STORAGE) {
-        DestroyNode(node);
-        return;
-    }
-    PushBack(&avalible_nodes, node);
-}
-
 static int HandleSerializationOutOfSizeError() {
-    perror("Calculated size of serialized data doesn't correspond to its input.\n");
     err_code = 1;
     return err_code;
 }
 
 static void HandleSerializationArrayAllocationError() {
-    perror("Unable to allocate array for serialization on heap.\n");
     err_code = 1;
 }
 
@@ -59,7 +37,6 @@ static void HandleMidSerializationError(List* list, char* byte_array) {
 static void HandleUknownKindError(List* list, char* byte_array) {
     Clear(list);
     free(byte_array);
-    perror("Unidentified kind was used.\n");
     err_code = 1;
 }
 

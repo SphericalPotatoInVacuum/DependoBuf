@@ -1,7 +1,8 @@
+#include "serializer/error_handler/error_handler.h"
 #include "serializer/serialization/serialization.h"
+#include "serializer/serialization/node_handler.h"
 
 static char *DeserializeVARINT(char **cur_buf_pos) {
-    err_code = 0;
     char tmp[8];
     size_t size = 0;
     while (**cur_buf_pos >> 7) {
@@ -15,7 +16,6 @@ static char *DeserializeVARINT(char **cur_buf_pos) {
     char *varint = calloc(size, sizeof(*varint));
     if (varint == NULL) {
         err_code = 1;
-        perror("Could not allocate space\n");
         return NULL;
     }
     for (size_t i = 0; i < size; ++i) {
@@ -25,10 +25,48 @@ static char *DeserializeVARINT(char **cur_buf_pos) {
     return varint;
 }
 
+static char* DeserializeBARRAY(char **cur_buf_pos) {
+    char* start_point = *cur_buf_pos;
+    while (**cur_buf_pos >> 7) {
+        ++(*cur_buf_pos);
+    }
+    *cur_buf_pos += 2;
+    size_t barray_size = *cur_buf_pos - start_point;
+    char* barray = calloc(barray_size, sizeof(char));
+    if (barray == NULL) {
+        err_code = 1;
+        return NULL;
+    }
+    
+    for (size_t i = 0; i < barray_size; ++i) {
+        barray[i] = *start_point;
+        ++start_point;
+    }
+    return barray;
+}  
+
+static char* DeserializeSTRING(char **cur_buf_pos) {
+    char* start_point = *cur_buf_pos;
+    while (**cur_buf_pos) {
+        ++(*cur_buf_pos);
+    }
+    ++(*cur_buf_pos);
+    size_t str_size = *cur_buf_pos - start_point;
+    char* str = calloc(str_size, sizeof(char));
+
+    for (size_t i = 0; i < str_size; ++i) {
+        str[i] = *start_point;
+        ++start_point;
+    }
+    return str;
+}
+
 //Deserializes built-in types.
 static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
-    err_code = 0;
     Value value = {NULL, 0};
+    if (err_code) {
+        return value;
+    }
     if (layout->kind == INT64) {
         int64_t val = *(int64_t *) (*cur_buf_pos);
         *cur_buf_pos += 8;
@@ -47,8 +85,19 @@ static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
         value.uint_value = val;
     } else if (layout->kind == VARINT) {
         value.varint_value = DeserializeVARINT(cur_buf_pos);;
+    } else if (layout->kind == BARRAY) {
+        value.barray_value = DeserializeBARRAY(cur_buf_pos);
+    } else if (layout->kind == DOUBLE) {
+        double val = *(double *)(*cur_buf_pos);
+        *cur_buf_pos += 8;
+        value.double_value = val;
+    } else if (layout->kind == FLOAT) {
+        float val = *(float *)(*cur_buf_pos);
+        *cur_buf_pos += 4;
+        value.float_value = val;
+    } else if (layout->kind == STRING) {
+        value.string_ptr = DeserializeSTRING(cur_buf_pos);
     } else {
-        perror("Unknown type in layout\n");
         err_code = 1;
     }
 
@@ -57,18 +106,18 @@ static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
 
 //Deserializes one element from layout. Returns constructed value.
 static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
-    err_code = 0;
     Value value = {NULL, 0};
+    if (err_code) {
+        return value;
+    }
     if (layout->kind != CONSTRUCTED) {
         value = DeserializePrimitive(layout, cur_buf_pos);
         if (err_code != 0) {
-            perror("Failed to deserialize built-in type\n");
         }
     } else {
-        Node *initial_node = calloc(1, sizeof(*initial_node));
+        Node *initial_node = GetNode();
         if (initial_node == NULL) {
             err_code = 1;
-            perror("Could not allocate space\n");
             return value;
         }
         initial_node->next = NULL;
@@ -82,7 +131,9 @@ static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
             if (cur_node->layout->kind != CONSTRUCTED) {
                 *cur_node->value_place = DeserializePrimitive(cur_node->layout, cur_buf_pos);
                 if (err_code != 0) {
-                    perror("Failed to deserialize built-in type\n");
+                    Clear(&nodes);
+                    DestroyNode(cur_node);
+                    return value;
                 }
             } else {
                 Value *cur_value = cur_node->value_place;
@@ -90,16 +141,14 @@ static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
                                                          sizeof(*cur_value->children));
                 if (cur_value->children == NULL) {
                     err_code = 1;
-                    perror("Could not allocate space\n");
                     Clear(&nodes);
                     DestroyNode(cur_node);
                     return value;
                 }
                 for (ssize_t i = cur_node->layout->field_q - 1; i >= 0; --i) {
-                    Node *node = calloc(1, sizeof(*node));
+                    Node *node = GetNode();
                     if (node == NULL) {
                         err_code = 1;
-                        perror("Could not allocate space\n");
                         Clear(&nodes);
                         DestroyNode(cur_node);
                         return value;
@@ -109,7 +158,7 @@ static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
                     PushFront(&nodes, node);
                 }
             }
-            DestroyNode(cur_node);
+            GiveNode(cur_node);
         }
     }
 
@@ -118,11 +167,12 @@ static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
 
 //Deserializes bytes by layout. Returns constructed value.
 Value Deserialize(const Layout *layout, char *buffer) {
-    err_code = 0;
-    Value value = DeserializeUnit(layout, &buffer);
-    if (err_code != 0) {
-        perror("Failed to deserialize\n");
-        err_code = 1;
+    if (err_code) {
+        Value value = {.children = NULL, .uint_value = 0};
+        return value;
     }
+    Value value = DeserializeUnit(layout, &buffer);
+    Clear(&avalible_nodes);
+
     return value;
 }
