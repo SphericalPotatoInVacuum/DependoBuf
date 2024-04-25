@@ -52,6 +52,9 @@ private:
   bool CheckFields(const ast::TypeWithFields &type);
 
   bool CheckTypeExpression(const ast::TypeExpression &type_expression);
+
+  bool CheckCollectionParameters(const ast::TypeExpression &type_expr);
+  z3::sort GetZ3SortForCollcections(const ast::TypeExpression &type_expr);
 };
 
 } // namespace dbuf::checker

@@ -54,55 +54,16 @@ bool TypeChecker::operator()(const ast::Message &ast_message) {
     return false;
   }
 
-  // adding sorts for each field, which is Array or Set
-  for (const auto &field : ast_message.fields) {
-    if (field.type_expression.identifier.name.GetString() == "Array" ||
-        field.type_expression.identifier.name.GetString() == "Set") {
-      const auto type_expr = std::get<ast::TypeExpression>(*field.type_expression.parameters[0]);
-      if (type_expr.identifier.name.GetString() == "Int" || type_expr.identifier.name.GetString() == "Unsigned") {
-        z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name)
-            .try_emplace(
-                type_expr.identifier.name,
-                z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.int_sort()));
-      } else if (type_expr.identifier.name.GetString() == "Bool") {
-        z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name)
-            .try_emplace(
-                type_expr.identifier.name,
-                z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.bool_sort()));
-      } else if (type_expr.identifier.name.GetString() == "String") {
-        z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name)
-            .try_emplace(
-                type_expr.identifier.name,
-                z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.string_sort()));
-      } else if (type_expr.identifier.name.GetString() == "Float") {
-        z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name)
-            .try_emplace(
-                type_expr.identifier.name,
-                z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.fpa_sort(11, 53)));
-      } else {
-        z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name)
-            .try_emplace(
-                type_expr.identifier.name,
-                z3_stuff_.context_.array_sort(
-                    z3_stuff_.context_.int_sort(),
-                    z3_stuff_.sorts_.at(type_expr.identifier.name)));
-      }
-    }
-  }
-
   // initializing everything, that is used for the constructor
   z3::constructors cs(z3_stuff_.context_);
-  z3::symbol recognizer_symbol =
-      z3_stuff_.context_.str_symbol(("is_" + ast_message.identifier.name.GetString()).c_str());
   std::vector<z3::symbol> accessor_names;
   std::vector<z3::sort> accessor_sorts;
   for (const auto &field : ast_message.fields) {
     accessor_names.push_back(z3_stuff_.context_.str_symbol(field.name.GetString().c_str()));
-    if (field.type_expression.identifier.name.GetString() == "Array" ||
-        field.type_expression.identifier.name.GetString() == "Set") {
+    if (field.type_expression.identifier.name.GetString() == "Array" || field.type_expression.identifier.name.GetString() == "Set") {
       const auto type_expr = std::get<ast::TypeExpression>(*field.type_expression.parameters[0]);
-      accessor_sorts.push_back(
-          z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name).at(type_expr.identifier.name));
+      z3::sort collections_sort = GetZ3SortForCollcections(type_expr);
+      accessor_sorts.push_back(collections_sort);
     } else {
       accessor_sorts.push_back(z3_stuff_.sorts_.at(field.type_expression.identifier.name));
     }
@@ -110,7 +71,7 @@ bool TypeChecker::operator()(const ast::Message &ast_message) {
 
   // Creating a z3 datatype for this message
   z3::symbol name_symbol = z3_stuff_.context_.str_symbol(ast_message.identifier.name.GetString().c_str());
-  cs.add(name_symbol, recognizer_symbol, ast_message.fields.size(), accessor_names.data(), accessor_sorts.data());
+  cs.add(name_symbol, z3_stuff_.context_.str_symbol(("is_" + ast_message.identifier.name.GetString()).c_str()), ast_message.fields.size(), accessor_names.data(), accessor_sorts.data());
   z3_stuff_.sorts_.try_emplace(ast_message.identifier.name, z3_stuff_.context_.datatype(name_symbol, cs));
  
   // Declare a constructor and accessors for this message
@@ -166,50 +127,14 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
 
   for (const auto &rule : ast_enum.pattern_mapping) {
     for (const auto &constructor : rule.outputs) {
-      for (const auto &field : constructor.fields) {
-        if (field.type_expression.identifier.name.GetString() == "Array" ||
-            field.type_expression.identifier.name.GetString() == "Set") {
-          const auto type_expr = std::get<ast::TypeExpression>(*field.type_expression.parameters[0]);
-          if (type_expr.identifier.name.GetString() == "Int" || type_expr.identifier.name.GetString() == "Unsigned") {
-            z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name)
-                .try_emplace(
-                    type_expr.identifier.name,
-                    z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.int_sort()));
-          } else if (type_expr.identifier.name.GetString() == "Bool") {
-            z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name)
-                .try_emplace(
-                    type_expr.identifier.name,
-                    z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.bool_sort()));
-          } else if (type_expr.identifier.name.GetString() == "String") {
-            z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name)
-                .try_emplace(
-                    type_expr.identifier.name,
-                    z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.string_sort()));
-          } else if (type_expr.identifier.name.GetString() == "Float") {
-            z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name)
-                .try_emplace(
-                    type_expr.identifier.name,
-                    z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.fpa_sort(11, 53)));
-          } else {
-            z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name)
-                .try_emplace(
-                    type_expr.identifier.name,
-                    z3_stuff_.context_.array_sort(
-                        z3_stuff_.context_.int_sort(),
-                        z3_stuff_.sorts_.at(type_expr.identifier.name)));
-          }
-        }
-      }
-
       std::vector<z3::symbol> accessor_names;
       std::vector<z3::sort> accessor_sorts;
       for (const auto &field : constructor.fields) {
         accessor_names.push_back(z3_stuff_.context_.str_symbol(field.name.GetString().c_str()));
-        if (field.type_expression.identifier.name.GetString() == "Array" ||
-            field.type_expression.identifier.name.GetString() == "Set") {
+        if (field.type_expression.identifier.name.GetString() == "Array" || field.type_expression.identifier.name.GetString() == "Set") {
           const auto type_expr = std::get<ast::TypeExpression>(*field.type_expression.parameters[0]);
-          accessor_sorts.push_back(
-              z3_stuff_.collection_sorts_.at(field.type_expression.identifier.name).at(type_expr.identifier.name));
+          z3::sort collections_sort = GetZ3SortForCollcections(type_expr);
+          accessor_sorts.push_back(collections_sort);
         } else {
           accessor_sorts.push_back(z3_stuff_.sorts_.at(field.type_expression.identifier.name));
         }
@@ -293,41 +218,8 @@ bool TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
     return true;
   }
 
-  if (type_expression.identifier.name == InternedString("Array")) {
-    if (type_expression.parameters.size() != 2) {
-      error_ = Error(
-          CreateError() << "Expected 2 parmeters in Array constructor, but got " << type_expression.parameters.size()
-                        << " at " << type_expression.location);
-      return false;
-    }
-    if (!std::holds_alternative<ast::TypeExpression>(*type_expression.parameters[0])) {
-      error_ = Error(
-          CreateError() << "Expected first parmeter of Array to be a TypeExpression, but got "
-                        << *type_expression.parameters[0] << " at " << type_expression.location);
-      return false;
-    }
-    auto expected_type_expr = ast::TypeExpression(
-        {parser::location()},
-        ast::Identifier({type_expression.location}, {InternedString("Unsigned")}),
-        std::vector<ast::ExprPtr>());
-    error_ = TypeComparator(expected_type_expr, ast_, &context_, &substitutor_, &z3_stuff_)
-                        .Compare(*type_expression.parameters[1]);
-    return !error_.has_value();
-  }
-
-  if (type_expression.identifier.name == InternedString("Set")) {
-    if (type_expression.parameters.size() != 1) {
-      error_ = Error(
-          CreateError() << "Expected 1 parmeter in Array constructor, but got " << type_expression.parameters.size());
-      return false;
-    }
-    if (!std::holds_alternative<ast::TypeExpression>(*type_expression.parameters[0])) {
-       error_ =  Error(
-          CreateError() << "Expected first parmeter of Array to be a TypeExpression, but got "
-                        << *type_expression.parameters[0]);
-        return false;
-    }
-    return true;
+  if (type_expression.identifier.name == InternedString("Array") || type_expression.identifier.name == InternedString("Set")) {
+    return CheckCollectionParameters(type_expression);
   }
 
   const ast::DependentType &type = std::visit(
@@ -360,6 +252,67 @@ bool TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
 
   substitutor_.PopScope();
   return true;
+}
+
+bool TypeChecker::CheckCollectionParameters(const ast::TypeExpression &type_expr) {
+  if (type_expr.identifier.name == InternedString("Array")) {
+    if (type_expr.parameters.size() != 2) {
+      error_ = Error(CreateError() << "Expected 2 parmeters in Array constructor, but got " << type_expr.parameters.size() << " at " << type_expr.location);
+      return false;
+    }
+    if (!std::holds_alternative<ast::TypeExpression>(*type_expr.parameters[0])) {
+      error_ = Error(CreateError() << "Expected first parmeter of Array to be a TypeExpression, but got " << *type_expr.parameters[0] << " at " << type_expr.location);
+      return false;
+    }
+    auto elem_type_expr = std::get<ast::TypeExpression>(*type_expr.parameters[0]);
+    if (elem_type_expr.identifier.name.GetString() == "Array" || elem_type_expr.identifier.name.GetString() == "Set") {
+      if (!CheckTypeExpression(elem_type_expr)) {
+        return false;
+      }
+    }
+    auto expected_unsigned_type_expr = ast::TypeExpression(
+        {parser::location()},
+        ast::Identifier({type_expr.location}, {InternedString("Unsigned")}),
+        std::vector<ast::ExprPtr>());
+    error_ = TypeComparator(expected_unsigned_type_expr, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*type_expr.parameters[1]);
+    return !error_.has_value();
+  }
+
+  if (type_expr.parameters.size() != 1) {
+    error_ = Error(CreateError() << "Expected 1 parmeter in Set constructor, but got " << type_expr.parameters.size());
+    return false;
+  }
+  if (!std::holds_alternative<ast::TypeExpression>(*type_expr.parameters[0])) {
+      error_ =  Error(CreateError() << "Expected first parmeter of Set to be a TypeExpression, but got " << *type_expr.parameters[0]);
+      return false;
+  }
+  auto elem_type_expr = std::get<ast::TypeExpression>(*type_expr.parameters[0]);
+  if (elem_type_expr.identifier.name.GetString() == "Array" || elem_type_expr.identifier.name.GetString() == "Set") {
+    if (!CheckTypeExpression(elem_type_expr)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+z3::sort TypeChecker::GetZ3SortForCollcections(const ast::TypeExpression &type_expr) {
+  if (type_expr.identifier.name.GetString() == "Int" || type_expr.identifier.name.GetString() == "Unsigned") {      
+    return z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.int_sort());
+  }
+  if (type_expr.identifier.name.GetString() == "Bool") {
+    return z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.bool_sort());
+  }
+  if (type_expr.identifier.name.GetString() == "String") {
+    return z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.string_sort());
+  }
+  if (type_expr.identifier.name.GetString() == "Float") {
+    return z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.fpa_sort(11, 53));
+  }
+  if (type_expr.identifier.name.GetString() == "Array" || type_expr.identifier.name.GetString() == "Set")  {
+    z3::sort elem_sort = GetZ3SortForCollcections(std::get<ast::TypeExpression>(*type_expr.parameters[0]));
+    return z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), elem_sort);
+  }
+  return z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.sorts_.at(type_expr.identifier.name));
 }
 
 } // namespace dbuf::checker

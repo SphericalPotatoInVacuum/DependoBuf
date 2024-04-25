@@ -35,7 +35,6 @@ struct Z3stuff {
   z3::context context_;
   z3::solver solver_;
   NameToSort sorts_;
-  NameToCollectionSort collection_sorts_;
   FieldToFuncDecl constructors_;
   NameToFields accessors_;
 };
