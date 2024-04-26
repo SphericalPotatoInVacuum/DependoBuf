@@ -1,7 +1,9 @@
 #include "core/ast/ast.h"
+#include "core/ast/expression.h"
 #include "core/interning/interned_string.h"
 
 #include <ostream>
+#include <vector>
 
 namespace dbuf::gen {
 class RustCheckGenerator {
@@ -16,8 +18,17 @@ public:
 private:
   std::ostream &output_;
   const ast::AST &tree_;
+
+  void DeclareCheckStart(const InternedString &name, const std::vector<ast::TypedVariable> &deps);
+  void DeclareCheckEnd();
+
+  bool IsCopyableType(const InternedString &type);
+  bool IsPrimitiveType(const InternedString &type);
+
+  void PrintExpression(const ast::Expression &expr);
+  void PrintConstructedValue(const ast::ConstructedValue &expr);
+
   const std::unordered_map<InternedString, std::string> kBuiltinToArgumentType_ = {
-      {InternedString("String"), "&str"},
       {InternedString("Int"), "i64"},
       {InternedString("Unsigned"), "u64"},
       {InternedString("Float"), "f64"},

@@ -18,13 +18,12 @@ private:
 
   bool IsPrimitiveType(const InternedString &type);
   std::string GetPrimitiveTypeInRust(const InternedString &type);
-  void DeclareFields(const std::vector<ast::TypedVariable> &fields, size_t indent);
+  void DeclareFields(const std::vector<ast::TypedVariable> &fields, size_t indent, bool make_pub);
 
   const std::unordered_map<InternedString, std::string> kPrimitiveTypes_ {
       {InternedString("Int"), "i64"},
       {InternedString("Unsigned"), "u64"},
       {InternedString("Float"), "f64"},
-      {InternedString("String"), "String"},
       {InternedString("Bool"), "bool"},
   };
 };
