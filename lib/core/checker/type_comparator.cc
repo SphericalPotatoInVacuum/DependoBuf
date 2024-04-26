@@ -110,8 +110,6 @@ struct Matcher {
 
   template <typename T, typename U>
   bool operator()(const T &arg, const U &pattern) {
-    // CompareExpressions returns std::optional<Error> if the expressions don't match
-    // so if there is no value then the expressions match
     DLOG(INFO) << "Matching " << arg << " against " << pattern << " using CompareExpressions";
     return !CompareExpressions(pattern, arg, z3_stuff, ast, context).has_value();
   }
