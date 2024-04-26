@@ -5,6 +5,7 @@
 #include "core/interning/interned_string.h"
 
 #include <cstddef>
+#include <string_view>
 #include <variant>
 
 namespace dbuf::gen {
@@ -79,22 +80,12 @@ void RustCheckGenerator::PrintConstructedValue(const ast::ConstructedValue &expr
   output_ << " })";
 }
 
-void RustCheckGenerator::operator()(const ast::Message &ast_message) {
-  DeclareCheckStart(ast_message.identifier.name, ast_message.type_dependencies);
-
-  for (const auto &field : ast_message.fields) {
-    output_ << "        let " << field.name << " = ";
-    if (!IsCopyableType(field.type_expression.identifier.name)) {
-      output_ << '&';
-    }
-    output_ << "self." << field.name << ";\n";
-  }
-  for (const auto &field : ast_message.fields) {
+void RustCheckGenerator::CheckFields(const std::vector<ast::TypedVariable> &fields, const std::string_view &indent) {
+  for (const auto &field : fields) {
     if (IsPrimitiveType(field.type_expression.identifier.name)) {
       continue;
     }
-    output_ << "        "
-            << "if !" << field.name << ".check(";
+    output_ << indent << "if !" << field.name << ".check(";
     const auto &type      = field.type_expression;
     const auto &type_info = tree_.types.at(type.identifier.name);
     const auto &deps      = std::visit([](const auto &type) { return type.type_dependencies; }, type_info);
@@ -112,12 +103,49 @@ void RustCheckGenerator::operator()(const ast::Message &ast_message) {
     }
     output_ << ") { return false; }\n";
   }
+}
 
+void RustCheckGenerator::operator()(const ast::Message &ast_message) {
+  DeclareCheckStart(ast_message.identifier.name, ast_message.type_dependencies);
+  for (const auto &field : ast_message.fields) {
+    output_ << "        let " << field.name << " = ";
+    if (!IsCopyableType(field.type_expression.identifier.name)) {
+      output_ << '&';
+    }
+    output_ << "self." << field.name << ";\n";
+  }
+  CheckFields(ast_message.fields, "        ");
   DeclareCheckEnd();
 }
 
 void RustCheckGenerator::operator()(const ast::Enum &ast_enum) {
   DeclareCheckStart(ast_enum.identifier.name, ast_enum.type_dependencies);
+
+  output_ << "        match self {\n";
+  for (const auto &rule : ast_enum.pattern_mapping) {
+    for (const auto &constructor : rule.outputs) {
+      output_ << "            " << constructor.identifier.name << " { ";
+      for (size_t i = 0; i < constructor.fields.size(); ++i) {
+        if (i != 0) {
+          output_ << ", ";
+        }
+        const auto &field = constructor.fields[i];
+        output_ << field.name;
+      }
+      output_ << " } => {\n";
+      // for (size_t j = 0; j < rule.inputs.size(); ++j) {
+      //   const auto &input = rule.inputs[j];
+      //   if (std::holds_alternative<ast::Star>(input)) {
+      //     continue;
+      //   }
+      //   const auto &value = std::get<ast::Value>(input);
+      // }
+      CheckFields(constructor.fields, "                ");
+      output_ << "            }\n";
+    }
+  }
+  output_ << "        }\n";
+
   DeclareCheckEnd();
 }
 

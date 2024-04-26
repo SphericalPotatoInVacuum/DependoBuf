@@ -21,6 +21,7 @@ private:
 
   void DeclareCheckStart(const InternedString &name, const std::vector<ast::TypedVariable> &deps);
   void DeclareCheckEnd();
+  void CheckFields(const std::vector<ast::TypedVariable> &fields, const std::string_view &indent);
 
   bool IsCopyableType(const InternedString &type);
   bool IsPrimitiveType(const InternedString &type);
