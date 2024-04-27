@@ -7,12 +7,34 @@
 namespace dbuf::gen {
 void CppCodeGenerator::Generate(const ast::AST *tree) {
   tree_ = tree;
-  *output_ << "#include <string>\n\n";
+  *output_ << "#include <string>\n";
+  *output_ << "#include <variant>\n\n";
+  *output_ << "namespace dbuf {\n";
+  auto declaration_generator = [&](const auto& new_struct) {
+    bool first = true;
+    for (const auto& dependency : static_cast<ast::DependentType>(new_struct).type_dependencies) {
+      if (first) {
+        *output_ << "template <";
+        first = false;
+      } else {
+        *output_ << ", ";
+      }
+      (*this)(dependency, true /* as_dependency */);
+    }
+    if (!first) {
+      *output_ << ">\n";
+    }
+    *output_ << "struct " << static_cast<ast::Identifiable>(new_struct).identifier.name << ";\n\n";
+  };
+
+  for (const auto &type : tree->visit_order) {
+    std::visit(declaration_generator, tree->types.at(type));
+  }
 
   for (const auto &type : tree->visit_order) {
     std::visit(*this, tree->types.at(type));
-    *output_ << "\n\n";
   }
+  *output_ << "}";
 }
 
 bool CheckForTriggers(const std::unordered_set<InternedString> &trigger_names, const ast::Expression &expr) {
@@ -41,16 +63,21 @@ bool CheckForTriggers(const std::unordered_set<InternedString> &trigger_names, c
 void CppCodeGenerator::operator()(const ast::Message& ast_message, std::vector<ast::TypedVariable> checker_input) {
   std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> checker_members;
 
-  // Generate real cpp fields for this message
+  // Vector with final cpp fields for this message
+  // To change Bar<a> to Bar_a without coping ast_message to this func 
   std::vector<ast::TypedVariable> cpp_struct_fields;
   cpp_struct_fields.reserve(ast_message.fields.size());
 
-  // Checker input are variable dependencies of this type  
+  // checker_input are variable dependencies of this type
+  // they are known at runtime this is why they triggers new type creation
+  // right as previously set variables
   std::unordered_set<InternedString> trigger_names;
   for (const auto& var : checker_input) {
     trigger_names.insert(var.name);
   }
 
+  // Generates all the needed extra types for this message
+  // And fill cpp_struct_fields with relevant types
   for (const auto &field : ast_message.fields) {
     std::unordered_set<size_t> positions_of_variable_dependencies;
     for (size_t ind = 0; ind < field.type_expression.parameters.size(); ++ind) {
@@ -98,7 +125,6 @@ void CppCodeGenerator::operator()(const ast::Message& ast_message, std::vector<a
 
         created_hidden_types_.insert(new_message.identifier.name);
         (*this)(new_message, new_message_hidden_dependencies);
-        *output_ << "\n\n";
       }
 
       checker_members[field.name] = std::move(variable_dependencies_expressions);
@@ -167,7 +193,7 @@ void CppCodeGenerator::operator()(const ast::Message& ast_message, std::vector<a
 
   // Generate message end
 
-  *output_ << "};";
+  *output_ << "};\n\n";
 }
 
 void CppCodeGenerator::operator()(const ast::TypedVariable &expr, bool as_dependency) {
@@ -227,6 +253,8 @@ void CppCodeGenerator::operator()(const ast::Value &value) {
   }
 }
 
+void CppCodeGenerator::operator()(const ast::Star &star) {}
+
 void CppCodeGenerator::operator()(const ast::VarAccess &var_access) {
   *output_ << var_access;
 }
@@ -243,7 +271,49 @@ void CppCodeGenerator::operator()(const ast::ConstructedValue &value) {
   *output_ << "}";
 }
 
-void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
-  *output_ << "Here must be enum " << ast_enum.identifier.name;
+void CppCodeGenerator::operator()(const ast::Enum &ast_enum, std::vector<ast::TypedVariable> checker_input) {
+  // Generation all his possible cases
+  for (const auto& rule : ast_enum.pattern_mapping) {
+    *output_ << "template <";
+    for (size_t ind = 0; ind != ast_enum.type_dependencies.size(); ++ind) {
+      if (std::holds_alternative<ast::Star>(rule.inputs[ind])) {
+        (*this)(ast_enum.type_dependencies[ind], true /* as_dependency */);
+        if (ind != ast_enum.type_dependencies.size() - 1) {
+          *output_ << ", ";
+        }
+      }
+    }
+    *output_ << ">\n";
+    *output_ << "struct " << ast_enum.identifier.name;
+    bool first = true;
+    for (size_t ind = 0; ind != ast_enum.type_dependencies.size(); ++ind) {
+      if (!std::holds_alternative<ast::Star>(rule.inputs[ind])) {
+        if (first) {
+          *output_ << "<";
+        }
+        std::visit(*this, rule.inputs[ind]);
+        *output_ << ((ind != ast_enum.type_dependencies.size() - 1)? ", " : ">");
+      }
+    }
+    *output_ << " {\n";
+    for (const auto& constructor: rule.outputs) {
+      ast::Message new_struct;
+      new_struct.identifier = constructor.identifier;
+      new_struct.fields = constructor.fields;
+      (*this)(new_struct);
+    }
+    *output_ << "\tstd::variant<";
+    first = true;
+    for (const auto& rule_variant : rule.outputs) {
+      if (first) {
+        first = false;
+      } else {
+        *output_ << ", ";
+      }
+      *output_ << rule_variant.identifier.name;
+    }
+    *output_ << "> value;\n";
+    *output_ << "};\n\n";
+  }
 }
 } // namespace dbuf::gen
