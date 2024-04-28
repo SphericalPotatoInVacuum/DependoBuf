@@ -1,7 +1,6 @@
 #pragma once
 
 #include "serializer/layout/linked_list.h"
-#include <string.h>
 
 //Defines how many nodes can be hanged simultaneously in serialization process.
 #define MAX_NODES_IN_STORAGE 50

@@ -15,6 +15,7 @@ target_include_directories(serializer_serialization PUBLIC
 
 target_link_libraries(serializer_serialization PUBLIC
     serializer_layout
+    serializer_snappy-c
 )
 
 #target_compile_options(serializer_serialization PRIVATE -Werror -Wall -Wextra -Wpedantic -Wunused -Wunreachable-code)

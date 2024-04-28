@@ -1,5 +1,7 @@
 #include "serializer/layout/linked_list.h"
 
+#include "stdlib.h"
+
 void PushBack(List *list, Node *node) {
     if (Empty(list)) {
         list->head = node;

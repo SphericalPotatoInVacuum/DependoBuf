@@ -2,10 +2,8 @@
 
 #include "serializer/error_handler/error_handler.h"
 
-#include "stdint.h"
 #include "stddef.h"
-#include "stdlib.h"
-#include "string.h"
+#include "stdint.h"
 
 //Enumerates all possible types that can be used in protocol (Type string is a zero-terminated string)
 typedef enum Kind {
@@ -25,7 +23,6 @@ typedef enum Kind {
 //Layout is used to decribe layout of type. Can be constructed by user
 typedef struct Layout {
     const struct Layout **fields;
-
     Kind kind;
     size_t field_q;
 } Layout;
@@ -63,7 +60,7 @@ typedef struct Value {
         uint64_t uint_value;
         int64_t int_value;
         char *varint_value;
-        char *string_ptr;
+        char* string_ptr;
         char bool_value;
         double double_value;
         float float_value;
@@ -77,4 +74,7 @@ Value ConstructValue(const Layout* layout, void **values);
 Value ConstructPrimitiveValue(const Layout* layout, ...);
 //Non-recursive DeepCopy of Value
 Value CopyValue(const Layout *layout, const Value *value);
+//Separate bool constructor (due to constraints in stdarg.h)
+Value CreateBoolValue(char bool);
+//Deallocates objects used in Value.
 void DestroyValue(const Layout *layout, Value* value);

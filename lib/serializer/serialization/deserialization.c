@@ -1,12 +1,18 @@
 #include "serializer/error_handler/error_handler.h"
 #include "serializer/serialization/serialization.h"
 #include "serializer/layout/node_handler.h"
+#include "serializer/layout/linked_list.h"
+
+
+#include "stdlib.h"
+#include <limits.h>
+
 
 static char *DeserializeVARINT(char **cur_buf_pos) {
     err_code = NOERR;
     char tmp[8];
     size_t size = 0;
-    while (**cur_buf_pos >> 7) {
+    while (**cur_buf_pos >> (CHAR_BIT - 1)) {
         tmp[size] = **cur_buf_pos;
         ++size;
         ++*cur_buf_pos;
@@ -29,7 +35,7 @@ static char *DeserializeVARINT(char **cur_buf_pos) {
 static char* DeserializeBARRAY(char **cur_buf_pos) {
     err_code = NOERR;
     char* start_point = *cur_buf_pos;
-    while (**cur_buf_pos >> 7) {
+    while (**cur_buf_pos >> (CHAR_BIT - 1)) {
         ++(*cur_buf_pos);
     }
     *cur_buf_pos += 2;
@@ -70,19 +76,19 @@ static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
     Value value = {NULL, 0};
     if (layout->kind == INT64) {
         int64_t val = *(int64_t *) (*cur_buf_pos);
-        *cur_buf_pos += 8;
+        *cur_buf_pos += sizeof(int64_t);
         value.int_value = val;
     } else if (layout->kind == UINT64) {
         uint64_t val = *(uint64_t *) (*cur_buf_pos);
-        *cur_buf_pos += 8;
+        *cur_buf_pos += sizeof(uint64_t);
         value.uint_value = val;
     } else if (layout->kind == INT32) {
         int32_t val = *(int32_t *) (*cur_buf_pos);
-        *cur_buf_pos += 4;
+        *cur_buf_pos += sizeof(int32_t);
         value.int_value = val;
     } else if (layout->kind == UINT32) {
         uint32_t val = *(uint32_t *) (*cur_buf_pos);
-        *cur_buf_pos += 4;
+        *cur_buf_pos += sizeof(uint32_t);
         value.uint_value = val;
     } else if (layout->kind == VARINT) {
         value.varint_value = DeserializeVARINT(cur_buf_pos);
@@ -90,17 +96,17 @@ static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
         value.barray_value = DeserializeBARRAY(cur_buf_pos);
     } else if (layout->kind == DOUBLE) {
         double val = *(double *)(*cur_buf_pos);
-        *cur_buf_pos += 8;
+        *cur_buf_pos += sizeof(double);
         value.double_value = val;
     } else if (layout->kind == FLOAT) {
         float val = *(float *)(*cur_buf_pos);
-        *cur_buf_pos += 4;
+        *cur_buf_pos += sizeof(float);
         value.float_value = val;
     } else if (layout->kind == STRING) {
         value.string_ptr = DeserializeSTRING(cur_buf_pos);
     } else if (layout->kind == BOOL) {
         value.bool_value = **cur_buf_pos;
-        ++*cur_buf_pos;
+        *cur_buf_pos += sizeof(char);
     } else {
         err_code = UNKNKIND;
     }
@@ -110,8 +116,11 @@ static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
 
 //Deserializes one element from layout. Returns constructed value.
 static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
-    err_code = NOERR;
     Value value = {NULL, 0};
+    if (err_code != NOERR) {
+        return value;
+    }
+
     if (layout->kind != CONSTRUCTED) {
         value = DeserializePrimitive(layout, cur_buf_pos);
     } else {
@@ -167,7 +176,10 @@ static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
 
 //Deserializes bytes by layout. Returns constructed value.
 Value Deserialize(const Layout *layout, char *buffer) {
-    err_code = NOERR;
+    if (err_code != NOERR) {
+        Value value = {.children = NULL, .string_ptr = NULL};
+        return value;
+    }
     Value value = DeserializeUnit(layout, &buffer);
     Clear(&avalible_nodes);
 

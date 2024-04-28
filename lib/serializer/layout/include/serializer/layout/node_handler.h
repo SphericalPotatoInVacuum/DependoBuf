@@ -1,4 +1,5 @@
 #pragma once
+
 #include "serializer/layout/linked_list.h"
 
 #define MAX_NODES_IN_STORAGE 50

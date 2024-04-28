@@ -2,7 +2,10 @@
 #include "serializer/layout/linked_list.h"
 #include "serializer/layout/node_handler.h"
 
-#include <stdarg.h>
+#include "stdarg.h"
+#include "stddef.h"
+#include "stdlib.h"
+#include "string.h"
 
 const Layout kInt64LayoutStatic = {.fields = NULL, .kind = INT64,.field_q = 0};
 const Layout kUint64LayoutStatic = {.fields = NULL, .kind = UINT64, .field_q = 0};

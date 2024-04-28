@@ -1,7 +1,5 @@
 #pragma once
 
-#include "stdio.h"
-
 //Handled errors
 enum {
     NOERR,

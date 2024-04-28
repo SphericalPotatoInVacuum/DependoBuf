@@ -1,8 +1,7 @@
 #pragma once
 
 #include "stdint.h"
-#include "stdlib.h"
-#include "stdio.h"
+#include "stddef.h"
 
 //Converts varint by its pointer to uint32_t, saves in res by its pointer, returns 0. If error has occurred, returns 1.
 int ConvertVARINTtoUINT32(const char* varint, uint32_t* res);

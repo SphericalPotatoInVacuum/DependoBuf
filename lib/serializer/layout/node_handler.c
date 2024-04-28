@@ -1,5 +1,7 @@
 #include "serializer/layout/node_handler.h"
 
+#include "stdlib.h"
+
 List avalible_nodes = {.head = NULL, .tail = NULL, .size = 0};
 
 Node* GetNode() {

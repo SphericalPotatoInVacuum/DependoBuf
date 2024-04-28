@@ -1,18 +1,69 @@
 #include "serializer/conv/conv.h"
+#include "serializer/conv/conv_compat.h"
+#include "limits.h"
+#include "stdint.h"
+
+
+#if UINT_BYTE_SIZE == 2
+    static inline size_t GetValBitsForUINT16(uint16_t inp) {
+        return UINT16_BITS - __builtin_clz(inp);
+    }
+#endif
+
+#if UINT_BYTE_SIZE <= 4
+    static inline size_t GetValBitsfForUINT32(uint32_t inp) {
+        size_t val_bits = 0;
+        #if UINT_BYTE_SIZE == 2
+            if (!(inp >> UINT16_BITS)) {
+                val_bits = GetValBitsForUINT16(inp);
+            } esle {
+                val_bits = UINT16_BITS + GetValBitsForUINT16(inp >> UINT16_BITS);
+            }
+        #elif UINT_BYTE_SIZE == 4
+            val_bits = UINT32_BITS - __builtin_clz(inp);
+        #endif
+        return val_bits;
+}
+#endif
+
+static size_t GetValBits(uint64_t inp) {
+    size_t val_bits = 0;
+    #if UINT_BYTE_SIZE <= 4
+        if (!(inp >> UINT32_BITS)) {
+            val_bits = GetValBitsfForUINT32(inp);
+        } else {
+            val_bits = UINT32_BITS + GetValBitsfForUINT32(inp >> UINT32_BITS);
+        }
+    #elif UINT_BYTE_SIZE == 8
+        val_bits = UINT64_BITS - __builtin_clz(inp); 
+    #endif
+    
+    return val_bits;
+}
+
+
+size_t GetVarintSizeOfUINT(uint64_t inp) {
+    size_t val_bits = GetValBits(inp);
+    size_t one_bytes = val_bits / (CHAR_BIT - 1);
+    if (val_bits % (CHAR_BIT - 1) == 0) {
+        --one_bytes;
+    }
+    return one_bytes + 1;
+}
 
 int ConvertVARINTtoUINT32(const char* varint, uint32_t* res) {
     *res = 0;
 
     const char* curr_byte_iter = varint;
-    while (*curr_byte_iter >> 7) {
+    while (*curr_byte_iter >> (CHAR_BIT - 1)) {
         ++curr_byte_iter;
     }
     size_t varint_size = curr_byte_iter - varint;
-    size_t total_bits = varint_size * 7;
+    size_t total_bits = varint_size * (CHAR_BIT - 1);
     if (*curr_byte_iter != 0) {
-        total_bits += 8 - ((__builtin_clz((uint32_t)*curr_byte_iter)) - 24);
+        total_bits += CHAR_BIT - GetValBits(*curr_byte_iter);
     }
-    if (total_bits > 32) {
+    if (total_bits > UINT32_BITS) {
         return 1;
     }
 
@@ -20,7 +71,7 @@ int ConvertVARINTtoUINT32(const char* varint, uint32_t* res) {
     for (size_t i = 0; i < varint_size; ++i) {
         char curr_byte = varint[i] << 1;
         *res += ((uint32_t)(curr_byte >> 1)) << (curr_shift);
-        curr_shift += 7;
+        curr_shift += CHAR_BIT - 1;
     }
     *res += (uint32_t)*curr_byte_iter << curr_shift;
     return 0;
@@ -29,15 +80,15 @@ int ConvertVARINTtoUINT32(const char* varint, uint32_t* res) {
 int ConvertVARINTtoUINT64(const char* varint, uint64_t* res) {
     *res = 0;
     const char* curr_byte_iter = varint;
-    while (*curr_byte_iter >> 7) {
+    while (*curr_byte_iter >> (CHAR_BIT - 1)) {
         ++curr_byte_iter;
     }
     size_t varint_size = curr_byte_iter - varint;
-    size_t total_bits = varint_size * 7;
+    size_t total_bits = varint_size * (CHAR_BIT - 1);
     if (*curr_byte_iter != 0) {
-        total_bits += 8 - ((__builtin_clz((uint32_t)*curr_byte_iter)) - 24);
+        total_bits += CHAR_BIT - GetValBits(*curr_byte_iter);
     }
-    if (total_bits > 64) {
+    if (total_bits > UINT64_BITS) {
         return 1;
     }
 
@@ -45,22 +96,10 @@ int ConvertVARINTtoUINT64(const char* varint, uint64_t* res) {
     for (size_t i = 0; i < varint_size; ++i) {
         char curr_byte = varint[i] << 1;
         *res += ((uint64_t)(curr_byte >> 1)) << (curr_shift);
-        curr_shift += 7;
+        curr_shift += CHAR_BIT - 1;
     }
     *res += (uint64_t)*curr_byte_iter << curr_shift;
     return 0;
-}
-
-size_t GetVarintSizeOfUINT(uint64_t inp) {
-    if (inp == 0) {
-        return 1;
-    }
-    size_t val_bits = 64 - (__builtin_clz(inp));
-    size_t one_bytes = val_bits / 7;
-    if (val_bits % 7 == 0) {
-        --one_bytes;
-    }
-    return one_bytes + 1;
 }
 
 int ConvertUINTtoVARINT(char* varint, uint64_t inp, size_t varint_size) {
@@ -74,9 +113,9 @@ int ConvertUINTtoVARINT(char* varint, uint64_t inp, size_t varint_size) {
     }
     for (size_t i = 0; i < calculated_varint_size - 1; ++i) {
         char curr_byte = inp;
-        curr_byte = ((~(curr_byte >> 7)) << 7) ^ curr_byte;
+        curr_byte = ((~(curr_byte >> (CHAR_BIT - 1))) << (CHAR_BIT - 1)) ^ curr_byte;
         varint[i] = curr_byte;
-        inp = inp >> 7;
+        inp = inp >> (CHAR_BIT - 1);
     }
     varint[calculated_varint_size - 1] = inp;
     return 0;
@@ -86,8 +125,8 @@ size_t GetBarraySizeOfBoolArray(size_t bool_array_size) {
     if (bool_array_size == 0) {
         return 0;
     }
-    size_t one_bytes = bool_array_size / 7;
-    if (bool_array_size % 7 == 0) {
+    size_t one_bytes = bool_array_size / (CHAR_BIT - 1);
+    if (bool_array_size % (CHAR_BIT - 1) == 0) {
         --one_bytes;
     }
     return one_bytes + 2;
@@ -99,8 +138,8 @@ size_t GetBoolArraySizeofBarray(const char* barray) {
     }
     const char* curr_byte_iter = barray;
     size_t total_bits = 0;
-    while (*curr_byte_iter >> 7) {
-        total_bits += 7;
+    while (*curr_byte_iter >> (CHAR_BIT - 1)) {
+        total_bits += CHAR_BIT - 1;
         ++curr_byte_iter;
     }
     char indicator = *(curr_byte_iter + 1);
@@ -110,14 +149,14 @@ size_t GetBoolArraySizeofBarray(const char* barray) {
 
 int ConvertBoolArrayToBarray(char* barray, const char* bool_array, size_t bool_array_size, size_t barray_size) {
     size_t calculated_barray_size = GetBarraySizeOfBoolArray(bool_array_size);
-    if (calculated_barray_size > barray_size || calculated_barray_size) {
+    if (calculated_barray_size > barray_size || calculated_barray_size == 0) {
         return 1;
     }
     size_t bool_array_iter = 0;
     for (size_t i = 0; i < calculated_barray_size - 2; ++i) {
-        char curr_byte = 0x80;
-        size_t end_point = bool_array_iter + 8;
-        for (size_t j = 0; j < 7; ++j) {
+        unsigned char curr_byte = 1 << (CHAR_BIT - 1);
+        size_t end_point = bool_array_iter + CHAR_BIT;
+        for (size_t j = 0; j < CHAR_BIT - 1; ++j) {
             if (bool_array[bool_array_iter]) {
                 curr_byte = (1 << j) | curr_byte;
             }
@@ -145,9 +184,9 @@ int ConvertBarrayToBoolArray(const char* barray, char* bool_array, size_t bool_a
     }
     size_t bool_array_iter = 0;
     char curr_byte = *barray;
-    while (curr_byte >> 7) {
-        for (size_t i = 0; i < 7; ++i) {
-            bool_array[bool_array_iter] = curr_byte & (0x80);
+    while (curr_byte >> (CHAR_BIT - 1)) {
+        for (size_t i = 0; i < CHAR_BIT - 1; ++i) {
+            bool_array[bool_array_iter] = curr_byte & 1;
             ++bool_array_iter;
             curr_byte = curr_byte >> 1;
         }
@@ -156,7 +195,7 @@ int ConvertBarrayToBoolArray(const char* barray, char* bool_array, size_t bool_a
     }
     char indicator = *(barray + 1);
     for (size_t i = 0; i < __builtin_ctz(indicator) + 1; ++i) {
-        bool_array[bool_array_iter] = curr_byte & (0x80);
+        bool_array[bool_array_iter] = curr_byte & 1;
         curr_byte = curr_byte >> 1;
     }
     return 0;
