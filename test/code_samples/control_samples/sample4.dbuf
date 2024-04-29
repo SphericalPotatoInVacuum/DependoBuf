@@ -1,0 +1,12 @@
+message Message2 {
+  name String;
+}
+
+message Message3 (m2 Message2) {
+  x Int;
+  y Int;
+}
+
+message Message4 {
+  m3 Message3 Message2 {name: "Evgeny"};
+}

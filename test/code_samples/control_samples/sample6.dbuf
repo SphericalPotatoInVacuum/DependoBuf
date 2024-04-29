@@ -1,0 +1,18 @@
+enum Nat (n Int) {
+  Zero {}
+  Succ {
+    prev Nat (n - 1);
+  }
+}
+
+enum IntList (n Int) (size Nat n) {
+  *, Zero {} => {
+    Nil {}
+  }
+  *, Succ {prev: tailSize} => {
+    IntList {
+      head Int;
+      tail IntList (n - 1) tailSize;
+    }
+  }
+}

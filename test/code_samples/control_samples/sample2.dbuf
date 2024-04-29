@@ -16,4 +16,5 @@ message User {
   name String;
   address Address;
   pet Pet;
+  money Float;
 }

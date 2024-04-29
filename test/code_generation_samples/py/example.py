@@ -5,5 +5,5 @@ from dataclasses import dataclass
 
 @dataclass
 class M:
-  id: int | None = None
-  name: str | None = None
+  id: int
+  name: str

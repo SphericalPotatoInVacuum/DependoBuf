@@ -46,10 +46,9 @@ void PyPrinter::print_class(const std::string &name) {
 }
 
 void PyPrinter::print_field(const std::string &name, const std::string &type) {
-  // "  {name}: {py_type} | None = None"
+  // "  {name}: {py_type}"
   std::string py_type = get_python_type(type);
-  *out_ << "  " << name << ": " << py_type << " | None = None"
-        << "\n";
+  *out_ << "  " << name << ": " << py_type << "\n";
 }
 
 } // namespace dbuf::gen
