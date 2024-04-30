@@ -35,8 +35,9 @@ public:
 
   void operator()(const ast::Star &star);
 
-  void PrintVariables(std::basic_ostream<char> &out, std::vector<ast::TypedVariable> &fields, bool with_types, std::string delimeter);
+  void PrintVariables(std::basic_ostream<char> &out, const std::vector<ast::TypedVariable> &variables, std::string delimeter, bool with_types, bool add_last_delimeter, bool as_dependency);
 
+  bool CheckForTriggers(const std::unordered_set<InternedString> &trigger_names, const ast::Expression &expr);
   
 private:
   std::unordered_set<InternedString> created_hidden_types_;

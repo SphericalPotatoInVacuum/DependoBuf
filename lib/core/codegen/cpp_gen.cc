@@ -8,7 +8,7 @@ namespace dbuf::gen {
 
 void CppCodeGenerator::PrintVariables(
     std::basic_ostream<char> &out,
-    std::vector<ast::TypedVariable> &variables,
+    const std::vector<ast::TypedVariable> &variables,
     std::string delimeter,
     bool with_types,
     bool add_last_delimeter,
@@ -31,39 +31,7 @@ void CppCodeGenerator::PrintVariables(
   }
 }
 
-void CppCodeGenerator::Generate(const ast::AST *tree) {
-  tree_ = tree;
-  *output_ << "#include <string>\n";
-  *output_ << "#include <variant>\n\n";
-  *output_ << "namespace dbuf {\n";
-  auto declaration_generator = [&](const auto &new_struct) {
-    bool first = true;
-    for (const auto &dependency : static_cast<ast::DependentType>(new_struct).type_dependencies) {
-      if (first) {
-        *output_ << "template <";
-        first = false;
-      } else {
-        *output_ << ", ";
-      }
-      (*this)(dependency, true /* as_dependency */);
-    }
-    if (!first) {
-      *output_ << ">\n";
-    }
-    *output_ << "struct " << static_cast<ast::Identifiable>(new_struct).identifier.name << ";\n\n";
-  };
-
-  for (const auto &type : tree->visit_order) {
-    std::visit(declaration_generator, tree->types.at(type));
-  }
-
-  for (const auto &type : tree->visit_order) {
-    std::visit(*this, tree->types.at(type));
-  }
-  *output_ << "}";
-}
-
-bool CheckForTriggers(const std::unordered_set<InternedString> &trigger_names, const ast::Expression &expr) {
+bool CppCodeGenerator::CheckForTriggers(const std::unordered_set<InternedString> &trigger_names, const ast::Expression &expr) {
   if (std::holds_alternative<ast::BinaryExpression>(expr)) {
     return CheckForTriggers(trigger_names, *(std::get<ast::BinaryExpression>(expr).left)) ||
            CheckForTriggers(trigger_names, *(std::get<ast::BinaryExpression>(expr).right));
@@ -85,17 +53,42 @@ bool CheckForTriggers(const std::unordered_set<InternedString> &trigger_names, c
   return false;
 }
 
+void CppCodeGenerator::Generate(const ast::AST *tree) {
+  tree_ = tree;
+  *output_ << "#include <string>\n";
+  *output_ << "#include <variant>\n\n";
+  *output_ << "namespace dbuf {\n";
+  auto declaration_generator = [&](const auto &new_struct) {
+    auto dependencies = static_cast<ast::DependentType>(new_struct).type_dependencies;
+    if (dependencies.size() != 0) {
+      *output_ << "template <";
+      PrintVariables(*output_, dependencies, ", ", true, false, true);
+      *output_ << ">\n";
+    }
+    *output_ << "struct " << static_cast<ast::Identifiable>(new_struct).identifier.name << ";\n\n";
+  };
+
+  for (const auto &type : tree->visit_order) {
+    std::visit(declaration_generator, tree->types.at(type));
+  }
+
+  for (const auto &type : tree->visit_order) {
+    std::visit(*this, tree->types.at(type));
+  }
+  *output_ << "}";
+}
+
 void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<ast::TypedVariable> checker_input) {
   std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> checker_members;
 
   // Vector with final cpp fields for this message
-  // To change Bar<a> to Bar_a without coping ast_message to this func
+  // To change Bar<a> to Bar_a without coping ast_message
   std::vector<ast::TypedVariable> cpp_struct_fields;
   cpp_struct_fields.reserve(ast_message.fields.size());
 
   // checker_input are variable dependencies of this type
   // they are known at runtime this is why they triggers new type creation
-  // right as previously set variables
+  // as other variables of message
   std::unordered_set<InternedString> trigger_names;
   for (const auto &var : checker_input) {
     trigger_names.insert(var.name);
@@ -112,50 +105,65 @@ void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<a
     }
 
     if (!positions_of_variable_dependencies.empty()) {
-      // vector of all the expressions for this field type check
+      // vector with expressions for this field in type check
       std::vector<std::shared_ptr<const ast::Expression>> variable_dependencies_expressions;
 
-      auto previous_type                    = tree_->types.at(field.type_expression.identifier.name);
-      const auto previous_type_dependencies = *reinterpret_cast<ast::DependentType *>(&previous_type);
+      const auto &previous_type = tree_->types.at(field.type_expression.identifier.name);
+      std::vector<ast::TypedVariable> previous_type_dependencies;
+      std::stringstream new_type_name;
+      if (std::holds_alternative<ast::Message>(previous_type)) {
+        previous_type_dependencies = std::get<ast::Message>(previous_type).type_dependencies;
+        new_type_name << std::get<ast::Message>(previous_type).identifier.name;
+      } else if (std::holds_alternative<ast::Enum>(previous_type)) {
+        previous_type_dependencies = std::get<ast::Enum>(previous_type).type_dependencies;
+        new_type_name << std::get<ast::Enum>(previous_type).identifier.name;
+      }
+      
       // new field that will replace field in this message
       ast::TypedVariable new_field;
       new_field.name = field.name;
 
-      std::stringstream new_type_name;
-      new_type_name << field.type_expression.identifier.name;
-
       // filling vector expressions, getting new type name and constructing new field
-      for (size_t ind = 0; ind < previous_type_dependencies.type_dependencies.size(); ++ind) {
+      for (size_t ind = 0; ind < previous_type_dependencies.size(); ++ind) {
         if (positions_of_variable_dependencies.contains(ind)) {
           variable_dependencies_expressions.emplace_back(field.type_expression.parameters[ind]);
-          new_message_name << "_" << previous_type_dependencies.type_dependencies[ind].name;
+          new_type_name << "_" << previous_type_dependencies[ind].name;
         } else {
           new_field.type_expression.parameters.emplace_back(field.type_expression.parameters[ind]);
         }
       }
 
       // if such type was not already created - creating it
-      if (!created_hidden_types_.contains(InternedString(new_message_name.str()))) {
-        ast::Message new_message;
-        new_message.fields          = previous_type.fields;
-        new_message.identifier.name = InternedString(new_message_name.str());
-
-        std::vector<ast::TypedVariable> new_message_hidden_dependencies;
-        for (size_t ind = 0; ind < previous_type.type_dependencies.size(); ++ind) {
+      if (!created_hidden_types_.contains(InternedString(new_type_name.str()))) {
+        std::vector<ast::TypedVariable> hidden_dependencies, real_dependencies;
+        for (size_t ind = 0; ind < previous_type_dependencies.size(); ++ind) {
           if (!positions_of_variable_dependencies.contains(ind)) {
-            new_message.type_dependencies.emplace_back(previous_type.type_dependencies[ind]);
+            real_dependencies.emplace_back(previous_type_dependencies[ind]);
           } else {
-            new_message_hidden_dependencies.emplace_back(previous_type.type_dependencies[ind]);
+            hidden_dependencies.emplace_back(previous_type_dependencies[ind]);
           }
         }
+        if (std::holds_alternative<ast::Message>(previous_type)) {
+          ast::Message new_message;
+          new_message.fields          = std::get<ast::Message>(previous_type).fields;
+          new_message.type_dependencies = real_dependencies;
+          new_message.identifier.name = InternedString(new_type_name.str());
 
-        created_hidden_types_.insert(new_message.identifier.name);
-        (*this)(new_message, new_message_hidden_dependencies);
+          (*this)(new_message, hidden_dependencies);
+        } else if (std::holds_alternative<ast::Enum>(previous_type)) {
+          ast::Enum new_enum;
+          new_enum.pattern_mapping = std::get<ast::Enum>(previous_type).pattern_mapping;
+          new_enum.type_dependencies = real_dependencies;
+          new_enum.identifier.name = InternedString(new_type_name.str());
+
+          (*this)(new_enum, hidden_dependencies);
+        }
+        created_hidden_types_.insert(InternedString(new_type_name.str()));
       }
 
       checker_members[field.name] = std::move(variable_dependencies_expressions);
 
-      new_field.type_expression.identifier.name = InternedString(new_message_name.str());
+      new_field.type_expression.identifier.name = InternedString(new_type_name.str());
       cpp_struct_fields.emplace_back(new_field);
     } else {
       cpp_struct_fields.emplace_back(field);
@@ -165,41 +173,23 @@ void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<a
   }
 
   // Generate start (template <...> struct)
-
-  for (size_t ind = 0; ind < ast_message.type_dependencies.size(); ++ind) {
-    if (ind == 0) {
-      *output_ << "template <";
-    }
-
-    (*this)(ast_message.type_dependencies[ind], true /* as dependency */);
-
-    if (ind != ast_message.type_dependencies.size() - 1) {
-      *output_ << ", ";
-    } else {
-      *output_ << ">\n";
-    }
+  if (!ast_message.type_dependencies.empty()) {
+    *output_ << "template <";
+    PrintVariables(*output_, ast_message.type_dependencies, ", ", true, false, true);
+    *output_ << ">\n";
   }
 
   *output_ << "struct " << ast_message.identifier.name << " {\n";
 
   // Generate meessage fields
 
-  for (const auto &field : cpp_struct_fields) {
-    *output_ << "\t";
-    (*this)(field, false /* as dependency */);
-    *output_ << ";\n";
-  }
+  *output_ << "\t";
+  PrintVariables(*output_, cpp_struct_fields, ";\n\t", true, true, false);
 
   // Generate invariant check
 
-  *output_ << "\n";
-  *output_ << "\tbool check(";
-  for (size_t ind = 0; ind < checker_input.size(); ++ind) {
-    (*this)(checker_input[ind], false /* as_dependency */);
-    if (ind != checker_input.size() - 1) {
-      *output_ << ", ";
-    }
-  }
+  *output_ << "bool check(";
+  PrintVariables(*output_, checker_input, ", ", true, false, false);
   *output_ << ") const {\n";
 
   // invariant check body
@@ -243,7 +233,7 @@ void CppCodeGenerator::operator()(const ast::TypeExpression &expr, bool as_depen
   } else if (expr.identifier.name == InternedString("Bool")) {
     *output_ << "bool";
   } else {
-    *output_ << expr.identifier.name.GetString();
+    *output_ << expr.identifier.name;
     for (size_t ind = 0; ind < expr.parameters.size(); ++ind) {
       if (ind == 0) {
         *output_ << "<";
@@ -301,6 +291,11 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
   bool has_all_star_case = false;
   // Generation all his possible cases
   for (const auto &rule : ast_enum.pattern_mapping) {
+    // As soon as i get *,*,* all following cases will create ill-formed struct
+    if (has_all_star_case) {
+      break;
+    }
+    
     // Generated Dependencies
     *output_ << "template <";
     bool first = true;
@@ -314,6 +309,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
         (*this)(ast_enum.type_dependencies[ind], true /* as_dependency */);
       }
     }
+    has_all_star_case |= first;
     *output_ << ">\n";
 
     // Generates name and input pattern
@@ -332,10 +328,9 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
       }
 
       if ((ind == ast_enum.type_dependencies.size() - 1) && !first) {
-        *output_ << "> ";
+        *output_ << ">";
       }
     }
-    has_all_star_case |= (!first);
     *output_ << " {\n";
 
     // Declares constructors
@@ -356,13 +351,15 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
     *output_ << "> value;\n";
 
     // Generates invariant check
-    *output_ << "\tbool check() {\n";
+    *output_ << "\tbool check() const {\n";
     *output_ << "\t\treturn false";
     for (const auto &constructor : rule.outputs) {
       *output_ << " || ";
       *output_ << "(std::holds_alternative<" << constructor.identifier.name << ">(value) && std::get<"
                << constructor.identifier.name << ">(value).check())";
     }
+    *output_ << ";\n";
+    *output_ << "\t}\n";
 
     *output_ << "};\n\n";
 
@@ -386,41 +383,38 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
         }
 
         if (ind == ast_enum.type_dependencies.size() - 1) {
-          *output_ << "> ";
+          struct_name << ">::" << constructor.identifier.name;
         }
       }
       sub_struct.fields = constructor.fields;
+      sub_struct.identifier.name = InternedString(struct_name.str());
+
       (*this)(sub_struct);
     }
   }
 
   // Add empty specialisation with witch type will be complete
   if (!has_all_star_case) {
-    for (size_t ind = 0; ind < ast_enum.type_dependencies.size(); ++ind) {
-      *output_ << ((ind == 0) ? "template <" : ", ");
-      (*this)(ast_enum.type_dependencies[ind], true /* as_dependency */);
-      if (ind == ast_enum.type_dependencies.size() - 1) {
-        *output_ << ">\n";
-      }
+    if (!ast_enum.type_dependencies.empty()) {
+      *output_ << "template <";
+      PrintVariables(*output_, ast_enum.type_dependencies, ", ", true, false, true);
+      *output_ << ">\n";
     }
-    *output_ << "struct " << ast_enum.identifier.name << " {};\n\n";
+    *output_ << "struct " << ast_enum.identifier.name << " {\n";
+    *output_ << "\tbool check() const {\n";
+    *output_ << "\t\treturn false;\n";
+    *output_ << "\t}\n";
+    *output_ << "};\n\n";
   }
 }
 
 void CppCodeGenerator::operator()(const ast::Enum &ast_enum, std::vector<ast::TypedVariable> &checker_input) {
-  // Generates all remaining templates
-  for (size_t ind = 0; ind < ast_enum.type_dependencies.size(); ++ind) {
-    if (ind == 0) {
-      *output_ << "template <";
-    }
+  // Generates enum wirh runtime dependencies
 
-    (*this)(ast_enum.type_dependencies[ind], true /* as dependency */);
-
-    if (ind != ast_enum.type_dependencies.size() - 1) {
-      *output_ << ", ";
-    } else {
-      *output_ << ">\n";
-    }
+  if (!ast_enum.type_dependencies.empty()) {
+    *output_ << "template <";
+    PrintVariables(*output_, ast_enum.type_dependencies, ", ", true, false, true);
+    *output_ << ">\n";
   }
 
   *output_ << "struct " << ast_enum.identifier.name << " {\n";
@@ -449,17 +443,8 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, std::vector<ast::Ty
 
   // Generates invariant check
   *output_ << "\tbool check(";
-
-  first = true;
-  for (const auto &var : checker_input) {
-    if (first) {
-      first = false;
-    } else {
-      *output_ << ", ";
-    }
-    (*this)(var, false /* as_dependency */);
-  }
-  *output_ << ") {\n";
+  PrintVariables(*output_, checker_input, ", ", true, false, true);
+  *output_ << ") const {\n";
 
   // I need original correctly ordered dependencied for each case at type check
   std::string original_name = ast_enum.identifier.name.GetString();
@@ -496,7 +481,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, std::vector<ast::Ty
     first = true;
     for (const auto &constructor : ast_enum.pattern_mapping[ind].outputs) {
       std::stringstream constructor_name;
-      constructor_name << constructor.identifier.name << "_" << ind;
+      constructor_name << constructor.identifier.name << "_" << ind + 1;
       if (first) {
         first = false;
       } else {
@@ -515,7 +500,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, std::vector<ast::Ty
       }
       *output_ << ")";
     }
-    *output_ << ";";
+    *output_ << ");\n";
 
     // as soon as i got all stars no other cases are needed
     if (last_condition == true) {
@@ -524,7 +509,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, std::vector<ast::Ty
   }
   *output_ << "\t\treturn false;\n";
   *output_ << "\t}\n";
-  *output_ << "};\n";
+  *output_ << "};\n\n";
 
   // Generates all the declared messages
   for (size_t ind = 0; ind < ast_enum.pattern_mapping.size(); ++ind) {
@@ -533,17 +518,13 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, std::vector<ast::Ty
       std::stringstream struct_name;
       struct_name << ast_enum.identifier.name;
       for (size_t dependency_ind = 0; dependency_ind < ast_enum.type_dependencies.size(); dependency_ind++) {
-        if (dependency_ind == 0) {
-          struct_name << "<";
-        } else {
-          struct_name << ", ";
-        }
+        struct_name << ((dependency_ind == 0)? "<" : ", ");
         struct_name << ast_enum.type_dependencies[dependency_ind].name;
         if (dependency_ind == ast_enum.type_dependencies.size() - 1) {
           struct_name << ">";
         }
       }
-      struct_name << "::" << constructor.identifier.name << "_" << ind;
+      struct_name << "::" << constructor.identifier.name << "_" << ind + 1;
       sub_struct.identifier.name = InternedString(struct_name.str());
 
       sub_struct.type_dependencies = ast_enum.type_dependencies;
