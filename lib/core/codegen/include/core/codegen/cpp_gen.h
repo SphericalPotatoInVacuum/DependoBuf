@@ -15,7 +15,9 @@ public:
 
   void operator()(const ast::Message& ast_message, std::vector<ast::TypedVariable> checker_input = {});
 
-  void operator()(const ast::Enum &ast_enum, std::vector<ast::TypedVariable> checker_input = {});
+  void operator()(const ast::Enum &ast_enum, std::vector<ast::TypedVariable>& checker_input);
+
+  void operator()(const ast::Enum &ast_enum);
 
   void operator()(const ast::TypedVariable &variable, bool as_dependency = false);
 
@@ -32,6 +34,9 @@ public:
   void operator()(const ast::VarAccess &var_access);
 
   void operator()(const ast::Star &star);
+
+  void PrintVariables(std::basic_ostream<char> &out, std::vector<ast::TypedVariable> &fields, bool with_types, std::string delimeter);
+
   
 private:
   std::unordered_set<InternedString> created_hidden_types_;
