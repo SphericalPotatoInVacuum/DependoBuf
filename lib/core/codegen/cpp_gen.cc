@@ -26,7 +26,7 @@ void CppCodeGenerator::PrintVariables(
     }
     out << var.name;
   }
-  if (add_last_delimeter) {
+  if (add_last_delimeter && !first) {
     out << delimeter;
   }
 }

@@ -1,8 +1,19 @@
 #include <string>
+#include <variant>
+
+namespace dbuf {
+template <int n>
+struct A;
+
+struct D;
+
+template <D d>
+struct B;
+
+struct C;
 
 template <int n>
 struct A {
-
 	bool check() const {
 		return true;
 	}
@@ -11,7 +22,6 @@ struct A {
 struct D {
 	int a;
 	int b;
-
 	bool check() const {
 		return true;
 	}
@@ -24,7 +34,6 @@ struct B {
 	std::string s;
 	float f;
 	bool b;
-
 	bool check() const {
 		return true;
 	}
@@ -33,9 +42,9 @@ struct B {
 struct C {
 	A<((1 + 3) + (5 - 4))> a;
 	B<D{5, 6}> b;
-
 	bool check() const {
 		return true;
 	}
 };
 
+}
