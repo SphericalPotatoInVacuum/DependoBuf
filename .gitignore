@@ -18,3 +18,4 @@ build
 
 # vs code python
 __pycache__/
+venv/

@@ -1,5 +1,5 @@
-enum TreeH (h Unsigned) {
-  0u => {
+enum TreeH (h Int) {
+  0 => {
     Leaf {
       val Int;
     }
@@ -8,8 +8,8 @@ enum TreeH (h Unsigned) {
   * => {
     TreeNode {
       val Int;
-      left TreeH (h - 1u);
-      right TreeH (h - 1u);
+      left TreeH (h - 1);
+      right TreeH (h - 1);
     }
   }
 }
