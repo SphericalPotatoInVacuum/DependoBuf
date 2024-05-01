@@ -13,7 +13,7 @@ public:
 
   void Generate(const ast::AST *tree) override;
 
-  void operator()(const ast::Message& ast_message, std::vector<ast::TypedVariable> checker_input = {});
+  void operator()(const ast::Message& ast_message, std::vector<ast::TypedVariable> checker_input = {}, bool add_tab = false);
 
   void operator()(const ast::Enum &ast_enum, std::vector<ast::TypedVariable>& checker_input);
 
@@ -38,6 +38,8 @@ public:
   void PrintVariables(std::basic_ostream<char> &out, const std::vector<ast::TypedVariable> &variables, std::string delimeter, bool with_types, bool add_last_delimeter, bool as_dependency);
 
   bool CheckForTriggers(const std::unordered_set<InternedString> &trigger_names, const ast::Expression &expr);
+
+  void CreateHiddenTypes(const std::vector<ast::TypedVariable>& fields, std::unordered_set<InternedString> trigger_names = {});
   
 private:
   std::unordered_set<InternedString> created_hidden_types_;
