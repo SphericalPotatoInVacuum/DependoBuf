@@ -17,6 +17,10 @@ public:
 
   void print_inner_class(const std::string &name);
 
+  void print_type(const std::string &struct_name, std::vector<std::string> &inner_types, int level = 1);
+
+  void print_dep_deps(std::string &dep_name, std::vector<std::string> &deps, int level = 1);
+
   void print_def_check(
       std::vector<std::string> &names,
       std::vector<std::string> &types,
@@ -25,10 +29,10 @@ public:
       int level = 2);
 
   void print_def_init(
-    std::vector<std::string> &names,
-    std::vector<std::string> &types,
-    std::vector<std::vector<std::string>> &deps,
-    int level = 1);
+      std::vector<std::string> &names,
+      std::vector<std::string> &types,
+      std::vector<std::vector<std::string>> &deps,
+      int level = 1);
 
   void print_field(const std::string &name, const std::string &type, int level);
 

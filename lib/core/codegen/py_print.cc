@@ -89,6 +89,18 @@ void PyPrinter::print_inner_class(const std::string &name) {
   print_line({"class ", "__", name}, 1);
 }
 
+void PyPrinter::print_type(const std::string &struct_name, std::vector<std::string> &inner_types, int level = 1) {
+  // some_enam_type = __Nil | __Succ
+  std::string left = camel_to_snake(struct_name) + "_type";
+  std::string right = inner_types[0];
+
+  std::string sep = " | ";
+  for (int i = 1; i < inner_types.size(); ++i) {
+    right += sep + "__" + inner_types[i];
+  }
+  print_line({left, " = ", right}, level);
+}
+
 void PyPrinter::print_def_check(
     std::vector<std::string> &names,
     std::vector<std::string> &types,
@@ -123,7 +135,7 @@ void PyPrinter::print_def_check(
   print_line(tokens, level);
   level++;
 
-  std::string raise_exc = "raise TypeError('Non-compliance with dependencies')";
+  std::string raise_exc = "raise TypeError('Non-compliance with type dependencies')";
   print_line({raise_exc}, level);
   level--;
 }
@@ -134,9 +146,28 @@ void PyPrinter::print_def_init(
     std::vector<std::vector<std::string>> &deps,
     int level = 1) {
   std::vector<std::string> tokens;
-  std::string sep = ", ";
+  tokens.push_back("def __init__(self");
 
-  tokens.push_back("");
+  std::string sep = ", ";
+  for (int i = 0; i < names.size(); ++i) {
+    std::string py_type = get_python_type(types[i]);
+    tokens.push_back(sep + names[i] + ": " + py_type);
+  }
+  tokens.push_back(") -> None:");
+  print_line(tokens, level);
+  level++;
+
+  for (auto &name : names) {
+    // {x}.check(*self.__{x}_deps)
+    std::string line = name + ".check(*self.__" + name + "deps)";
+    print_line({line}, level);
+
+    // self.x = x
+    std::string line = "self." + name + " = " + name;
+    print_line({line}, level);
+
+    print_line();
+  }
 }
 
 void PyPrinter::print_field(const std::string &name, const std::string &type, int level) {

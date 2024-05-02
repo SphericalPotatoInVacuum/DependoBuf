@@ -48,9 +48,11 @@ class Kek:
 
     kek_type = __Kek
 
+    __k_deps = []
+
     def __init__(self, k: Pop.pop_type, f: Foo.foo_type) -> None:
         k_deps = []
-        k.check(k_deps)
+        k.check(*self.__k_deps)
         self.k = k
         
         f_deps = [Pop().construct(k.a, 2.1), 5]
