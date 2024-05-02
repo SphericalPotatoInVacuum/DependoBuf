@@ -1,0 +1,4 @@
+message SomeMessage (n Int) (m Int) {
+  f Foo n;
+  g Goo m;
+}
