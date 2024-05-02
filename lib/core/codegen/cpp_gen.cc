@@ -143,7 +143,10 @@ void CppCodeGenerator::CreateHiddenTypes(
   }
 }
 
-void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<ast::TypedVariable> checker_input, bool add_tab) {
+void CppCodeGenerator::operator()(
+    const ast::Message &ast_message,
+    std::vector<ast::TypedVariable> checker_input,
+    bool add_tab) {
   std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> checker_members;
 
   // Vector with final cpp fields for this message
@@ -239,17 +242,17 @@ void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<a
 
   // Generate start (template <...> struct)
   if (!ast_message.type_dependencies.empty()) {
-    *output_ << ((add_tab)? "\t" : "") << "template <";
+    *output_ << ((add_tab) ? "\t" : "") << "template <";
     PrintVariables(*output_, ast_message.type_dependencies, ", ", true, false, true);
     *output_ << ">\n";
   }
 
-  *output_ << ((add_tab)? "\t" : "") << "struct " << ast_message.identifier.name << " {\n";
+  *output_ << ((add_tab) ? "\t" : "") << "struct " << ast_message.identifier.name << " {\n";
 
   // Generate meessage fields
 
-  *output_ << ((add_tab)? "\t\t" : "\t");
-  PrintVariables(*output_, cpp_struct_fields, ((add_tab)? ";\n\t\t" : ";\n\t"), true, true, false);
+  *output_ << ((add_tab) ? "\t\t" : "\t");
+  PrintVariables(*output_, cpp_struct_fields, ((add_tab) ? ";\n\t\t" : ";\n\t"), true, true, false);
 
   // Generate invariant check
 
@@ -258,7 +261,7 @@ void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<a
   *output_ << ") const {\n";
 
   // invariant check body
-  *output_ << ((add_tab)? "\t\t\t" : "\t\t") << "return true";
+  *output_ << ((add_tab) ? "\t\t\t" : "\t\t") << "return true";
   for (const auto &[name, expressions] : checker_members) {
     *output_ << " && ";
     *output_ << name << ".check(";
@@ -270,11 +273,11 @@ void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<a
     }
     *output_ << ")";
   }
-  *output_ << ((add_tab)? ";\n\t\t}\n" : ";\n\t}\n");
+  *output_ << ((add_tab) ? ";\n\t\t}\n" : ";\n\t}\n");
 
   // Generate message end
 
-  *output_ << ((add_tab)? "\t};\n\n" : "};\n\n");
+  *output_ << ((add_tab) ? "\t};\n\n" : "};\n\n");
 }
 
 void CppCodeGenerator::operator()(const ast::TypedVariable &expr, bool as_dependency) {
@@ -367,9 +370,12 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
     }
 
     // Generated Dependencies
-    *output_ << "template <";
+
     bool first = true, all_stars = true;
     for (size_t ind = 0; ind != ast_enum.type_dependencies.size(); ++ind) {
+      if (ind == 0) {
+        *output_ << "template <";
+      }
       if (std::holds_alternative<ast::Star>(rule.inputs[ind])) {
         if (first) {
           first = false;
@@ -380,9 +386,11 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
       } else {
         all_stars = false;
       }
+      if (ind == ast_enum.type_dependencies.size() - 1) {
+        *output_ << ">\n";
+      }
     }
     has_all_star_case |= all_stars;
-    *output_ << ">\n";
 
     // Generates name and input pattern
     *output_ << "struct " << ast_enum.identifier.name;
@@ -481,7 +489,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, std::vector<ast::Ty
   for (size_t ind = 0; ind < ast_enum.pattern_mapping.size(); ++ind) {
     for (const auto &constructor : ast_enum.pattern_mapping[ind].outputs) {
       ast::Message sub_struct;
-      
+
       std::stringstream struct_name;
       struct_name << constructor.identifier.name << "_" << ind + 1;
       sub_struct.identifier.name = InternedString(struct_name.str());

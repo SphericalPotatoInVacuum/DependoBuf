@@ -1,17 +1,17 @@
 #include "core/codegen/cpp_gen.h"
 #include "core/driver/driver.h"
 
-#include <gtest/gtest.h>
-#include <fstream>
 #include <filesystem>
-#include <string>
+#include <fstream>
+#include <gtest/gtest.h>
 #include <iostream>
+#include <string>
 #include <vector>
 
-const std::string kSamplesPath  = "../../test/cpp_test/dbuf_files";
+const std::string kSamplesPath        = "../../test/cpp_test/dbuf_files";
 const std::string kCorrectSamplesPath = "../../test/cpp_test/correct_cpp_files";
-const std::string kGenerationPath = "./output";
-std::vector<std::string> kFormat = {"cpp"};
+const std::string kGenerationPath     = "./output";
+std::vector<std::string> kFormat      = {"cpp"};
 
 class CPPMessagesCorrectnessTest : public ::testing::TestWithParam<std::string> {
 protected:
@@ -35,14 +35,13 @@ protected:
 
 dbuf::Driver *CPPMessagesCorrectnessTest::driver_ = nullptr;
 
-
 TEST_P(CPPMessagesCorrectnessTest, MessagesTest) {
-  std::string filename = GetParam();
+  std::string filename      = GetParam();
   std::string dbuf_filename = filename + ".dbuf";
-  std::string cpp_filename = filename + ".h";
+  std::string cpp_filename  = filename + ".h";
 
   ASSERT_EQ(driver_->Run(kSamplesPath + dbuf_filename, kGenerationPath, kFormat), EXIT_SUCCESS);
-  
+
   std::ifstream generated(kGenerationPath + cpp_filename);
   std::ifstream required(kCorrectSamplesPath + cpp_filename);
   char actual, expexted;
@@ -55,8 +54,4 @@ TEST_P(CPPMessagesCorrectnessTest, MessagesTest) {
 INSTANTIATE_TEST_SUITE_P(
     CPPGenerationTest,
     CPPMessagesCorrectnessTest,
-    testing::Values(
-        "/simple",
-        "/complex_dependencies"
-    )
-);
+    testing::Values("/simple", "/complex_dependencies"));
