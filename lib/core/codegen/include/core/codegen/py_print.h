@@ -17,6 +17,8 @@ public:
 
   void print_inner_class(const std::string &name);
 
+  void print_inner_class_field(const std::string &name, const std::string &type, int level = 2);
+
   void print_type(const std::string &struct_name, std::vector<std::string> &inner_types, int level = 1);
 
   void print_dep_deps(std::string &dep_name, std::vector<std::string> &deps, int level = 1);
@@ -31,10 +33,7 @@ public:
   void print_def_init(
       std::vector<std::string> &names,
       std::vector<std::string> &types,
-      std::vector<std::vector<std::string>> &deps,
       int level = 1);
-
-  void print_field(const std::string &name, const std::string &type, int level);
 
 private:
   void print_line(std::vector<std::string> tokens = {}, int level = 0);
@@ -44,14 +43,13 @@ private:
   static std::string camel_to_snake(const std::string &camel_str);
 
   std::shared_ptr<std::ofstream> out_ = nullptr;
+  std::vector<std::string> tab_;
 
   static const std::unordered_map<std::string, std::string> kBuildInTypes;
 
   static const std::string kReadme;
   static const std::string kImports;
   static const std::string kCreateUnsigned;
-
-  static std::vector<std::string> kTab;
 };
 
 } // namespace dbuf::gen
