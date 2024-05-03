@@ -51,7 +51,7 @@ struct Matcher {
   }
 
   bool operator()(const ast::Value &arg, const ast::Value &pattern) {
-    DLOG(INFO) << "Matching Value " << arg << " against Value" << pattern;
+    DLOG(INFO) << "Matching Value " << arg << " against Value " << pattern;
     return std::visit(*this, arg, pattern);
   }
 
@@ -297,6 +297,8 @@ std::optional<Error> TypeComparator::operator()(const ast::ConstructedValue &val
       DLOG(INFO) << "Found constructor " << constructor.identifier.name << ", checking fields";
       return CheckConstructedValue(val, constructor);
     }
+    // Break because we already found a matching pattern but didn't find any suitable constructors
+    break;
   }
   return Error(
       CreateError() << "Constructor \"" << val.constructor_identifier.name << "\" cannot be used in this context at "
