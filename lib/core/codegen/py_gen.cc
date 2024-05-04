@@ -34,8 +34,12 @@ void PyCodeGenerator::operator()(const ast::Message &ast_message) {
 
   printer_.print_inner_class(message_name);
 
+  std::vector<std::string> field_names;
+  std::vector<std::string> field_types;
   for (auto &field: ast_message.fields) {
     auto [name, type] = get_name_and_type(field);
+    field_names.push_back(name);
+    field_types.push_back(type);
     printer_.print_inner_class_field(name, type);
   }
 
@@ -56,10 +60,31 @@ void PyCodeGenerator::operator()(const ast::Message &ast_message) {
     printer_.print_dep_deps(dep_name, deps);
   }
 
+  printer_.print_def_possible_types(dep_names, dep_types);
   printer_.print_def_init(dep_names, dep_types);
+  printer_.print_method_construct(message_name, field_names, field_types);
 }
 
-void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {}
+void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
+  const std::string &enum_name = ast_enum.identifier.name.GetString();
+  printer_.print_outer_class(enum_name);
+
+  std::unordered_map<std::string, std::vector<std::string>> fields_deps;
+  std::vector<std::string> dep_names;
+  std::vector<std::string> dep_types;
+  for (const auto &dep : ast_enum.type_dependencies) {
+    auto [name, type] = get_name_and_type(dep);
+    dep_names.push_back(name);
+    dep_types.push_back(type);
+  }
+
+  for (auto &dep_name: dep_names) {
+    std::vector<std::string> deps = {};
+    printer_.print_dep_deps(dep_name, deps);
+  }
+  
+  printer_.print_def_init(dep_names, dep_types);
+}
 
 void PyCodeGenerator::operator()(const ast::TypedVariable &typed_var) {
   const std::string &field_name = typed_var.name.GetString();

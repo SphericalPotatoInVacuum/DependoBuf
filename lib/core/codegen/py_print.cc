@@ -35,9 +35,13 @@ PyPrinter::PyPrinter(std::shared_ptr<std::ofstream> output) {
   }
 }
 
-std::string PyPrinter::get_python_type(const std::string &type) {
+std::string PyPrinter::get_python_type(const std::string &type, bool inside_outer_class) {
   if (kBuildInTypes.contains(type)) {
     return kBuildInTypes.at(type);
+  }
+
+  if (inside_outer_class) {
+    return "__" + type;
   }
 
   std::string struct_type = type + "." + camel_to_snake(type) + "_type";
@@ -62,29 +66,35 @@ std::string PyPrinter::camel_to_snake(const std::string &camel_str) {
   return snake_str;
 }
 
-std::string PyPrinter::typed_args(std::vector<std::string> &names, std::vector<std::string> &types) {
+std::string PyPrinter::typed_args(std::vector<std::string> &names,
+    std::vector<std::string> &types,
+    std::string fitst_arg) {
   // self, x: int, y: float
-  std::string res = "self";
+  std::string args = "(" + fitst_arg;
   std::string sep = ", ";
 
   for (int i = 0; i < names.size(); ++i) {
     std::string py_type = get_python_type(types[i]);
-    res += sep + names[i] + ": " + py_type;
+    args += sep + names[i] + ": " + py_type;
   }
-  return res;
+  args += ")";
+  return args;
 }
 
-std::string PyPrinter::print_def_with_typed_args(
-    std::string name,
-    std::vector<std::string> &arg_names,
-    std::vector<std::string> &arg_types,
-    int level,
-    std::string res_type) {
+std::string PyPrinter::untyped_args(std::vector<std::string> &names) {
+  // self, x: int, y: float
+  std::string args = "(";
+  std::string sep = ", ";
 
-  std::string args = typed_args(arg_names, arg_types);
+  for (int i = 0; i < names.size(); ++i) {
+    if (i != 0) {
+      args += sep;
+    }
+    args += names[i];
+  }
 
-  std::vector<std::string> tokens = {"def ", name, "(", args, ") -> ", res_type, ":"};
-  print_line(tokens, level);
+  args += ")";
+  return args;
 }
 
 void PyPrinter::print_line(std::vector<std::string> tokens, int level) {
@@ -94,6 +104,61 @@ void PyPrinter::print_line(std::vector<std::string> tokens, int level) {
     *out_ << token;
   }
   *out_ << "\n";
+}
+
+void PyPrinter::print_def_with_typed_args(
+    std::string name,
+    std::string first_arg,
+    std::vector<std::string> &arg_names,
+    std::vector<std::string> &arg_types,
+    int level,
+    std::string res_type) {
+
+  std::string args = typed_args(arg_names, arg_types, first_arg);
+
+  std::vector<std::string> tokens = {"def ", name, args, " -> ", res_type, ":"};
+  print_line(tokens, level);
+}
+
+void PyPrinter::print_instance_method(
+    std::string name,
+    std::vector<std::string> &arg_names,
+    std::vector<std::string> &arg_types,
+    int level,
+    std::string res_type) {
+
+  print_def_with_typed_args(name, "self", arg_names, arg_types, level, res_type);
+}
+
+void PyPrinter::print_class_method(
+    std::string name,
+    std::vector<std::string> &arg_names,
+    std::vector<std::string> &arg_types,
+    int level,
+    std::string res_type) {
+
+  print_def_with_typed_args(name, "cls", arg_names, arg_types, level, res_type);
+}
+
+void PyPrinter::print_constructor(std::string def_name,
+      const std::string &struct_name,
+      std::vector<std::string> &names,
+      std::vector<std::string> &types,
+      int level) {
+
+  print_line();
+
+  // def construct(self, x: int, y: float) -> __Address:
+  std::string res_type = get_python_type(struct_name, true);
+  print_instance_method(def_name, names, types, level, res_type);
+  level++;
+
+  // obj = self.__Address(x, y)
+  std::string args = untyped_args(names);
+  print_line({"obj = self.", res_type, args}, level);
+
+  print_line({"obj.check(*self.dependencies)"}, level);
+  print_line({"return obj"}, level);
 }
 
 void PyPrinter::init_file() {
@@ -107,11 +172,11 @@ void PyPrinter::print_outer_class(const std::string &name) {
   print_line({"class ", name, ":"});
 }
 
-void PyPrinter::print_inner_class(const std::string &name) {
+void PyPrinter::print_inner_class(const std::string &name, int level) {
   // @dataclass
   // class __{name}:
-  print_line({"@dataclass"}, 1);
-  print_line({"class ", "__", name, ":"}, 1);
+  print_line({"@dataclass"}, level);
+  print_line({"class ", "__", name, ":"}, level);
 }
 
 void PyPrinter::print_inner_class_field(const std::string &name, const std::string &type, int level) {
@@ -128,21 +193,13 @@ void PyPrinter::print_def_check(
     int level) {
   print_line();
 
-  print_def_with_typed_args("check", names, types, level);
+  // def check(self, x: int, y: float, z: str) -> None:
+  print_instance_method("check", names, types, level);
   level++;
 
-  std
-  tokens.push_back("if type(self) not in ");
-  tokens.push_back(struct_name + ".possible_types(");
-  for (int i = 0; i < names.size(); ++i) {
-    if (i != 0) {
-      tokens.push_back(sep);
-    }
-
-    tokens.push_back(names[i]);
-  }
-  tokens.push_back("):");
-
+  // if type(self) not in SomeMessage.possible_types(x, y, z):
+  std::string args = untyped_args(names);
+  std::vector<std::string> tokens = {"if type(self) not in ", struct_name, ".possible_types", args, ":"};
   print_line(tokens, level);
   level++;
 
@@ -166,16 +223,25 @@ void PyPrinter::print_type(const std::string &struct_name, std::vector<std::stri
 }
 
 void PyPrinter::print_dep_deps(std::string &dep_name, std::vector<std::string> &deps, int level) {
-  // __{k}_deps = []
-  std::string line = "__" + dep_name + "_deps = []";
-  print_line({line}, level);
+  // __k_deps = []
+  std::vector<std::string> tokens = {"__", dep_name, "_deps = []"};
+  print_line(tokens, level);
 }
 
 void PyPrinter::print_def_possible_types(
     std::vector<std::string> &names,
     std::vector<std::string> &types,
     int level) {
+  // @classmethod
+  // def possible_types(cls, x: int, y: float) -> set[type]:
+  print_line();
+  print_line({"@classmethod"}, level);
+  print_class_method("possible_types", names, types, level, "set[type]");
+  level++;
 
+  // return {cls.__SomeMessage}
+  std::vector<std::string> tokens = {"return {}"};
+  print_line(tokens, level);
 }
 
 void PyPrinter::print_def_init(
@@ -188,29 +254,37 @@ void PyPrinter::print_def_init(
 
   print_line();
 
-  std::vector<std::string> tokens;
-  tokens.push_back("def __init__(self");
-
-  std::string sep = ", ";
-  for (int i = 0; i < names.size(); ++i) {
-    std::string py_type = get_python_type(types[i]);
-    tokens.push_back(sep + names[i] + ": " + py_type);
-  }
-  tokens.push_back(") -> None:");
-  print_line(tokens, level);
+  // def __init__(self, x: int, y: float) -> None:
+  print_instance_method("__init__", names, types, level);
   level++;
 
   for (auto &name : names) {
-    // {x}.check(*self.__{x}_deps)
-    std::string line = name + ".check(*self.__" + name + "deps)";
-    print_line({line}, level);
-
-    // self.x = x
-    line = "self." + name + " = " + name;
-    print_line({line}, level);
-
-    print_line();
+    // x.check(*self.__x_deps)
+    std::vector<std::string> tokens = {name, ".check(*self.__", name, "deps)"};
+    print_line(tokens, level);
   }
+  print_line();
+
+  // self.dependencies = (x, y)
+  std::string tuple = untyped_args(names);
+  print_line({"self.dependencies = ", tuple}, level);
+}
+
+void PyPrinter::print_method_construct(const std::string &message_name,
+    std::vector<std::string> &names,
+    std::vector<std::string> &types,
+    int level) {
+
+  print_constructor("construct", message_name, names, types, level);
+}
+
+void PyPrinter::print_enum_constructor(const std::string &subclass,
+    std::vector<std::string> &names,
+    std::vector<std::string> &types,
+    int level) {
+
+  std::string def_name = camel_to_snake(subclass);
+  print_constructor(def_name, subclass, names, types, level);
 }
 
 } // namespace dbuf::gen

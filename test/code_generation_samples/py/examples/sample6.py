@@ -37,6 +37,7 @@ class Nat:
         return {cls.__Zero, cls.__Succ}
     
     def __init__(self, n: int):
+        self.dependencies = [n]
         self.n = n
 
     def zero(self):

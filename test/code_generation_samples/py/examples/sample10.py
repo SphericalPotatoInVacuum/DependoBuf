@@ -20,7 +20,7 @@ class Pop:
     pop_type = __Pop
     
     @classmethod
-    def possible_types(cls):
+    def possible_types(cls) -> set[type]:
         return {cls.__Pop}
     
     def construct(self, a: int, b: float) -> __Pop:
