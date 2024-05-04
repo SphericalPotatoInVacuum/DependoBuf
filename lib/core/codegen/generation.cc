@@ -36,7 +36,7 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
     } else if (format == "go") {
       if (!added_formats.contains("go")) {
         std::stringstream full_path;
-        full_path << path << "/" << filename << ".h";
+        full_path << path << "/" << filename << ".go";
         targets_.emplace_back(std::make_shared<GoCodeGenerator>(GoCodeGenerator(full_path.str())));
         added_formats.insert("go");
       } else {
