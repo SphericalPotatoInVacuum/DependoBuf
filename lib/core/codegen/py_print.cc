@@ -29,9 +29,9 @@ PyPrinter::PyPrinter(std::shared_ptr<std::ofstream> output) {
   out_ = std::move(output);
 
   std::string tab = "    ";
-  tab_.push_back("");
+  tabs_.push_back("");
   for (int i = 1; i <= 4; ++i) {
-    tab_.push_back(tab[i - 1] + tab);
+    tabs_.push_back(tabs_[i - 1] + tab);
   }
 }
 
@@ -62,8 +62,33 @@ std::string PyPrinter::camel_to_snake(const std::string &camel_str) {
   return snake_str;
 }
 
+std::string PyPrinter::typed_args(std::vector<std::string> &names, std::vector<std::string> &types) {
+  // self, x: int, y: float
+  std::string res = "self";
+  std::string sep = ", ";
+
+  for (int i = 0; i < names.size(); ++i) {
+    std::string py_type = get_python_type(types[i]);
+    res += sep + names[i] + ": " + py_type;
+  }
+  return res;
+}
+
+std::string PyPrinter::print_def_with_typed_args(
+    std::string name,
+    std::vector<std::string> &arg_names,
+    std::vector<std::string> &arg_types,
+    int level,
+    std::string res_type) {
+
+  std::string args = typed_args(arg_names, arg_types);
+
+  std::vector<std::string> tokens = {"def ", name, "(", args, ") -> ", res_type, ":"};
+  print_line(tokens, level);
+}
+
 void PyPrinter::print_line(std::vector<std::string> tokens, int level) {
-  *out_ << tab_[level];
+  *out_ << tabs_[level];
 
   for (auto &token : tokens) {
     *out_ << token;
@@ -92,7 +117,7 @@ void PyPrinter::print_inner_class(const std::string &name) {
 void PyPrinter::print_inner_class_field(const std::string &name, const std::string &type, int level) {
   // "  {name}: {py_type}"
   std::string py_type = get_python_type(type);
-  print_line({name, ": ", type}, level);
+  print_line({name, ": ", py_type}, level);
 }
 
 void PyPrinter::print_def_check(
@@ -103,20 +128,10 @@ void PyPrinter::print_def_check(
     int level) {
   print_line();
 
-  std::vector<std::string> tokens;
-  tokens.push_back("def check(self");
-
-  std::string sep = ", ";
-  for (int i = 0; i < names.size(); ++i) {
-    std::string py_type = get_python_type(types[i]);
-    tokens.push_back(sep + names[i] + ": " + py_type);
-  }
-  tokens.push_back(") -> None:");
-
-  print_line(tokens, level);
+  print_def_with_typed_args("check", names, types, level);
   level++;
 
-  tokens.clear();
+  std
   tokens.push_back("if type(self) not in ");
   tokens.push_back(struct_name + ".possible_types(");
   for (int i = 0; i < names.size(); ++i) {
@@ -141,7 +156,7 @@ void PyPrinter::print_type(const std::string &struct_name, std::vector<std::stri
   print_line();
 
   std::string left = camel_to_snake(struct_name) + "_type";
-  std::string right = inner_types[0];
+  std::string right = "__" + inner_types[0];
 
   std::string sep = " | ";
   for (int i = 1; i < inner_types.size(); ++i) {
@@ -156,10 +171,21 @@ void PyPrinter::print_dep_deps(std::string &dep_name, std::vector<std::string> &
   print_line({line}, level);
 }
 
+void PyPrinter::print_def_possible_types(
+    std::vector<std::string> &names,
+    std::vector<std::string> &types,
+    int level) {
+
+}
+
 void PyPrinter::print_def_init(
     std::vector<std::string> &names,
     std::vector<std::string> &types,
     int level) {
+  if (names.size() == 0) {
+    return;
+  }
+
   print_line();
 
   std::vector<std::string> tokens;

@@ -9,39 +9,51 @@ Unsigned = Annotated[int, Ge(0)]
 
 
 class Address:
-     @dataclass
-     class __Address
+    @dataclass
+    class __Address:
+        id: Unsigned
+        street: str
+        floor: int
+        withIntercom: bool
 
-     def check(self) -> None:
-     if type(self) not in Address.possible_types():
-     raise TypeError('Non-compliance with type dependencies')
+        def check(self) -> None:
+            if type(self) not in Address.possible_types():
+                raise TypeError('Non-compliance with type dependencies')
 
-     address_type = Address
+    address_type = Address
 
-     def __init__(self) -> None:
+    def __init__(self) -> None:
 
 
 class Pet:
-     @dataclass
-     class __Pet
+    @dataclass
+    class __Pet:
+        id: Unsigned
+        kind: str
+        name: str
 
-     def check(self) -> None:
-     if type(self) not in Pet.possible_types():
-     raise TypeError('Non-compliance with type dependencies')
+        def check(self) -> None:
+            if type(self) not in Pet.possible_types():
+                raise TypeError('Non-compliance with type dependencies')
 
-     pet_type = Pet
+    pet_type = Pet
 
-     def __init__(self) -> None:
+    def __init__(self) -> None:
 
 
 class User:
-     @dataclass
-     class __User
+    @dataclass
+    class __User:
+        id: Unsigned
+        name: str
+        address: Address.address_type
+        pet: Pet.pet_type
+        money: float
 
-     def check(self) -> None:
-     if type(self) not in User.possible_types():
-     raise TypeError('Non-compliance with type dependencies')
+        def check(self) -> None:
+            if type(self) not in User.possible_types():
+                raise TypeError('Non-compliance with type dependencies')
 
-     user_type = User
+    user_type = User
 
-     def __init__(self) -> None:
+    def __init__(self) -> None:
