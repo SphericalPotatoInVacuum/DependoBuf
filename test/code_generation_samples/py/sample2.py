@@ -20,9 +20,19 @@ class Address:
             if type(self) not in Address.possible_types():
                 raise TypeError('Non-compliance with type dependencies')
 
-    address_type = Address
+    address_type = __Address
+
+    @classmethod
+    def possible_types(cls) -> set[type]:
+        return {cls.__Address}
 
     def __init__(self) -> None:
+        self.dependencies = ()
+
+    def construct(self, id: Unsigned, street: str, floor: int, withIntercom: bool) -> __Address:
+        obj = self.__Address(id, street, floor, withIntercom)
+        obj.check(*self.dependencies)
+        return obj
 
 
 class Pet:
@@ -36,9 +46,19 @@ class Pet:
             if type(self) not in Pet.possible_types():
                 raise TypeError('Non-compliance with type dependencies')
 
-    pet_type = Pet
+    pet_type = __Pet
+
+    @classmethod
+    def possible_types(cls) -> set[type]:
+        return {cls.__Pet}
 
     def __init__(self) -> None:
+        self.dependencies = ()
+
+    def construct(self, id: Unsigned, kind: str, name: str) -> __Pet:
+        obj = self.__Pet(id, kind, name)
+        obj.check(*self.dependencies)
+        return obj
 
 
 class User:
@@ -54,6 +74,28 @@ class User:
             if type(self) not in User.possible_types():
                 raise TypeError('Non-compliance with type dependencies')
 
-    user_type = User
+    user_type = __User
+
+    @classmethod
+    def possible_types(cls) -> set[type]:
+        return {cls.__User}
 
     def __init__(self) -> None:
+        self.dependencies = ()
+
+    def construct(self, id: Unsigned, name: str, address: Address.address_type, pet: Pet.pet_type, money: float) -> __User:
+        obj = self.__User(id, name, address, pet, money)
+        obj.check(*self.dependencies)
+        return obj
+
+
+address = Address().construct(id=1, street="1 Green", floor=3, withIntercom=True)
+pet = Pet().construct(id=1, kind="cat", name="Pusha")
+evgeny = User().construct(id=1, name="Evgeny", address=address, pet=pet, money=180)
+
+print(address)
+print()
+print(pet)
+print()
+print(evgeny)
+print()

@@ -248,9 +248,6 @@ void PyPrinter::print_def_init(
     std::vector<std::string> &names,
     std::vector<std::string> &types,
     int level) {
-  if (names.size() == 0) {
-    return;
-  }
 
   print_line();
 
@@ -258,12 +255,19 @@ void PyPrinter::print_def_init(
   print_instance_method("__init__", names, types, level);
   level++;
 
-  for (auto &name : names) {
-    // x.check(*self.__x_deps)
-    std::vector<std::string> tokens = {name, ".check(*self.__", name, "deps)"};
-    print_line(tokens, level);
+  // x.check(*self.__x_deps)
+  bool checked_deps = false;
+  for (int i = 0; i < names.size(); ++i) {
+    if (!kBuildInTypes.contains(types[i])) {
+      checked_deps = true;
+      std::vector<std::string> tokens = {names[i], ".check(*self.__", names[i], "_deps)"};
+      print_line(tokens, level);
+    }
   }
-  print_line();
+
+  if (checked_deps) {
+    print_line();
+  }
 
   // self.dependencies = (x, y)
   std::string tuple = untyped_args(names);

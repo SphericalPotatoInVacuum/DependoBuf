@@ -1,4 +1,5 @@
-message SomeMessage (n Int) (m Int) {
-  f Foo n;
-  g Goo m;
+message User (key Int) (parent String) {
+  id Int;
+  name String;
+  f Float;
 }
