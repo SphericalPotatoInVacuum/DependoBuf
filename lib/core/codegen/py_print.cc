@@ -18,7 +18,7 @@ const std::string PyPrinter::kReadme = "# This file was automatically generated 
                                        "# Please do not change it.\n";
 
 const std::string PyPrinter::kImports = "\n"
-                                        "from __future__ import annotations"
+                                        "from __future__ import annotations\n"
                                         "\n"
                                         "from annotated_types import Ge\n"
                                         "from dataclasses import dataclass\n"
@@ -258,17 +258,11 @@ void PyPrinter::print_def_init(
   level++;
 
   // x.check(*self.__x_deps)
-  bool checked_deps = false;
   for (int i = 0; i < names.size(); ++i) {
     if (!kBuildInTypes.contains(types[i])) {
-      checked_deps = true;
       std::vector<std::string> tokens = {names[i], ".check(*self.__", names[i], "_deps)"};
       print_line(tokens, level);
     }
-  }
-
-  if (checked_deps) {
-    print_line();
   }
 
   // self.dependencies = (x, y)

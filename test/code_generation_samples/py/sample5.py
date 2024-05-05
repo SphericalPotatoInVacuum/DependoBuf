@@ -29,7 +29,7 @@ class Nat:
 
     @classmethod
     def possible_types(cls) -> set[type]:
-        return {cls.__Zero, cls.__Succ}
+        return {}
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -66,11 +66,10 @@ class IntList:
 
     @classmethod
     def possible_types(cls, size: Nat.nat_type) -> set[type]:
-        return {cls.__Nil, cls.__Base}
+        return {}
 
     def __init__(self, size: Nat.nat_type) -> None:
         size.check(*self.__size_deps)
-
         self.dependencies = (size)
 
     def nil(self) -> __Nil:
@@ -82,12 +81,3 @@ class IntList:
         obj = self.__Base(head, tail)
         obj.check(*self.dependencies)
         return obj
-
-
-nat1 = Nat().zero()
-nat2 = Nat().succ(prev=nat1)
-nat3 = Nat().succ(prev=nat2)
-
-print()
-print(nat3)
-print()
