@@ -106,6 +106,42 @@ void GoCodeGenerator::GenerateObject(const ast::Message &msg) {
   }
   *output_ << "}\n";
   *output_ << '\n';
+  // generate New
+  *output_ << "func New" << message_name << "(";
+  if (!msg.type_dependencies.empty()) {
+    bool is_first_argument = true;
+    for (const auto &dependency : msg.type_dependencies) {
+      const auto &dependency_name = dependency.name.GetString();
+      std::string dependency_type = dependency.type_expression.identifier.name.GetString();
+      if (kPrimitiveTypesMapping.contains(dependency_type)) {
+        dependency_type = kPrimitiveTypesMapping.at(dependency_type);
+      } else {
+        dependency_type = "*" + dependency_type;
+      }
+      if (is_first_argument) {
+        is_first_argument = false;
+        *output_ << dependency_name << ' ' << dependency_type;
+      } else {
+        *output_ << ", " << dependency_name << ' ' << dependency_type;
+      }
+    }
+  }
+  *output_ << ") *" << message_name << " {\n";
+  *output_ << GetIndent(1) << "return &" << message_name << "{";
+  if (!msg.type_dependencies.empty()) {
+    *output_ << '\n';
+    *output_ << GetIndent(2);
+    for (const auto &dependency : msg.type_dependencies) {
+      const auto &dependency_name = dependency.name.GetString();
+      *output_ << dependency_name << ": " << dependency_name << ", ";
+    }
+    *output_ << '\n';
+    *output_ << GetIndent(1) << "}\n";
+  } else {
+    *output_ << "}\n";
+  }
+  *output_ << "}\n";
+  *output_ << '\n';
 }
 
 void GoCodeGenerator::GenerateObject(const ast::Enum &en) {
@@ -159,12 +195,54 @@ void GoCodeGenerator::GenerateObject(const ast::Enum &en) {
   for (const auto &constructor_name : constructor_names) {
     if (is_first_name) {
       is_first_name = false;
-      *output_ << '*' << constructor_name;
+      *output_ << constructor_name;
     } else {
-      *output_ << " | " << '*' << constructor_name;
+      *output_ << " | " << constructor_name;
     }
   }
   *output_ << "\n";
+  *output_ << "}\n";
+  *output_ << '\n';
+  // generate New
+  *output_ << "func New" << enum_name << "(";
+  if (!en.type_dependencies.empty()) {
+    bool is_first_argument = true;
+    for (const auto &dependency : en.type_dependencies) {
+      const auto &dependency_name = dependency.name.GetString();
+      std::string dependency_type = dependency.type_expression.identifier.name.GetString();
+      if (kPrimitiveTypesMapping.contains(dependency_type)) {
+        dependency_type = kPrimitiveTypesMapping.at(dependency_type);
+      } else {
+        dependency_type = "*" + dependency_type;
+      }
+      if (is_first_argument) {
+        is_first_argument = false;
+        *output_ << dependency_name << ' ' << dependency_type;
+      } else {
+        *output_ << ", " << dependency_name << ' ' << dependency_type;
+      }
+    }
+  }
+  *output_ << ") *" << enum_name << " {\n";
+  *output_ << GetIndent(1) << "return &" << enum_name << "{";
+  if (!en.type_dependencies.empty()) {
+    *output_ << '\n';
+    *output_ << GetIndent(2);
+    for (const auto &dependency : en.type_dependencies) {
+      const auto &dependency_name = dependency.name.GetString();
+      *output_ << dependency_name << ": " << dependency_name << ", ";
+    }
+    *output_ << '\n';
+    *output_ << GetIndent(1) << "}\n";
+  } else {
+    *output_ << "}\n";
+  }
+  *output_ << "}\n";
+  *output_ << '\n';
+  // SetValue
+  *output_ << "func SetValue" << enum_name << "[T " << type_constraint_name << "](enum *" << enum_name << ", "
+           << "value *T) {\n";
+  *output_ << GetIndent(1) << "enum.InternalValue = value\n";
   *output_ << "}\n";
   *output_ << '\n';
 }
