@@ -18,6 +18,8 @@ const std::string PyPrinter::kReadme = "# This file was automatically generated 
                                        "# Please do not change it.\n";
 
 const std::string PyPrinter::kImports = "\n"
+                                        "from __future__ import annotations"
+                                        "\n"
                                         "from annotated_types import Ge\n"
                                         "from dataclasses import dataclass\n"
                                         "from typing import Annotated\n";

@@ -1,5 +1,13 @@
-message User (key Int) (parent String) {
-  id Int;
-  name String;
-  f Float;
+enum Nat (n Int) {
+  0 => {
+    Zero {}
+    Magic {
+      name String;
+    }
+  }
+  * => {
+    Succ {
+      prev Unsigned;
+    }
+  }
 }

@@ -6,38 +6,3 @@ from dataclasses import dataclass
 from typing import Annotated
 
 Unsigned = Annotated[int, Ge(0)]
-
-
-class User:
-    @dataclass
-    class __User:
-        id: int
-        name: str
-        f: float
-
-        def check(self, key: int, parent: str) -> None:
-            if type(self) not in User.possible_types(key, parent):
-                raise TypeError('Non-compliance with type dependencies')
-
-    user_type = __User
-    __key_deps = []
-    __parent_deps = []
-
-    @classmethod
-    def possible_types(cls, key: int, parent: str) -> set[type]:
-        return {cls.__User}
-
-    def __init__(self, key: int, parent: str) -> None:
-        # key.check(*self.__keydeps)
-        # parent.check(*self.__parentdeps)
-
-        self.dependencies = (key, parent)
-
-    def construct(self, id: int, name: str, f: float) -> __User:
-        obj = self.__User(id, name, f)
-        obj.check(*self.dependencies)
-        return obj
-
-
-evgeny = User(key=42).construct(id=1, name="Evgeny", f=1.5)
-print(evgeny)

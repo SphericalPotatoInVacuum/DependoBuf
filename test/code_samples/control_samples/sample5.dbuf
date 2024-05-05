@@ -10,10 +10,10 @@ enum IntList (size Nat) {
     Nil {}
   }
   
-  Succ {prev: tailSize} => {
-    IntList {
+  Succ {prev: Zero {}} => {
+    Base {
       head Int;
-      tail IntList tailSize;
+      tail IntList Zero {};
     }
   }
 }
