@@ -1,7 +1,7 @@
 #include "core/codegen/generation.h"
 
 #include "core/codegen/cpp_gen.h"
-#include "core/codegen/py_gen.h"
+#include "core/codegen/python_target/py_gen.h"
 
 #include <filesystem>
 #include <set>

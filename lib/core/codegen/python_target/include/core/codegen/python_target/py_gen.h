@@ -1,7 +1,7 @@
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
 #include "core/codegen/generation.h"
-#include "core/codegen/py_print.h"
+#include "core/codegen/python_target/py_print.h"
 
 namespace dbuf::gen {
 
