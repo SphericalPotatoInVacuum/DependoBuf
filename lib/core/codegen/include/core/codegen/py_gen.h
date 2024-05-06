@@ -37,7 +37,7 @@ private:
 
   void operator()(const ast::Star &value);
 
-  std::tuple<std::string, std::string> get_name_and_type(const ast::TypedVariable &var);
+  static std::tuple<std::string, std::string> get_name_and_type(const ast::TypedVariable &var);
 
   PyPrinter printer_;
 };

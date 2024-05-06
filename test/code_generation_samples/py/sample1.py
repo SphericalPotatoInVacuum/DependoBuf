@@ -2,6 +2,7 @@
 # Please do not change it.
 
 from __future__ import annotations
+
 from annotated_types import Ge
 from dataclasses import dataclass
 from typing import Annotated

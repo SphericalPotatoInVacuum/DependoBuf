@@ -26,7 +26,7 @@ class Address:
 
     @classmethod
     def possible_types(cls) -> set[type]:
-        return {cls.__Address}
+        return {}
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -52,7 +52,7 @@ class Pet:
 
     @classmethod
     def possible_types(cls) -> set[type]:
-        return {cls.__Pet}
+        return {}
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -80,7 +80,7 @@ class User:
 
     @classmethod
     def possible_types(cls) -> set[type]:
-        return {cls.__User}
+        return {}
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -89,4 +89,3 @@ class User:
         obj = self.__User(id, name, address, pet, money)
         obj.check(*self.dependencies)
         return obj
-

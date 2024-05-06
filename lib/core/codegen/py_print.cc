@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <unordered_map>
 #include <vector>
 
@@ -31,7 +32,7 @@ PyPrinter::PyPrinter(std::shared_ptr<std::ofstream> output) {
   out_ = std::move(output);
 
   std::string tab = "    ";
-  tabs_.push_back("");
+  tabs_.emplace_back("");
   for (int i = 1; i <= 4; ++i) {
     tabs_.push_back(tabs_[i - 1] + tab);
   }
@@ -51,12 +52,12 @@ std::string PyPrinter::get_python_type(const std::string &type, bool inside_oute
 }
 
 std::string PyPrinter::camel_to_snake(const std::string &camel_str) {
-  std::string snake_str = "";
+  std::string snake_str;
   for (int i = 0; i < camel_str.size(); ++i) {
     char c = camel_str[i];
 
     if ('A' <= c && c <= 'Z') {
-      c = (char)tolower(c);
+      c = static_cast<char>(tolower(c));
       if (i != 0) {
         snake_str += '_';
       }
@@ -68,25 +69,27 @@ std::string PyPrinter::camel_to_snake(const std::string &camel_str) {
   return snake_str;
 }
 
-std::string PyPrinter::typed_args(std::vector<std::string> &names,
-    std::vector<std::string> &types,
-    std::string fitst_arg) {
+std::string PyPrinter::typed_args(
+    const std::vector<std::string> &names,
+    const std::vector<std::string> &types,
+    const std::string &first_arg) {
   // self, x: int, y: float
-  std::string args = "(" + fitst_arg;
+  std::stringstream args;
+  args << "(" << first_arg;
   std::string sep = ", ";
 
   for (int i = 0; i < names.size(); ++i) {
     std::string py_type = get_python_type(types[i]);
-    args += sep + names[i] + ": " + py_type;
+    args << sep << names[i] << ": " << py_type;
   }
-  args += ")";
-  return args;
+  args << ")";
+  return args.str();
 }
 
-std::string PyPrinter::untyped_args(std::vector<std::string> &names) {
+std::string PyPrinter::untyped_args(const std::vector<std::string> &names) {
   // self, x: int, y: float
   std::string args = "(";
-  std::string sep = ", ";
+  std::string sep  = ", ";
 
   for (int i = 0; i < names.size(); ++i) {
     if (i != 0) {
@@ -99,23 +102,26 @@ std::string PyPrinter::untyped_args(std::vector<std::string> &names) {
   return args;
 }
 
-void PyPrinter::print_line(std::vector<std::string> tokens, int level) {
+void PyPrinter::print_line(const std::vector<std::string> &tokens, int level) {
   *out_ << tabs_[level];
 
-  for (auto &token : tokens) {
+  for (const auto &token : tokens) {
     *out_ << token;
   }
   *out_ << "\n";
 }
 
-void PyPrinter::print_def_with_typed_args(
-    std::string name,
-    std::string first_arg,
-    std::vector<std::string> &arg_names,
-    std::vector<std::string> &arg_types,
-    int level,
-    std::string res_type) {
+void PyPrinter::print_line(std::vector<std::string> &&tokens, int level) {
+  print_line(tokens, level);
+}
 
+void PyPrinter::print_def_with_typed_args(
+    const std::string &name,
+    const std::string &first_arg,
+    const std::vector<std::string> &arg_names,
+    const std::vector<std::string> &arg_types,
+    int level,
+    const std::string &res_type) {
   std::string args = typed_args(arg_names, arg_types, first_arg);
 
   std::vector<std::string> tokens = {"def ", name, args, " -> ", res_type, ":"};
@@ -123,31 +129,51 @@ void PyPrinter::print_def_with_typed_args(
 }
 
 void PyPrinter::print_instance_method(
-    std::string name,
-    std::vector<std::string> &arg_names,
-    std::vector<std::string> &arg_types,
+    const std::string &name,
+    const std::vector<std::string> &arg_names,
+    const std::vector<std::string> &arg_types,
     int level,
-    std::string res_type) {
+    const std::string &res_type) {
+  std::string first_arg = "self";
+  print_def_with_typed_args(name, first_arg, arg_names, arg_types, level, res_type);
+}
 
-  print_def_with_typed_args(name, "self", arg_names, arg_types, level, res_type);
+void PyPrinter::print_instance_method(
+    const std::string &name,
+    const std::vector<std::string> &arg_names,
+    const std::vector<std::string> &arg_types,
+    int level) {
+  std::string first_arg = "self";
+  std::string res_type  = "None";
+  print_def_with_typed_args(name, first_arg, arg_names, arg_types, level, res_type);
 }
 
 void PyPrinter::print_class_method(
-    std::string name,
-    std::vector<std::string> &arg_names,
-    std::vector<std::string> &arg_types,
+    const std::string &name,
+    const std::vector<std::string> &arg_names,
+    const std::vector<std::string> &arg_types,
     int level,
-    std::string res_type) {
-
-  print_def_with_typed_args(name, "cls", arg_names, arg_types, level, res_type);
+    const std::string &res_type) {
+  std::string first_arg = "cls";
+  print_def_with_typed_args(name, first_arg, arg_names, arg_types, level, res_type);
 }
 
-void PyPrinter::print_constructor(std::string def_name,
-      const std::string &struct_name,
-      std::vector<std::string> &names,
-      std::vector<std::string> &types,
-      int level) {
+void PyPrinter::print_class_method(
+    const std::string &name,
+    const std::vector<std::string> &arg_names,
+    const std::vector<std::string> &arg_types,
+    int level) {
+  std::string first_arg = "cls";
+  std::string res_type  = "None";
+  print_def_with_typed_args(name, first_arg, arg_names, arg_types, level, res_type);
+}
 
+void PyPrinter::print_constructor(
+    const std::string &def_name,
+    const std::string &struct_name,
+    const std::vector<std::string> &names,
+    const std::vector<std::string> &types,
+    int level) {
   print_line();
 
   // def construct(self, x: int, y: float) -> __Address:
@@ -188,19 +214,19 @@ void PyPrinter::print_inner_class_field(const std::string &name, const std::stri
 }
 
 void PyPrinter::print_def_check(
-    std::vector<std::string> &names,
-    std::vector<std::string> &types,
-    std::unordered_map<std::string, std::vector<std::string>> &fields_deps,
+    const std::vector<std::string> &names,
+    const std::vector<std::string> &types,
     const std::string &struct_name,
     int level) {
   print_line();
 
   // def check(self, x: int, y: float, z: str) -> None:
-  print_instance_method("check", names, types, level);
+  std::string def_name = "check";
+  print_instance_method(def_name, names, types, level);
   level++;
 
   // if type(self) not in SomeMessage.possible_types(x, y, z):
-  std::string args = untyped_args(names);
+  std::string args                = untyped_args(names);
   std::vector<std::string> tokens = {"if type(self) not in ", struct_name, ".possible_types", args, ":"};
   print_line(tokens, level);
   level++;
@@ -210,35 +236,41 @@ void PyPrinter::print_def_check(
   level--;
 }
 
-void PyPrinter::print_type(const std::string &struct_name, std::vector<std::string> &inner_types, int level) {
+void PyPrinter::print_type(const std::string &struct_name, const std::vector<std::string> &inner_types, int level) {
   // some_enam_type = __Nil | __Succ
   print_line();
 
-  std::string left = camel_to_snake(struct_name) + "_type";
-  std::string right = "__" + inner_types[0];
+  std::stringstream left;
+  left << camel_to_snake(struct_name) << "_type";
+
+  std::stringstream right;
+  right << "__" << inner_types[0];
 
   std::string sep = " | ";
   for (int i = 1; i < inner_types.size(); ++i) {
-    right += sep + "__" + inner_types[i];
+    right << sep << "__" << inner_types[i];
   }
-  print_line({left, " = ", right}, level);
+  print_line({left.str(), " = ", right.str()}, level);
 }
 
-void PyPrinter::print_dep_deps(std::string &dep_name, std::vector<std::string> &deps, int level) {
+void PyPrinter::print_dep_deps(const std::string &dep_name, int level) {
   // __k_deps = []
   std::vector<std::string> tokens = {"__", dep_name, "_deps = []"};
   print_line(tokens, level);
 }
 
 void PyPrinter::print_def_possible_types(
-    std::vector<std::string> &names,
-    std::vector<std::string> &types,
+    const std::vector<std::string> &names,
+    const std::vector<std::string> &types,
     int level) {
+  std::string res_type = "set[type]";
+  std::string def_name = "possible_types";
+
   // @classmethod
   // def possible_types(cls, x: int, y: float) -> set[type]:
   print_line();
   print_line({"@classmethod"}, level);
-  print_class_method("possible_types", names, types, level, "set[type]");
+  print_class_method(def_name, names, types, level, res_type);
   level++;
 
   // return {cls.__SomeMessage}
@@ -247,14 +279,15 @@ void PyPrinter::print_def_possible_types(
 }
 
 void PyPrinter::print_def_init(
-    std::vector<std::string> &names,
-    std::vector<std::string> &types,
+    const std::vector<std::string> &names,
+    const std::vector<std::string> &types,
     int level) {
+  std::string def_name = "__init__";
 
   print_line();
 
   // def __init__(self, x: int, y: float) -> None:
-  print_instance_method("__init__", names, types, level);
+  print_instance_method(def_name, names, types, level);
   level++;
 
   // x.check(*self.__x_deps)
@@ -270,19 +303,20 @@ void PyPrinter::print_def_init(
   print_line({"self.dependencies = ", tuple}, level);
 }
 
-void PyPrinter::print_method_construct(const std::string &message_name,
-    std::vector<std::string> &names,
-    std::vector<std::string> &types,
+void PyPrinter::print_method_construct(
+    const std::string &message_name,
+    const std::vector<std::string> &names,
+    const std::vector<std::string> &types,
     int level) {
-
-  print_constructor("construct", message_name, names, types, level);
+  std::string def_name = "construct";
+  print_constructor(def_name, message_name, names, types, level);
 }
 
-void PyPrinter::print_enum_constructor(const std::string &subclass,
-    std::vector<std::string> &names,
-    std::vector<std::string> &types,
+void PyPrinter::print_enum_constructor(
+    const std::string &subclass,
+    const std::vector<std::string> &names,
+    const std::vector<std::string> &types,
     int level) {
-
   std::string def_name = camel_to_snake(subclass);
   print_constructor(def_name, subclass, names, types, level);
 }

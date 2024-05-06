@@ -48,21 +48,19 @@ void PyCodeGenerator::operator()(const ast::Message &ast_message) {
 
   std::vector<std::string> field_names;
   std::vector<std::string> field_types;
-  for (auto &field: ast_message.fields) {
+  for (const auto &field : ast_message.fields) {
     auto [name, type] = get_name_and_type(field);
     field_names.push_back(name);
     field_types.push_back(type);
     printer_.print_inner_class_field(name, type);
   }
 
-  std::unordered_map<std::string, std::vector<std::string>> fields_deps;
-  printer_.print_def_check(dep_names, dep_types, fields_deps, message_name);
+  printer_.print_def_check(dep_names, dep_types, message_name);
 
   std::vector<std::string> inner_types = {message_name};
   printer_.print_type(message_name, inner_types);
-  for (auto &dep_name: dep_names) {
-    std::vector<std::string> deps = {};
-    printer_.print_dep_deps(dep_name, deps);
+  for (auto &dep_name : dep_names) {
+    printer_.print_dep_deps(dep_name);
   }
 
   printer_.print_def_possible_types(dep_names, dep_types);
@@ -87,15 +85,15 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
   std::unordered_map<std::string, std::vector<std::string>> field_names_map;
   std::unordered_map<std::string, std::vector<std::string>> field_types_map;
 
-  for (auto &rule: ast_enum.pattern_mapping) {
-    for (auto &enum_constructor: rule.outputs) {
+  for (const auto &rule : ast_enum.pattern_mapping) {
+    for (const auto &enum_constructor : rule.outputs) {
       const std::string &constructor_name = enum_constructor.identifier.name.GetString();
       constructors.push_back(constructor_name);
       printer_.print_inner_class(constructor_name);
 
       std::vector<std::string> field_names;
       std::vector<std::string> field_types;
-      for (auto &field: enum_constructor.fields) {
+      for (const auto &field : enum_constructor.fields) {
         auto [name, type] = get_name_and_type(field);
         field_names.push_back(name);
         field_types.push_back(type);
@@ -106,23 +104,24 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
       field_names_map[constructor_name] = std::move(field_names);
       field_types_map[constructor_name] = std::move(field_types);
 
-      std::unordered_map<std::string, std::vector<std::string>> fields_deps;
-      printer_.print_def_check(dep_names, dep_types, fields_deps, enum_name);
+      printer_.print_def_check(dep_names, dep_types, enum_name);
     }
   }
 
   printer_.print_type(enum_name, constructors);
 
-  for (auto &dep_name: dep_names) {
-    std::vector<std::string> deps = {};
-    printer_.print_dep_deps(dep_name, deps);
+  for (auto &dep_name : dep_names) {
+    printer_.print_dep_deps(dep_name);
   }
 
   printer_.print_def_possible_types(dep_names, dep_types);
   printer_.print_def_init(dep_names, dep_types);
 
-  for (auto &constructor_name: constructors) {
-    printer_.print_enum_constructor(constructor_name, field_names_map[constructor_name], field_types_map[constructor_name]);
+  for (auto &constructor_name : constructors) {
+    printer_.print_enum_constructor(
+        constructor_name,
+        field_names_map[constructor_name],
+        field_types_map[constructor_name]);
   }
 }
 
