@@ -32,26 +32,27 @@ public:
   [[nodiscard]] std::optional<Error> Compare(const ast::Expression &expr);
 
   // Expression specifications
-  std::optional<Error> operator()(const ast::TypeExpression &expr);
-  std::optional<Error> operator()(const ast::BinaryExpression &expr);
-  std::optional<Error> operator()(const ast::UnaryExpression &expr);
-  std::optional<Error> operator()(const ast::VarAccess &expr);
-  std::optional<Error> operator()(const ast::ArrayAccess &expr);
-  std::optional<Error> operator()(const ast::Value &val);
+  bool operator()(const ast::TypeExpression &expr);
+  bool operator()(const ast::BinaryExpression &expr);
+  bool operator()(const ast::UnaryExpression &expr);
+  bool operator()(const ast::VarAccess &expr);
+  bool operator()(const ast::ArrayAccess &expr);
+  bool operator()(const ast::Value &val);
 
   // Value specifications
   template <typename T>
-  std::optional<Error> operator()(const ast::ScalarValue<T> &val) {
+  bool operator()(const ast::ScalarValue<T> &val) {
     if (expected_.identifier.name != GetTypename(val)) {
-      return Error(
+      error_ = Error(
           CreateError() << "Got value of type \"" << GetTypename(val) << "\", but expected type is \""
                         << expected_.identifier.name << "\" at " << val.location);
+      return false;
     }
-    return {};
+    return true;
   }
 
-  std::optional<Error> operator()(const ast::ConstructedValue &val);
-  std::optional<Error> operator()(const ast::CollectionValue &val);
+  bool operator()(const ast::ConstructedValue &val);
+  bool operator()(const ast::CollectionValue &val);
 
 private:
   const ast::TypeExpression &expected_;
@@ -59,15 +60,16 @@ private:
   std::deque<Scope *> &context_;
   Substitutor &substitutor_;
   Z3stuff &z3_stuff_;
+  std::optional<Error> error_;
 
   ast::BinaryExpression bin_expr_;
 
-  [[nodiscard]] std::optional<Error> CompareTypeExpressions(
+  bool CompareTypeExpressions(
       const ast::TypeExpression &expected_type,
       const ast::TypeExpression &expression,
       Z3stuff &z3_stuff);
 
-  std::optional<Error> CheckConstructedValue(const ast::ConstructedValue &val, const ast::TypeWithFields &constructor);
+  bool CheckConstructedValue(const ast::ConstructedValue &val, const ast::TypeWithFields &constructor);
 
   static InternedString GetTypename(const ast::ScalarValue<bool> &) {
     return InternedString("Bool");
