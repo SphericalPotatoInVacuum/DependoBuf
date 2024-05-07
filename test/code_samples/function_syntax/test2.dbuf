@@ -1,0 +1,9 @@
+func f (x Unsigned) (y Unsigned) (z Unsigned) -> Unsigned = x + y + z
+
+message DepOnFunc (g Unsigned -> Unsigned) { 
+    array Array (Int) (g 5);
+}
+
+message Foo {
+    dep DepOnFunc (f 1 3)
+}
