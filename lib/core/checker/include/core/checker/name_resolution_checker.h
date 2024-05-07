@@ -31,6 +31,7 @@ public:
   bool operator()(const ast::Message &ast_message);
   bool operator()(const ast::Enum &ast_enum);
   bool operator()(const ast::Enum::Rule &rule);
+  bool operator()(const ast::Func &ast_func);
   bool operator()(const ast::Constructor &constructor);
   bool operator()(const ast::TypedVariable &variable, bool allow_shadowing);
 

@@ -18,6 +18,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include <ostream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -33,6 +34,10 @@ struct DependentType {
 
 struct TypeWithFields {
   std::vector<TypedVariable> fields = {};
+};
+
+struct FuncArguments {
+  std::vector<TypedVariable> args = {};
 };
 
 struct Constructor
@@ -55,6 +60,13 @@ struct Enum
   };
 
   std::vector<Rule> pattern_mapping;
+};
+
+struct Func
+    : Identifiable
+    , FuncArguments {
+  NamedType return_type;
+  Expression return_value;
 };
 
 struct AST {

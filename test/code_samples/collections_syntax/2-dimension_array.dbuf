@@ -1,0 +1,3 @@
+message Aboba{
+    array1 Array (Array (Int) 10u) 10u;
+}
