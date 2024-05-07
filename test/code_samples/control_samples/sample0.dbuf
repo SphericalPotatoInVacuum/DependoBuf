@@ -1,13 +1,20 @@
-enum Nat (n Int) {
-  0 => {
-    Zero {}
-    Magic {
-      name String;
+enum Color (s String) {
+  "red" => {
+    Red {
+      r Int;
     }
   }
-  * => {
-    Succ {
-      prev Unsigned;
+  "green" => {
+    Green {
+      g Int;
     }
   }
+}
+
+message Moo (x Int) {
+
+}
+
+message Foo (m Moo Green {g: 15}) {
+
 }

@@ -93,21 +93,8 @@ private:
       const std::vector<std::string> &types,
       int level);
 
-  static std::string get_python_type(const std::string &type, bool inside_outer_class = false);
-
-  static std::string camel_to_snake(const std::string &camel_str);
-
-  static std::string typed_args(
-      const std::vector<std::string> &names,
-      const std::vector<std::string> &types,
-      const std::string &first_arg);
-
-  static std::string untyped_args(const std::vector<std::string> &names);
-
   std::shared_ptr<std::ofstream> out_ = nullptr;
   std::vector<std::string> tabs_;
-
-  static const std::unordered_map<std::string, std::string> kBuildInTypes;
 
   static const std::string kReadme;
   static const std::string kImports;
