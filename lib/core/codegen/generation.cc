@@ -34,7 +34,7 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
       }
     } else if (format == "dart") {
       std::stringstream full_path;
-      full_path << path << "/" << filename << ".h";
+      full_path << path << "/" << filename << ".dart";
       targets_.emplace_back(std::make_shared<DartCodeGenerator>(DartCodeGenerator(full_path.str())));
       added_formats.insert("dart");
     } else {
