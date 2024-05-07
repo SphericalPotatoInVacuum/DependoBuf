@@ -128,7 +128,7 @@ struct ConstructedValue : ASTNode {
 };
 
 /**
- * @brief Represents a constructed value, like `{1, 2, 3, 4}`
+ * @brief Represents a collection value, like `{1, 2, 3, 4}`
  */
 struct CollectionValue : ASTNode {
   std::vector<ExprPtr> values = {};

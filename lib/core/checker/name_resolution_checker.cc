@@ -91,6 +91,20 @@ bool NameResolutionChecker::operator()(const ast::Enum::Rule &rule) {
   return true;
 }
 
+bool NameResolutionChecker::operator()(const ast::Func &ast_func){
+  PushScope();
+  for (const auto& arg : ast_func.args){
+    if (!AddName(arg.name, "variable", false)){
+      return false;
+    }
+  }
+  if (!std::visit(*this, ast_func.return_value)){
+    return false;
+  }
+  PopScope();
+  return true;
+}
+
 bool NameResolutionChecker::operator()(const ast::Constructor &constructor) {
   return std::ranges::all_of(constructor.fields.begin(), constructor.fields.end(), [this](auto field) {
     return (*this)(field, false);
@@ -232,6 +246,8 @@ bool NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
           return AddName(constructor.identifier.name, "constructor", false);
         });
       });
+    } else if constexpr(std::is_same_v<T, ast::Func>){
+      return AddName(type.identifier.name, "func", false);
     }
   };
 
