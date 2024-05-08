@@ -1,9 +1,11 @@
 #pragma once
 
+#include "core/ast/ast.h"
 #include "core/codegen/generation.h"
 
 #include <unordered_set>
 #include <vector>
+
 
 namespace dbuf::gen {
 class CppCodeGenerator : public ITargetCodeGenerator {
