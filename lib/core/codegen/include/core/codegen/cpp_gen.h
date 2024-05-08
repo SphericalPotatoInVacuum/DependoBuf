@@ -14,7 +14,7 @@ public:
   void Generate(const ast::AST *tree) override;
 
   void
-  operator()(const ast::Message &ast_message, std::vector<ast::TypedVariable> checker_input = {}, bool add_tab = false);
+  operator()(const ast::Message &ast_message, std::vector<ast::TypedVariable> checker_input = {});
 
   void operator()(const ast::Enum &ast_enum, std::vector<ast::TypedVariable> &checker_input);
 
@@ -53,5 +53,6 @@ public:
 private:
   std::unordered_set<InternedString> created_hidden_types_;
   const ast::AST *tree_;
+  int string_counter = 0;
 };
 } // namespace dbuf::gen

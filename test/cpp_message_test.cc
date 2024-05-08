@@ -54,4 +54,4 @@ TEST_P(CPPMessagesCorrectnessTest, MessagesTest) {
 INSTANTIATE_TEST_SUITE_P(
     CPPGenerationTest,
     CPPMessagesCorrectnessTest,
-    testing::Values("/simple", "/complex_dependencies"));
+    testing::Values("/simple_messages", "/simple_enums", "/rt_dependent_messages", "/rt_dependent_enums"));

@@ -2,39 +2,101 @@
 #include <variant>
 
 namespace dbuf {
-struct Independent;
-
-struct Independent {
-  struct First {
-    int a;
-    bool b;
-    bool check() const {
-      return true;
-    }
-  };
-
-  struct Second {
-    bool c;
-    int d;
-    bool check() const {
-      return true;
-    }
-  };
-
-  struct Third {
-    std::string e;
-    std::string f;
-    bool check() const {
-      return true;
-    }
-  };
-
-  std::variant<First, Second, Third> value;
-  bool check() const {
-    return false || (std::holds_alternative<First>(value) && std::get<First>(value).check()) ||
-           (std::holds_alternative<Second>(value) && std::get<Second>(value).check()) ||
-           (std::holds_alternative<Third>(value) && std::get<Third>(value).check());
-  }
+struct First {
+	int a1;
+	bool b1;
+	bool check() const {
+		return true;
+	}
 };
 
-} // namespace dbuf
+struct Second {
+	bool a2;
+	int b2;
+	bool check() const {
+		return true;
+	}
+};
+
+struct Third {
+	std::string a3;
+	std::string b3;
+	bool check() const {
+		return true;
+	}
+};
+
+struct Independent {
+	std::variant<First, Second, Third> value;
+	bool check() const {
+		return false || (std::holds_alternative<First>(value) && std::get<First>(value).check()) || (std::holds_alternative<Second>(value) && std::get<Second>(value).check()) || (std::holds_alternative<Third>(value) && std::get<Third>(value).check());
+	}
+};
+
+template <const Independent* i>
+struct Dependencies {
+	bool check() const {
+		return true;
+	}
+};
+
+template <int a>
+struct Dependent;
+
+template <int a>
+struct A {
+	int a1;
+	bool check() const {
+		return true;
+	}
+};
+
+template <int a>
+struct B {
+	bool a2;
+	bool check() const {
+		return true;
+	}
+};
+
+template <>
+struct Dependent<5> {
+	std::variant<A<5>, B<5>> value;
+	bool check() const {
+		return false || (std::holds_alternative<A<5>>(value) && std::get<A<5>>(value).check()) || (std::holds_alternative<B<5>>(value) && std::get<B<5>>(value).check());
+	}
+};
+
+template <int a>
+struct C {
+	std::string a3;
+	bool check() const {
+		return true;
+	}
+};
+
+template <>
+struct Dependent<3> {
+	std::variant<C<3>> value;
+	bool check() const {
+		return false || (std::holds_alternative<C<3>>(value) && std::get<C<3>>(value).check());
+	}
+};
+
+template <int a>
+struct Dependent {
+	bool check() const {
+		return false;
+	}
+};
+
+template <int a>
+struct Fields {
+	Independent i;
+	Dependent<a> d;
+	bool check() const {
+		return true;
+	}
+};
+
+}
