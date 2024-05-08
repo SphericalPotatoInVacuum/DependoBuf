@@ -399,27 +399,20 @@ string_literal : STRING_LITERAL { $$ = ast::Value(ast::ScalarValue<std::string>{
 
 %nterm <ast::Value> constructed_value;
 constructed_value
-  : constructor_identifier "{" field_initialization "}" {
+  : constructor_identifier "{" field_initialization_list "}" {
     $$ = ast::ConstructedValue{{@$}, $1, std::move($3)};
-  }
-  ;
-
-%nterm <std::vector<std::pair<ast::Identifier, ExprPtr>>> field_initialization;
-field_initialization
-  : %empty {
-    $$ = std::vector<std::pair<ast::Identifier, ExprPtr>>();
-  }
-  | field_initialization_list {
-    $$ = std::move($1);
   }
   ;
 
 %nterm <std::vector<std::pair<ast::Identifier, ExprPtr>>> field_initialization_list;
 field_initialization_list
-  : var_identifier COLON expression {
+  : %empty {
+    $$ = std::vector<std::pair<ast::Identifier, ExprPtr>>();
+  }
+  | var_identifier COLON expression {
     $$.emplace_back($1, std::move($3));
   }
-  | field_initialization "," var_identifier COLON expression {
+  | field_initialization_list "," var_identifier COLON expression {
     $$ = std::move($1);
     $$.emplace_back($3, std::move($5));
   }
