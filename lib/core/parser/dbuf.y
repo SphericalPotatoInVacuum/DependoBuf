@@ -474,6 +474,7 @@ value
   | string_literal { $$ = std::move($1); }
   | constructed_value { $$ = std::move($1); }
   | collection_value { $$ = std::move($1); }
+  | function_value { $$ = std::move($1); }
   ;
 
 %nterm <ast::Value> bool_literal;
@@ -494,22 +495,36 @@ uint_literal : UINT_LITERAL { $$ = ast::Value(ast::ScalarValue<uint64_t>{{@1}, $
 %nterm <ast::Value> string_literal;
 string_literal : STRING_LITERAL { $$ = ast::Value(ast::ScalarValue<std::string>{{@1}, $1}); };
 
+%nterm <ast::FunctionValue> function_value;
+function_value
+  : "(" func_identifier "(" parameters ")" ")" {
+    $$ = ast::FunctionValue{{@$}, $2, std::move($4)};
+  }
+  ;
+
 %nterm <ast::Value> collection_value;
 collection_value
-  : "<" collection_elements ">" {
+  : "<" parameters ">" {
     $$ = ast::CollectionValue{{@$}, std::move($2)};
   }
   ;
 
-%nterm <std::vector<ExprPtr>> collection_elements;
-collection_elements 
+%nterm <std::vector<ExprPtr>> parameters;
+parameters 
   : %empty {
     $$ = std::vector<ExprPtr>();
   } 
-  | expression {
+  | parameters_initialization_list {
+    $$ = std::move($1);
+  }
+  ;
+
+%nterm <std::vector<ExprPtr>> parameters_initialization_list;
+parameters_initialization_list
+  : expression {
     $$.emplace_back(std::move($1));
   }
-  | collection_elements "," expression {
+  | parameters_initialization_list "," expression {
     $$ = std::move($1);
     $$.emplace_back(std::move($3));
   }

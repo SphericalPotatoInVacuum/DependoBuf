@@ -135,6 +135,14 @@ struct CollectionValue : ASTNode {
 };
 
 /**
+ * @brief Represents a function value, like `g 1 2`
+ */
+struct FunctionValue : ASTNode {
+  Identifier function_identifier;
+  std::vector<ExprPtr> args = {};
+};
+
+/**
  * @brief Represents a value, which can be a scalar value, a constructed value or collection value
  */
 using Value = std::variant<
@@ -144,7 +152,8 @@ using Value = std::variant<
     ScalarValue<uint64_t>,
     ScalarValue<std::string>,
     ConstructedValue,
-    CollectionValue>;
+    CollectionValue,
+    FunctionValue>;
 
 /**
  * @brief Represents an expression, which can be a binary or a unary expression, a type expression, a value, variable or
@@ -251,6 +260,21 @@ inline std::ostream &operator<<(std::ostream &os, const CollectionValue &col_val
     os << *val;
   }
   os << "}";
+  return os;
+}
+
+inline std::ostream &operator<<(std::ostream &os, const FunctionValue &func_val) {
+  os << func_val.function_identifier.name << "(";
+  bool first = true;
+  for (const auto &val : func_val.args) {
+    if (first) {
+      first = false;
+    } else {
+      os << ", ";
+    }
+    os << *val;
+  }
+  os << ")";
   return os;
 }
 
