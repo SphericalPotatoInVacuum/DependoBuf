@@ -11,7 +11,6 @@
 const std::string kSamplesPath        = "../../test/cpp_test/dbuf_files";
 const std::string kCorrectSamplesPath = "../../test/cpp_test/correct_cpp_files";
 const std::string kGenerationPath     = "./output";
-std::vector<std::string> kFormat      = {"cpp"};
 
 class CPPMessagesCorrectnessTest : public ::testing::TestWithParam<std::string> {
 protected:
@@ -36,15 +35,17 @@ protected:
 dbuf::Driver *CPPMessagesCorrectnessTest::driver_ = nullptr;
 
 TEST_P(CPPMessagesCorrectnessTest, MessagesTest) {
-  std::string filename      = GetParam();
-  std::string dbuf_filename = filename + ".dbuf";
-  std::string cpp_filename  = filename + ".h";
+  std::string filename             = GetParam();
+  std::string dbuf_filename        = filename + ".dbuf";
+  std::string cpp_filename         = filename + ".h";
+  std::vector<std::string> formats = {"cpp"};
 
-  ASSERT_EQ(driver_->Run(kSamplesPath + dbuf_filename, kGenerationPath, kFormat), EXIT_SUCCESS);
+  ASSERT_EQ(driver_->Run(kSamplesPath + dbuf_filename, kGenerationPath, formats), EXIT_SUCCESS);
 
   std::ifstream generated(kGenerationPath + cpp_filename);
   std::ifstream required(kCorrectSamplesPath + cpp_filename);
-  char actual, expexted;
+  char actual;
+  char expexted;
   while (generated.get(actual) && required.get(expexted)) {
     ASSERT_EQ(generated.eofbit, required.eofbit);
     ASSERT_EQ(actual, expexted);

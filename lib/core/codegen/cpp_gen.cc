@@ -9,7 +9,7 @@ namespace dbuf::gen {
 void CppCodeGenerator::PrintVariables(
     std::basic_ostream<char> &out,
     const std::vector<ast::TypedVariable> &variables,
-    std::string delimeter,
+    std::string &&delimeter,
     bool with_types,
     bool add_last_delimeter,
     bool as_dependency) {
@@ -34,11 +34,12 @@ void CppCodeGenerator::PrintVariables(
 bool CppCodeGenerator::CheckForTriggers(
     const std::unordered_set<InternedString> &trigger_names,
     const ast::Expression &expr) {
+  bool result = false;
   if (std::holds_alternative<ast::BinaryExpression>(expr)) {
-    return CheckForTriggers(trigger_names, *(std::get<ast::BinaryExpression>(expr).left)) ||
-           CheckForTriggers(trigger_names, *(std::get<ast::BinaryExpression>(expr).right));
+    result |= CheckForTriggers(trigger_names, *(std::get<ast::BinaryExpression>(expr).left)) ||
+              CheckForTriggers(trigger_names, *(std::get<ast::BinaryExpression>(expr).right));
   } else if (std::holds_alternative<ast::UnaryExpression>(expr)) {
-    return CheckForTriggers(trigger_names, *(std::get<ast::UnaryExpression>(expr).expression));
+    result |= CheckForTriggers(trigger_names, *(std::get<ast::UnaryExpression>(expr).expression));
   } else if (std::holds_alternative<ast::Value>(expr)) {
     const auto &value = std::get<ast::Value>(expr);
     if (std::holds_alternative<ast::ConstructedValue>(value)) {
@@ -47,16 +48,14 @@ bool CppCodeGenerator::CheckForTriggers(
               tree_->types.at(tree_->constructor_to_type.at(constructed_value.constructor_identifier.name)))) {
         return true;
       }
-      bool varibales = false;
       for (const auto &[_, field] : constructed_value.fields) {
-        varibales |= CheckForTriggers(trigger_names, *field);
+        result |= CheckForTriggers(trigger_names, *field);
       }
-      return varibales;
     }
   } else if (std::holds_alternative<ast::VarAccess>(expr)) {
-    return trigger_names.contains(std::get<ast::VarAccess>(expr).var_identifier.name);
+    result |= trigger_names.contains(std::get<ast::VarAccess>(expr).var_identifier.name);
   }
-  return false;
+  return result;
 }
 
 void CppCodeGenerator::Generate(const ast::AST *tree) {
@@ -82,7 +81,14 @@ void CppCodeGenerator::Generate(const ast::AST *tree) {
   *output_ << "}";
 }
 
-void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<ast::TypedVariable> checker_input) {
+void CppCodeGenerator::operator()(const ast::Message &ast_message) {
+  const std::vector<ast::TypedVariable> checker_input;
+  (*this)(ast_message, checker_input);
+}
+
+void CppCodeGenerator::operator()(
+    const ast::Message &ast_message,
+    const std::vector<ast::TypedVariable> &checker_input) {
   std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> checker_members;
 
   // Vector with final cpp fields for this message
@@ -138,7 +144,8 @@ void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<a
 
       // if such type was not already created - creating it
       if (!created_hidden_types_.contains(InternedString(new_type_name.str()))) {
-        std::vector<ast::TypedVariable> hidden_dependencies, real_dependencies;
+        std::vector<ast::TypedVariable> hidden_dependencies;
+        std::vector<ast::TypedVariable> real_dependencies;
         for (size_t ind = 0; ind < previous_type_dependencies.size(); ++ind) {
           if (!positions_of_variable_dependencies.contains(ind)) {
             real_dependencies.emplace_back(previous_type_dependencies[ind]);
@@ -188,7 +195,7 @@ void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<a
   for (auto &field : cpp_struct_fields) {
     for (auto &expr : field.type_expression.parameters) {
       if (std::holds_alternative<ast::Value>(*expr)) {
-        auto &value = std::get<ast::Value>(*expr);
+        const auto &value = std::get<ast::Value>(*expr);
         if (std::holds_alternative<ast::ScalarValue<std::string>>(value)) {
           std::string str = std::get<ast::ScalarValue<std::string>>(value).value;
           *output_ << "\tconstexpr static const char str_" << ++string_counter << "[] = \"" << str << "\";\n";
@@ -229,9 +236,9 @@ void CppCodeGenerator::operator()(const ast::Message &ast_message, std::vector<a
   *output_ << "};\n\n";
 }
 
-void CppCodeGenerator::operator()(const ast::TypedVariable &expr, bool as_dependency) {
-  (*this)(expr.type_expression, as_dependency);
-  *output_ << " " << expr.name;
+void CppCodeGenerator::operator()(const ast::TypedVariable &variable, bool as_dependency) {
+  (*this)(variable.type_expression, as_dependency);
+  *output_ << " " << variable.name;
 }
 
 void CppCodeGenerator::operator()(const ast::TypeExpression &expr, bool as_dependency) {
@@ -423,12 +430,12 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
   }
 }
 
-void CppCodeGenerator::operator()(const ast::Enum &ast_enum, std::vector<ast::TypedVariable> &checker_input) {
+void CppCodeGenerator::operator()(const ast::Enum &ast_enum, const std::vector<ast::TypedVariable> &checker_input) {
   // Generates enum wirh runtime dependencies
 
   // I need original correctly ordered dependencied for each case at type check
   std::string original_name = ast_enum.identifier.name.GetString();
-  std::string added_name    = original_name.substr(original_name.find_first_of('_')); 
+  std::string added_name    = original_name.substr(original_name.find_first_of('_'));
   original_name             = original_name.substr(0, original_name.find_first_of('_'));
 
   // Generates all the constructors for all the rules
@@ -545,7 +552,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, std::vector<ast::Ty
     *output_ << ";\n";
 
     // as soon as i got all stars no other cases are needed
-    if (last_condition == true) {
+    if (last_condition) {
       break;
     }
   }

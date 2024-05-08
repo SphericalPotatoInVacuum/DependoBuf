@@ -13,10 +13,11 @@ public:
 
   void Generate(const ast::AST *tree) override;
 
-  void
-  operator()(const ast::Message &ast_message, std::vector<ast::TypedVariable> checker_input = {});
+  void operator()(const ast::Message &ast_message, const std::vector<ast::TypedVariable> &checker_input);
 
-  void operator()(const ast::Enum &ast_enum, std::vector<ast::TypedVariable> &checker_input);
+  void operator()(const ast::Message &ast_message);
+
+  void operator()(const ast::Enum &ast_enum, const std::vector<ast::TypedVariable> &checker_input);
 
   void operator()(const ast::Enum &ast_enum);
 
@@ -39,7 +40,7 @@ public:
   void PrintVariables(
       std::basic_ostream<char> &out,
       const std::vector<ast::TypedVariable> &variables,
-      std::string delimeter,
+      std::string &&delimeter,
       bool with_types,
       bool add_last_delimeter,
       bool as_dependency);
