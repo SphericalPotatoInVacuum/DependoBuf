@@ -18,6 +18,7 @@ void PyCodeGenerator::Generate(ast::AST *tree) {
   }
 
   printer_.init_file();
+  py_exression_ = PyExpression(tree->constructor_to_type);
 
   for (const auto &struct_name : tree->visit_order) {
     std::variant<ast::Message, ast::Enum> &var = tree->types[struct_name];
@@ -38,6 +39,7 @@ void PyCodeGenerator::operator()(const ast::Message &ast_message) {
 
   std::vector<std::string> dep_names;
   std::vector<std::string> dep_types;
+  std::vector<std::vector<std::string>> dep_deps;
   for (const auto &dep : ast_message.type_dependencies) {
     auto [name, type] = get_name_and_type(dep);
     dep_names.push_back(name);

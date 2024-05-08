@@ -2,6 +2,7 @@
 #include "core/ast/expression.h"
 #include "core/codegen/generation.h"
 #include "core/codegen/python_target/py_print.h"
+#include "core/codegen/python_target/py_expression.h"
 
 namespace dbuf::gen {
 
@@ -40,6 +41,8 @@ private:
   static std::tuple<std::string, std::string> get_name_and_type(const ast::TypedVariable &var);
 
   PyPrinter printer_;
+
+  PyExpression py_exression_;
 };
 
 } // namespace dbuf::gen

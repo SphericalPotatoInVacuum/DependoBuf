@@ -11,10 +11,10 @@ enum Color (s String) {
   }
 }
 
-message Moo (x Int) {
+message Moo (x Int) (u Unsigned) (f Float) (b Bool) (s String) {
 
 }
 
-message Foo (m Moo Green {g: 15}) {
+message Foo (m Moo -1 0u 12.3 true "hello") {
 
 }

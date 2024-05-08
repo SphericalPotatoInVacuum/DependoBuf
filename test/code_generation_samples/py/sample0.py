@@ -51,20 +51,23 @@ class Moo:
     @dataclass
     class __Moo:
 
-        def check(self, col: Color.color_type) -> None:
-            if type(self) not in Moo.possible_types(col):
+        def check(self, x: int, u: Unsigned, f: float, b: bool, s: str) -> None:
+            if type(self) not in Moo.possible_types(x, u, f, b, s):
                 raise TypeError('Non-compliance with type dependencies')
 
     moo_type = __Moo
-    __col_deps = []
+    __x_deps = []
+    __u_deps = []
+    __f_deps = []
+    __b_deps = []
+    __s_deps = []
 
     @classmethod
-    def possible_types(cls, col: Color.color_type) -> set[type]:
+    def possible_types(cls, x: int, u: Unsigned, f: float, b: bool, s: str) -> set[type]:
         return {}
 
-    def __init__(self, col: Color.color_type) -> None:
-        col.check(*self.__col_deps)
-        self.dependencies = (col)
+    def __init__(self, x: int, u: Unsigned, f: float, b: bool, s: str) -> None:
+        self.dependencies = (x, u, f, b, s)
 
     def construct(self) -> __Moo:
         obj = self.__Moo()
@@ -75,12 +78,13 @@ class Moo:
 class Foo:
     @dataclass
     class __Foo:
+
         def check(self, m: Moo.moo_type) -> None:
             if type(self) not in Foo.possible_types(m):
                 raise TypeError('Non-compliance with type dependencies')
 
     foo_type = __Foo
-    __m_deps = [Color.__Green(15)]
+    __m_deps = []
 
     @classmethod
     def possible_types(cls, m: Moo.moo_type) -> set[type]:

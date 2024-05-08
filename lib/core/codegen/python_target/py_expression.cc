@@ -6,8 +6,16 @@
 
 namespace dbuf::gen {
 
-  PyExpression::PyExpression(const std::unordered_map<InternedString, InternedString> &constructor_to_type):
-      constructor_to_type_(constructor_to_type) {}
+  PyExpression::PyExpression(const std::unordered_map<InternedString, InternedString> &constructor_to_type) {
+    constructor_to_type_ = std::make_shared<const std::unordered_map<InternedString, InternedString>>(constructor_to_type);
+  }
+
+  std::string PyExpression::operator()(std::vector<std::shared_ptr<const ast::Expression>> &expressions) {
+    std::vector<std::string> instances;
+    for (const auto expr: expressions) {
+      std::string inst = (*this)(*expr);
+    }
+  }
 
   std::string PyExpression::operator()(const ast::Expression &expr) {
     std::visit(*this, expr);
@@ -43,12 +51,17 @@ namespace dbuf::gen {
   }
 
   std::string PyExpression::operator()(const ast::ScalarValue<bool> &scalar) {
+    return kBoolValues.at(scalar.value);
+  }
 
+  template<typename T>
+  std::string PyExpression::operator()(const ast::ScalarValue<T> &scalar) {
+    return to_string(scalar.value);
   }
 
   std::string PyExpression::operator()(const ast::ConstructedValue &constructed) {
     const InternedString &interned_constructor_name = constructed.constructor_identifier.name;
-    const std::string &struct_name = constructor_to_type_.at(interned_constructor_name).GetString();
+    const std::string &struct_name = constructor_to_type_->at(interned_constructor_name).GetString();
     const std::string &constructor_name = interned_constructor_name.GetString();
 
     res_.clear();
@@ -78,5 +91,10 @@ namespace dbuf::gen {
   const std::unordered_map<char, std::string> PyExpression::kUnaryOperations = {
     {'-', "-"},
     {'!', "not "},
+  };
+
+  const std::unordered_map<bool, std::string> PyExpression::kBoolValues = {
+    {true, "True"},
+    {false, "False"},
   };
 }
