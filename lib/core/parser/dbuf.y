@@ -84,7 +84,7 @@ namespace dbuf::parser {
 %token END 0 "end of file"
 %token SEMICOLON ";"
 %token <std::string> LC_IDENTIFIER UC_IDENTIFIER
-%token MESSAGE ENUM IMPL SERVICE RPC RETURNS
+%token MESSAGE ENUM IMPL FUNC ARROW EQUAL
 %token FALSE TRUE
 %token
   PLUS "+"
@@ -116,8 +116,6 @@ namespace dbuf::parser {
   DOT "."
   COLON ":"
 ;
-%token <std::string> ARRAY "Array"
-%token <std::string> SET "Set"
 
 %token <double> FLOAT_LITERAL
 %token <int64_t> INT_LITERAL
@@ -163,7 +161,30 @@ definition
     }
     ast->types.insert(std::make_pair(name, std::move($1)));
   }
-  | service_definition
+  | function_definition {
+    if (ast->types.contains($1.identifier.name)) {
+      throw syntax_error(@1, "Duplicate type definition: " + $1.identifier.name.GetString());
+    }
+    InternedString name($1.identifier.name);
+    ast->types.insert(std::make_pair(name, std::move($1)));
+    ast->constructor_to_type.emplace(name, name);
+  }
+  ;
+
+%nterm <ast::Func> function_definition;
+function_definition 
+  : FUNC func_identifier arguments "->" "(" type_expr ")" "=" expression {
+    $$ = ast::Func{{$2}, {std::move($3)}, std::make_shared<const ast::Expression>(std::move($6)), std::move($9)};
+  }
+
+%nterm <ast::FuncArguments> arguments;  
+arguments
+  : %empty {
+    $$ = ast::FuncArguments{std::vector<ast::TypedVariable>()};
+  }
+  | type_dependencies {
+    $$ = ast::FuncArguments{std::move($1)};
+  } 
   ;
 
 %nterm <ast::Message> message_definition;
@@ -285,6 +306,24 @@ type_expr
   | type_expr primary {
     $$ = std::move($1);
     $$.parameters.emplace_back(std::move($2));
+  }
+  | func_type_expr {
+    $$ = ast::TypeExpression{{@$}, {ast::Identifier{{@$}, {InternedString("func")}}}, std::move($1)};
+  }
+  ;
+
+%nterm <std::vector<ExprPtr>> func_type_expr;
+func_type_expr
+  : type_expr "->" "(" type_expr ")" {
+    if ($1.identifier.name.GetString() == "func") {
+      throw syntax_error(@1, "Expected type expression, but got function: " + $1.identifier.name.GetString());
+    }
+    if ($4.identifier.name.GetString() == "func") {
+      $$ = std::move($4.parameters);
+      $$.insert($$.begin(), std::make_shared<const ast::Expression>(std::move($1)));
+    } else {
+      $$ = {std::make_shared<const ast::Expression>(std::move($1)), std::make_shared<const ast::Expression>(std::move($4))};
+    }
   }
   ;
 
@@ -507,33 +546,14 @@ field_initialization_list
 %nterm <ast::Identifier>
   type_identifier
   constructor_identifier
-  service_identifier
   var_identifier
-  rpc_identifier
+  func_identifier
 ;
 
 type_identifier : UC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
 constructor_identifier : UC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
-service_identifier : UC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
 var_identifier : LC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
-rpc_identifier : LC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
-
-service_definition
-  : SERVICE service_identifier rpc_block
-  ;
-rpc_block
-  : "{" rpc_declarations "}"
-  ;
-rpc_declarations
-  : %empty
-  | RPC rpc_identifier "(" arguments ")"
-    RETURNS "(" type_expr ")"
-  ;
-arguments
-  : %empty
-  | typed_variable
-  | arguments "," typed_variable
-  ;
+func_identifier : LC_IDENTIFIER { $$ = ast::Identifier{{@1}, {InternedString(std::move($1))}}; };
 
 %nterm <ast::TypedVariable> typed_variable;
 typed_variable

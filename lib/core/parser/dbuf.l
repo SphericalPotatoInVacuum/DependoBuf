@@ -39,13 +39,13 @@ string_literal \"(\\.|[^\\"])*\"
 
     /* Keywords */
 "message" return token::TOK_MESSAGE;
-"service" return token::TOK_SERVICE;
-"rpc"     return token::TOK_RPC;
-"false"   return token::TOK_FALSE;
-"true"    return token::TOK_TRUE;
 "enum"    return token::TOK_ENUM;
 "=>"      return token::TOK_IMPL;
-"returns" return token::TOK_RETURNS;
+"func"      return token::TOK_FUNC;
+"->"      return token::TOK_ARROW;
+"="      return token::TOK_EQUAL;
+"false"   return token::TOK_FALSE;
+"true"    return token::TOK_TRUE;
 
 "in"  return token::TOK_IN;
 
@@ -77,10 +77,6 @@ string_literal \"(\\.|[^\\"])*\"
   lval->emplace<double>(std::stold(yytext));
   return token::TOK_FLOAT_LITERAL;
 }
-
-    /* Collection constructors */
-"Array" return token::TOK_ARRAY;
-"Set" return token::TOK_SET;
 
     /* One or two character tokens */
 "&" return token::TOK_AND;

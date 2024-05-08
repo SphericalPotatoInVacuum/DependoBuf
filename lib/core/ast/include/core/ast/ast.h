@@ -65,12 +65,12 @@ struct Enum
 struct Func
     : Identifiable
     , FuncArguments {
-  NamedType return_type;
-  Expression return_value;
+  ExprPtr return_type;
+  ExprPtr return_value;
 };
 
 struct AST {
-  std::unordered_map<InternedString, std::variant<Message, Enum>> types;
+  std::unordered_map<InternedString, std::variant<Message, Enum, Func>> types;
   std::unordered_map<InternedString, InternedString> constructor_to_type;
 };
 
