@@ -45,6 +45,7 @@ public:
 
   ast::Expression operator()(const ast::ConstructedValue &value);
   ast::Expression operator()(const ast::CollectionValue &value);
+  ast::Expression operator()(const ast::FunctionValue &value);
 
   ast::Expression operator()(const ast::VarAccess &value, const ast::Value &substitution);
 

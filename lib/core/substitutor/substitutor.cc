@@ -122,6 +122,15 @@ ast::Expression Substitutor::operator()(const ast::CollectionValue &value) {
   return ast::CollectionValue {{value.location}, std::move(values)};
 }
 
+ast::Expression Substitutor::operator()(const ast::FunctionValue &value){
+  std::vector<ast::ExprPtr> values;
+  values.reserve(value.args.size());
+  for (const auto &elem : value.args) {
+    values.emplace_back(std::make_shared<const ast::Expression>(std::visit(*this, *elem)));
+  }
+  return ast::FunctionValue {{value.location}, value.function_identifier, std::move(values)};
+}
+
 ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::Value &substitution) {
   return std::visit(*this, ast::Expression(value), substitution);
 }
