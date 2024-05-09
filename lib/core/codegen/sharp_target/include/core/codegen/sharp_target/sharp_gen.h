@@ -17,6 +17,8 @@ private:
     void operator()(const ast::Enum &ast_enum);
 
     const ast::AST *tree_;
+
+    SharpPrinter printer_;
 };
 
 } // namespace dbuf::gen
