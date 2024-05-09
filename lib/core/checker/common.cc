@@ -35,7 +35,7 @@ void Scope::AddName(InternedString name, ast::TypeExpression type) {
   DLOG(INFO) << "Added name \"" << name << "\" with type \"" << vars_.at(name) << "\" to context";
 }
 
-[[nodiscard]] const ast::TypeExpression &Scope::LookupName(InternedString name) const {
+const ast::TypeExpression &Scope::LookupName(InternedString name) const {
   for (const auto &scope : std::ranges::reverse_view(ctx_)) {
     auto it = scope->vars_.find(name);
     if (it != scope->vars_.end()) {
@@ -43,6 +43,13 @@ void Scope::AddName(InternedString name, ast::TypeExpression type) {
     }
   }
   LOG(FATAL) << "Can't find name \"" << name.GetString() << "\"";
+}
+
+bool Scope::IsInScope(InternedString name) const {
+  return std::ranges::any_of(ctx_.begin(), ctx_.end(), [&name](auto scope) {
+    auto it = scope->vars_.find(name);
+    return it != scope->vars_.end();
+  });
 }
 
 ast::TypeExpression

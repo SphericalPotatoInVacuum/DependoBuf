@@ -373,7 +373,22 @@ bool TypeComparator::operator()(const ast::FunctionValue &val) {
   DLOG(INFO) << "Checking FunctionValue: " << val;
 
   const Scope &outer_scope = *context_.back();
-  ast::TypeExpression func_type_expr = outer_scope.LookupName(val.function_identifier.name);
+  ast::TypeExpression func_type_expr;
+  if (outer_scope.IsInScope(val.function_identifier.name)) {
+    func_type_expr = outer_scope.LookupName(val.function_identifier.name);
+  } else {
+    auto type = ast_.types.at(val.function_identifier.name);
+    if (!std::holds_alternative<ast::Func>(type)) {
+      error_ = Error (CreateError() << val.function_identifier.name << " is not a function at " << val.location);
+      return false;
+    }
+    ast::Func func = std::get<ast::Func>(type);
+    func_type_expr = ast::TypeExpression{{func.identifier.location}, ast::Identifier{{func.identifier.location}, {InternedString("func")}}, std::vector<ast::ExprPtr>()};
+    for (auto &type_dependencie : func.type_dependencies) {
+      func_type_expr.parameters.emplace_back(std::make_shared<const ast::Expression>(type_dependencie.type_expression));
+    }
+    func_type_expr.parameters.emplace_back(std::make_shared<const ast::Expression>(func.return_type));
+  }
   if (func_type_expr.identifier.name.GetString() != "func") {
     error_ = Error (CreateError() << val.function_identifier.name << " is not a function at " << val.location);
     return false;

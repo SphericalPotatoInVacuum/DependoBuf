@@ -1,5 +1,5 @@
 func f (x Unsigned) (y Unsigned) (z Unsigned) -> (Unsigned) = x + y + z 
 
 message Kek {
-    array Array (Int) (f (1, 2, 3)); 
+    array Array (Int) (f (1u, 2u, 3u)); 
 }

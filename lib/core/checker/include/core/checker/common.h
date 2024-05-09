@@ -62,6 +62,8 @@ public:
 
   [[nodiscard]] const ast::TypeExpression &LookupName(InternedString name) const;
 
+  [[nodiscard]] bool IsInScope(InternedString name) const;
+
 private:
   std::unordered_map<InternedString, ast::TypeExpression> vars_;
   std::deque<Scope *> &ctx_;
