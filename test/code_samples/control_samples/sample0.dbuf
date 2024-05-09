@@ -11,10 +11,14 @@ enum Color (s String) {
   }
 }
 
-message Moo (x Int) (u Unsigned) (f Float) (b Bool) (s String) {
+message Painter (f Float) (c Color "green") {
 
 }
 
-message Foo (m Moo -1 0u 12.3 true "hello") {
+message Painting (col String) (c Color col) {
+
+}
+
+message Museum (f Float) (p Painter (2.0 + f) Green {g: 12}) (art Painting "red" Red {r: 22}) (ccc Color "yellow") {
 
 }

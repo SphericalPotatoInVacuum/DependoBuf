@@ -6,77 +6,89 @@
 
 namespace dbuf::gen {
 
-  PyExpression::PyExpression(const std::unordered_map<InternedString, InternedString> &constructor_to_type) {
+  void PyExpression::set_constructor_type_map(const std::unordered_map<InternedString, InternedString> &constructor_to_type) {
     constructor_to_type_ = std::make_shared<const std::unordered_map<InternedString, InternedString>>(constructor_to_type);
   }
 
-  std::string PyExpression::operator()(std::vector<std::shared_ptr<const ast::Expression>> &expressions) {
-    std::vector<std::string> instances;
-    for (const auto expr: expressions) {
-      std::string inst = (*this)(*expr);
-    }
+  std::string PyExpression::get_instances(const std::vector<std::shared_ptr<const ast::Expression>> &expressions) {
+    (*this)(expressions);
+    std::string res = buf_.str();
+    buf_.str("");
+    return res;
   }
 
-  std::string PyExpression::operator()(const ast::Expression &expr) {
+  void PyExpression::operator()(const std::vector<std::shared_ptr<const ast::Expression>> &expressions) {
+    buf_ << "(";
+    std::string sep = ", ";
+    for (int i = 0; i < expressions.size(); ++i) {
+      if (i != 0) {
+        buf_ << sep;
+      }
+      (*this)(*expressions[i]);
+    }
+    buf_ << ")";
+  }
+
+  void PyExpression::operator()(const ast::Expression &expr) {
     std::visit(*this, expr);
   }
 
-  std::string PyExpression::operator()(const ast::BinaryExpression &bin_ex) {
-    std::string left = (*this)(*bin_ex.left);
+  void PyExpression::operator()(const ast::BinaryExpression &bin_ex) {
+    (*this)(*bin_ex.left);
+
     std::string op = kBinaryOperations.at(static_cast<char>(bin_ex.type));
-    std::string right = (*this)(*bin_ex.right);
+    buf_ << " " << op << " ";
 
-    res_.clear();
-    res_ << left << " " << op << " " << right;
-    return res_.str();
+    (*this)(*bin_ex.right);
   }
 
-  std::string PyExpression::operator()(const ast::UnaryExpression &un_ex) {
+  void PyExpression::operator()(const ast::UnaryExpression &un_ex) {
     std::string op = kUnaryOperations.at(static_cast<char>(un_ex.type));
-    std::string expression = (*this)(*un_ex.expression);
+    buf_ << op;
 
-    res_.clear();
-    res_ << op << expression;
-    return res_.str();
+    (*this)(*un_ex.expression);
   }
 
-  std::string PyExpression::operator()(const ast::Value &val) {
+  void PyExpression::operator()(const ast::TypeExpression &typ_expr) {
+    buf_ << ":(";
+  }
+
+  void PyExpression::operator()(const ast::Value &val) {
     std::visit(*this, val);
   }
 
-  std::string PyExpression::operator()(const ast::VarAccess &var_acc) {
-    res_.clear();
-    res_ << var_acc;
-    return res_.str();
+  void PyExpression::operator()(const ast::VarAccess &var_acc) {
+    buf_ << var_acc;
   }
 
-  std::string PyExpression::operator()(const ast::ScalarValue<bool> &scalar) {
-    return kBoolValues.at(scalar.value);
+  void PyExpression::operator()(const ast::ScalarValue<bool> &scalar) {
+    buf_ << kBoolValues.at(scalar.value);
+  }
+
+  void PyExpression::operator()(const ast::ScalarValue<std::string> &scalar) {
+    buf_ << "'" << scalar.value << "'";
   }
 
   template<typename T>
-  std::string PyExpression::operator()(const ast::ScalarValue<T> &scalar) {
-    return to_string(scalar.value);
+  void PyExpression::operator()(const ast::ScalarValue<T> &scalar) {
+    buf_ << scalar.value;
   }
 
-  std::string PyExpression::operator()(const ast::ConstructedValue &constructed) {
+  void PyExpression::operator()(const ast::ConstructedValue &constructed) {
     const InternedString &interned_constructor_name = constructed.constructor_identifier.name;
     const std::string &struct_name = constructor_to_type_->at(interned_constructor_name).GetString();
     const std::string &constructor_name = interned_constructor_name.GetString();
 
-    res_.clear();
-    res_ << struct_name << ".__" << constructor_name << "(";
+    buf_ << struct_name << ".__" << constructor_name << "(";
 
     std::string sep = ", ";
     for (int i = 0; i < constructed.fields.size(); ++i) {
       if (i != 0) {
-        res_ << sep;
+        buf_ << sep;
       }
-      std::string field_val = (*this)(*constructed.fields[i].second);
-      res_ << field_val;
+      (*this)(*constructed.fields[i].second);
     }
-    res_ << ")";
-    return res_.str();
+    buf_ << ")";
   }
 
   const std::unordered_map<char, std::string> PyExpression::kBinaryOperations = {

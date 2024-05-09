@@ -118,6 +118,16 @@ void PyPrinter::print_constructor(
   print_line({"return obj"}, level);
 }
 
+void PyPrinter::print_dep_deps(
+    const std::string &dep_name,
+    const std::string &deps,
+    int level) {
+
+  // __k_deps = ()
+  std::vector<std::string> tokens = {dep_name, "_deps = ", deps};
+  print_line(tokens, level);
+}
+
 void PyPrinter::init_file() {
   *out_ << kReadme << kImports << kCreateUnsigned;
 }
@@ -165,7 +175,10 @@ void PyPrinter::print_def_check(
   level--;
 }
 
-void PyPrinter::print_type(const std::string &struct_name, const std::vector<std::string> &inner_types, int level) {
+void PyPrinter::print_type(
+    const std::string &struct_name,
+    const std::vector<std::string> &inner_types,
+    int level) {
   // some_enam_type = __Nil | __Succ
   print_line();
 
@@ -180,12 +193,6 @@ void PyPrinter::print_type(const std::string &struct_name, const std::vector<std
     right << sep << "__" << inner_types[i];
   }
   print_line({left.str(), " = ", right.str()}, level);
-}
-
-void PyPrinter::print_dep_deps(const std::string &dep_name, int level) {
-  // __k_deps = []
-  std::vector<std::string> tokens = {"__", dep_name, "_deps = []"};
-  print_line(tokens, level);
 }
 
 void PyPrinter::print_def_possible_types(
@@ -210,7 +217,9 @@ void PyPrinter::print_def_possible_types(
 void PyPrinter::print_def_init(
     const std::vector<std::string> &names,
     const std::vector<std::string> &types,
+		const std::vector<std::string> &deps,
     int level) {
+
   std::string def_name = "__init__";
 
   print_line();
@@ -221,9 +230,11 @@ void PyPrinter::print_def_init(
 
   // x.check(*self.__x_deps)
   for (int i = 0; i < names.size(); ++i) {
-    if (!BUILD_IN_TYPES.contains(types[i])) {
-      std::vector<std::string> tokens = {names[i], ".check(*self.__", names[i], "_deps)"};
+    if (deps[i].size() > 2) {
+			print_dep_deps(names[i], deps[i], level);
+      std::vector<std::string> tokens = {names[i], ".check(*", names[i], "_deps)"};
       print_line(tokens, level);
+			print_line();
     }
   }
 

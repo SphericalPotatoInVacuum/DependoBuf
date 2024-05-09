@@ -26,14 +26,21 @@ public:
       const std::string &struct_name,
       int level = 2);
 
-  void print_type(const std::string &struct_name, const std::vector<std::string> &inner_types, int level = 1);
+  void print_type(
+      const std::string &struct_name,
+      const std::vector<std::string> &inner_types,
+      int level = 1);
 
-  void print_dep_deps(const std::string &dep_name, int level = 1);
+  void print_def_possible_types(
+      const std::vector<std::string> &names,
+      const std::vector<std::string> &types,
+      int level = 1);
 
-  void
-  print_def_possible_types(const std::vector<std::string> &names, const std::vector<std::string> &types, int level = 1);
-
-  void print_def_init(const std::vector<std::string> &names, const std::vector<std::string> &types, int level = 1);
+  void print_def_init(
+      const std::vector<std::string> &names,
+      const std::vector<std::string> &types,
+      const std::vector<std::string> &deps,
+      int level = 1);
 
   void print_method_construct(
       const std::string &message_name,
@@ -91,6 +98,11 @@ private:
       const std::string &struct_name,
       const std::vector<std::string> &names,
       const std::vector<std::string> &types,
+      int level);
+  
+  void print_dep_deps(
+      const std::string &dep_name,
+      const std::string &deps,
       int level);
 
   std::shared_ptr<std::ofstream> out_ = nullptr;

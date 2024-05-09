@@ -56,14 +56,12 @@ class Message3:
                 raise TypeError('Non-compliance with type dependencies')
 
     message3_type = __Message3
-    __nat_deps = []
 
     @classmethod
     def possible_types(cls, nat: Nat.nat_type) -> set[type]:
         return {}
 
     def __init__(self, nat: Nat.nat_type) -> None:
-        nat.check(*self.__nat_deps)
         self.dependencies = (nat)
 
     def construct(self, x: int, y: int) -> __Message3:

@@ -12,33 +12,18 @@ public:
 
   void Generate(ast::AST *tree) override;
 
-private:
   void operator()(const ast::Message &ast_message);
 
   void operator()(const ast::Enum &ast_enum);
 
-  void operator()(const ast::TypedVariable &typed_var);
-
-  void operator()(const ast::TypeExpression &typed_expr);
-
-  void operator()(const ast::Expression &expr);
-
-  void operator()(const ast::VarAccess &var_access);
-
-  void operator()(const ast::BinaryExpression &bin_expr);
-
-  void operator()(const ast::UnaryExpression &un_expr);
-
-  void operator()(const ast::Value &value);
-
-  void operator()(const ast::ConstructedValue &constructed_val);
-
-  template <typename T>
-  void operator()(const ast::ScalarValue<T> &scalar_val);
-
-  void operator()(const ast::Star &value);
-
+private:
   static std::tuple<std::string, std::string> get_name_and_type(const ast::TypedVariable &var);
+
+  void prepare_deps(
+      const std::vector<ast::TypedVariable>& type_dependencies,
+      std::vector<std::string> &dep_names,
+      std::vector<std::string> &dep_types,
+      std::vector<std::string> &dep_deps);
 
   PyPrinter printer_;
 

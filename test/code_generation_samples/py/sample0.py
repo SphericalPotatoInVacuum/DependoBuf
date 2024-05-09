@@ -27,7 +27,6 @@ class Color:
                 raise TypeError('Non-compliance with type dependencies')
 
     color_type = __Red | __Green
-    __s_deps = []
 
     @classmethod
     def possible_types(cls, s: str) -> set[type]:
@@ -47,54 +46,80 @@ class Color:
         return obj
 
 
-class Moo:
+class Painter:
     @dataclass
-    class __Moo:
+    class __Painter:
 
-        def check(self, x: int, u: Unsigned, f: float, b: bool, s: str) -> None:
-            if type(self) not in Moo.possible_types(x, u, f, b, s):
+        def check(self, f: float, c: Color.color_type) -> None:
+            if type(self) not in Painter.possible_types(f, c):
                 raise TypeError('Non-compliance with type dependencies')
 
-    moo_type = __Moo
-    __x_deps = []
-    __u_deps = []
-    __f_deps = []
-    __b_deps = []
-    __s_deps = []
+    painter_type = __Painter
 
     @classmethod
-    def possible_types(cls, x: int, u: Unsigned, f: float, b: bool, s: str) -> set[type]:
+    def possible_types(cls, f: float, c: Color.color_type) -> set[type]:
         return {}
 
-    def __init__(self, x: int, u: Unsigned, f: float, b: bool, s: str) -> None:
-        self.dependencies = (x, u, f, b, s)
+    def __init__(self, f: float, c: Color.color_type) -> None:
+        c_deps = ('green')
+        c.check(*c_deps)
+        self.dependencies = (f, c)
 
-    def construct(self) -> __Moo:
-        obj = self.__Moo()
+    def construct(self) -> __Painter:
+        obj = self.__Painter()
         obj.check(*self.dependencies)
         return obj
 
 
-class Foo:
+class Painting:
     @dataclass
-    class __Foo:
+    class __Painting:
 
-        def check(self, m: Moo.moo_type) -> None:
-            if type(self) not in Foo.possible_types(m):
+        def check(self, col: str, c: Color.color_type) -> None:
+            if type(self) not in Painting.possible_types(col, c):
                 raise TypeError('Non-compliance with type dependencies')
 
-    foo_type = __Foo
-    __m_deps = []
+    painting_type = __Painting
 
     @classmethod
-    def possible_types(cls, m: Moo.moo_type) -> set[type]:
+    def possible_types(cls, col: str, c: Color.color_type) -> set[type]:
         return {}
 
-    def __init__(self, m: Moo.moo_type) -> None:
-        m.check(*self.__m_deps)
-        self.dependencies = (m)
+    def __init__(self, col: str, c: Color.color_type) -> None:
+        c_deps = (col)
+        c.check(*c_deps)
+        self.dependencies = (col, c)
 
-    def construct(self) -> __Foo:
-        obj = self.__Foo()
+    def construct(self) -> __Painting:
+        obj = self.__Painting()
+        obj.check(*self.dependencies)
+        return obj
+
+
+class Museum:
+    @dataclass
+    class __Museum:
+
+        def check(self, f: float, p: Painter.painter_type, art: Painting.painting_type, ccc: Color.color_type) -> None:
+            if type(self) not in Museum.possible_types(f, p, art, ccc):
+                raise TypeError('Non-compliance with type dependencies')
+
+    museum_type = __Museum
+
+    @classmethod
+    def possible_types(cls, f: float, p: Painter.painter_type, art: Painting.painting_type, ccc: Color.color_type) -> set[type]:
+        return {}
+
+    def __init__(self, f: float, p: Painter.painter_type, art: Painting.painting_type, ccc: Color.color_type) -> None:
+        p_deps = (2 + f, Color.__Green(12))
+        p.check(*p_deps)
+        art_deps = ('red', Color.__Red(22))
+        art.check(*art_deps)
+        ccc_deps = ('yellow')
+        ccc.check(*ccc_deps)
+        self.dependencies = (f, p, art, ccc)
+
+    def construct(self) -> __Museum:
+        obj = self.__Museum()
         obj.check(*self.dependencies)
         return obj

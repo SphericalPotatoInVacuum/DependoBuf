@@ -18,7 +18,7 @@ void PyCodeGenerator::Generate(ast::AST *tree) {
   }
 
   printer_.init_file();
-  py_exression_ = PyExpression(tree->constructor_to_type);
+  py_exression_.set_constructor_type_map(tree->constructor_to_type);
 
   for (const auto &struct_name : tree->visit_order) {
     std::variant<ast::Message, ast::Enum> &var = tree->types[struct_name];
@@ -39,12 +39,13 @@ void PyCodeGenerator::operator()(const ast::Message &ast_message) {
 
   std::vector<std::string> dep_names;
   std::vector<std::string> dep_types;
-  std::vector<std::vector<std::string>> dep_deps;
-  for (const auto &dep : ast_message.type_dependencies) {
-    auto [name, type] = get_name_and_type(dep);
-    dep_names.push_back(name);
-    dep_types.push_back(type);
-  }
+  std::vector<std::string> dep_deps;
+  prepare_deps(
+      ast_message.type_dependencies,
+      dep_names,
+      dep_types,
+      dep_deps
+  );
 
   printer_.print_inner_class(message_name);
 
@@ -61,12 +62,9 @@ void PyCodeGenerator::operator()(const ast::Message &ast_message) {
 
   std::vector<std::string> inner_types = {message_name};
   printer_.print_type(message_name, inner_types);
-  for (auto &dep_name : dep_names) {
-    printer_.print_dep_deps(dep_name);
-  }
 
   printer_.print_def_possible_types(dep_names, dep_types);
-  printer_.print_def_init(dep_names, dep_types);
+  printer_.print_def_init(dep_names, dep_types, dep_deps);
   printer_.print_method_construct(message_name, field_names, field_types);
 }
 
@@ -77,11 +75,13 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
 
   std::vector<std::string> dep_names;
   std::vector<std::string> dep_types;
-  for (const auto &dep : ast_enum.type_dependencies) {
-    auto [name, type] = get_name_and_type(dep);
-    dep_names.push_back(name);
-    dep_types.push_back(type);
-  }
+  std::vector<std::string> dep_deps;
+  prepare_deps(
+      ast_enum.type_dependencies,
+      dep_names,
+      dep_types,
+      dep_deps
+  );
 
   std::vector<std::string> constructors;
   std::unordered_map<std::string, std::vector<std::string>> field_names_map;
@@ -112,12 +112,8 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
 
   printer_.print_type(enum_name, constructors);
 
-  for (auto &dep_name : dep_names) {
-    printer_.print_dep_deps(dep_name);
-  }
-
   printer_.print_def_possible_types(dep_names, dep_types);
-  printer_.print_def_init(dep_names, dep_types);
+  printer_.print_def_init(dep_names, dep_types, dep_deps);
 
   for (auto &constructor_name : constructors) {
     printer_.print_enum_constructor(
@@ -131,6 +127,28 @@ std::tuple<std::string, std::string> PyCodeGenerator::get_name_and_type(const as
   std::string name = var.name.GetString();
   std::string type = var.type_expression.identifier.name.GetString();
   return make_tuple(name, type);
+}
+
+void PyCodeGenerator::prepare_deps(
+    const std::vector<ast::TypedVariable>& type_dependencies,
+    std::vector<std::string> &dep_names,
+    std::vector<std::string> &dep_types,
+    std::vector<std::string> &dep_deps) {
+
+  size_t dep_size = type_dependencies.size();
+  dep_names = std::vector<std::string>(dep_size);
+  dep_types = std::vector<std::string>(dep_size);
+  dep_deps = std::vector<std::string>(dep_size);
+
+  for (size_t i = 0; i < dep_size; ++i) {
+    const auto &dep = type_dependencies[i];
+    auto [name, type] = get_name_and_type(dep);
+    dep_names[i] = name;
+    dep_types[i] = type;
+
+    std::string deps = py_exression_.get_instances(dep.type_expression.parameters);
+    dep_deps[i] = std::move(deps);
+  }
 }
 
 } // namespace dbuf::gen

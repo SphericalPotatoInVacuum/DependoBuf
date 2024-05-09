@@ -9,29 +9,35 @@ class PyExpression {
 public:
   PyExpression() = default;
 
-  explicit PyExpression(const std::unordered_map<InternedString, InternedString> &constructor_to_type);
+  void set_constructor_type_map(const std::unordered_map<InternedString, InternedString> &constructor_to_type);
 
-  std::string operator()(std::vector<std::shared_ptr<const ast::Expression>> &expressions);
+  std::string get_instances(const std::vector<std::shared_ptr<const ast::Expression>> &expressions);
+
+  void operator()(const std::vector<std::shared_ptr<const ast::Expression>> &expressions);
   
-  std::string operator()(const ast::Expression &expr);
+  void operator()(const ast::Expression &expr);
 
-private:
-  std::string operator()(const ast::BinaryExpression &bin_ex);
+  void operator()(const ast::BinaryExpression &bin_ex);
 
-  std::string operator()(const ast::UnaryExpression &un_ex);
+  void operator()(const ast::UnaryExpression &un_ex);
 
-  std::string operator()(const ast::Value &val);
+  void operator()(const ast::TypeExpression &typ_expr);
 
-  std::string operator()(const ast::VarAccess &var_acc);
+  void operator()(const ast::Value &val);
 
-  std::string operator()(const ast::ScalarValue<bool> &scalar);
+  void operator()(const ast::VarAccess &var_acc);
+
+  void operator()(const ast::ScalarValue<bool> &scalar);
+
+  void operator()(const ast::ScalarValue<std::string> &scalar);
 
   template<typename T>
-  std::string PyExpression::operator()(const ast::ScalarValue<T> &scalar);
+  void operator()(const ast::ScalarValue<T> &scalar);
 
-  std::string operator()(const ast::ConstructedValue &constructed);
+  void operator()(const ast::ConstructedValue &constructed);
 
-  std::stringstream res_;
+private:
+  std::stringstream buf_;
 
   static const std::unordered_map<char, std::string> kBinaryOperations;
 
