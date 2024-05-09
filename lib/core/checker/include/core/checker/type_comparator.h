@@ -54,9 +54,7 @@ public:
 
   bool operator()(const ast::ConstructedValue &val);
   bool operator()(const ast::CollectionValue &val);
-  bool operator()(const ast::FunctionValue & /*val*/){
-    DLOG(FATAL) << "Not implemented function";
-  }
+  bool operator()(const ast::FunctionValue &val);
 
 private:
   const ast::TypeExpression &expected_;

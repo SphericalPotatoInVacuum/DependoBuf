@@ -369,6 +369,32 @@ bool TypeComparator::operator()(const ast::CollectionValue &val) {
   });
 }
 
+bool TypeComparator::operator()(const ast::FunctionValue &val) {
+  DLOG(INFO) << "Checking FunctionValue: " << val;
+
+  const Scope &outer_scope = *context_.back();
+  ast::TypeExpression func_type_expr = outer_scope.LookupName(val.function_identifier.name);
+  if (func_type_expr.identifier.name.GetString() != "func") {
+    error_ = Error (CreateError() << val.function_identifier.name << " is not a function at " << val.location);
+    return false;
+  }
+  if (val.args.size() > func_type_expr.parameters.size() - 1) {
+    error_ = Error (CreateError() << "expected <= " << func_type_expr.parameters.size() - 1 << " arguments at " << val.location);
+    return false;
+  }
+  for (size_t i = 0; i < val.args.size(); ++i) {
+    error_ = TypeComparator(std::get<ast::TypeExpression>(*func_type_expr.parameters[i]), ast_, &context_, &substitutor_, &z3_stuff_) .Compare(*val.args[i]);
+    if (error_.has_value()) {
+      return false;
+    }
+  }
+  if (val.args.size() == func_type_expr.parameters.size() - 1) {
+    return CompareTypeExpressions(expected_, std::get<ast::TypeExpression>(*func_type_expr.parameters.back()), z3_stuff_);
+  }
+  ast::TypeExpression new_func_type_expr = {{func_type_expr.location}, func_type_expr.identifier, std::vector<ast::ExprPtr>(func_type_expr.parameters.begin() + val.args.size(), func_type_expr.parameters.end())};
+  return CompareTypeExpressions(expected_, new_func_type_expr, z3_stuff_);
+}
+
 bool TypeComparator::CompareTypeExpressions(
     const ast::TypeExpression &expected_type,
     const ast::TypeExpression &expression,
