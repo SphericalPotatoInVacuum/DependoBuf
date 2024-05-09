@@ -1,6 +1,8 @@
 #include "core/codegen/go/go_gen.h"
 
 #include "core/ast/ast.h"
+#include "core/ast/expression.h"
+#include "core/interning/interned_string.h"
 
 #include <iostream>
 
@@ -69,6 +71,122 @@ std::string GetExportName(std::string field_name) {
 
 std::string GetIndent(std::size_t count) {
   return std::string(count * kIndentLength, ' ');
+}
+
+class GoWriter {
+public:
+  GoWriter(std::shared_ptr<std::ofstream> output)
+      : output_(output) {}
+
+  template <typename T>
+  void Write(T value);
+
+  void WriteString(const std::string &value);
+
+  void WriteNewLine();
+
+  void WriteExpression(const ast::Expression &value);
+  void WriteExpression(const ast::BinaryExpression &value);
+  void WriteExpression(const ast::UnaryExpression &value);
+  void WriteExpression(const ast::TypeExpression &value);
+  void WriteExpression(const ast::Value &value);
+  void WriteExpression(const ast::VarAccess &value);
+
+  template <typename T>
+  void WriteExpression(const ast::ScalarValue<T> &value);
+
+  void WriteExpression(const ast::ConstructedValue &value);
+
+private:
+  std::shared_ptr<std::ofstream> output_;
+  std::unordered_map<InternedString, std::vector<InternedString>> dependency_names_;
+};
+
+template <typename T>
+void GoWriter::Write(T value) {
+  *output_ << value;
+}
+
+void GoWriter::WriteString(const std::string &value) {
+  *output_ << value;
+}
+
+void GoWriter::WriteNewLine() {
+  *output_ << '\n';
+}
+
+template <typename T>
+void GoWriter::WriteExpression(const ast::ScalarValue<T> &value) {
+  Write(value.value);
+}
+
+template <>
+void GoWriter::WriteExpression(const ast::ScalarValue<std::string> &value) {
+  Write('"');
+  WriteString(value.value);
+  Write('"');
+}
+
+void GoWriter::WriteExpression(const ast::Expression &value) {
+  std::visit([this](const auto &inner_value) { WriteExpression(inner_value); }, value);
+}
+
+void GoWriter::WriteExpression(const ast::BinaryExpression &value) {
+  WriteString("(");
+  WriteExpression(*value.left);
+  WriteString(" ");
+  Write(static_cast<char>(value.type));
+  WriteString(" ");
+  WriteExpression(*value.right);
+  WriteString(")");
+}
+
+void GoWriter::WriteExpression(const ast::UnaryExpression &value) {
+  *output_ << static_cast<char>(value.type);
+  WriteExpression(*value.expression);
+}
+
+void GoWriter::WriteExpression(const ast::TypeExpression &value) {
+  WriteString(value.identifier.name.GetString());
+  for (const auto &parameter : value.parameters) {
+    WriteString(" ");
+    WriteExpression(*parameter);
+  }
+}
+
+void GoWriter::WriteExpression(const ast::Value &value) {
+  std::visit([this](const auto &inner_value) { WriteExpression(inner_value); }, value);
+}
+
+void GoWriter::WriteExpression(const ast::VarAccess &value) {
+  WriteString("obj.");
+  WriteString(value.var_identifier.name.GetString());
+  std::cout << "field cnt: " << value.field_identifiers.size() << std::endl;
+  for (const auto &field : value.field_identifiers) {
+    WriteString(".");
+    WriteString(field.name.GetString());
+  }
+}
+
+void GoWriter::WriteExpression(const ast::ConstructedValue &value) {
+  WriteString(value.constructor_identifier.name.GetString());
+  WriteString("{");
+  if (!value.fields.empty()) {
+    WriteNewLine();
+    bool is_first_field = true;
+    for (const auto &[identifier, value] : value.fields) {
+      if (is_first_field) {
+        is_first_field = false;
+      } else {
+        WriteString(", ");
+      }
+      WriteString(identifier.name.GetString());
+      WriteString(": ");
+      WriteExpression(*value);
+    }
+    WriteNewLine();
+  }
+  WriteString("}");
 }
 
 } // namespace
@@ -142,6 +260,35 @@ void GoCodeGenerator::GenerateObject(const ast::Message &msg) {
   }
   *output_ << "}\n";
   *output_ << '\n';
+  // generate Validate
+  *output_ << "func(obj *" << message_name << ") Validate() bool {";
+  if (!msg.type_dependencies.empty() || !msg.fields.empty()) {
+    *output_ << '\n';
+  }
+  for (const auto &dependency : msg.type_dependencies) {
+    if (dependency.type_expression.parameters.empty()) {
+      continue;
+    }
+    const auto &dependency_type = dependency.type_expression.identifier.name.GetString();
+    *output_ << GetIndent(1) << "if (";
+    bool is_first_condition = true;
+    for (const auto &type_parameter_ptr : dependency.type_expression.parameters) {
+      if (is_first_condition) {
+        is_first_condition = false;
+      } else {
+        *output_ << " || ";
+      }
+      *output_ << "obj." << dependency.name.GetString() << " != ";
+      GoWriter writer {output_};
+      std::visit([&writer](const auto &parameter) { writer.WriteExpression(parameter); }, *type_parameter_ptr);
+    }
+    *output_ << ") {\n";
+    *output_ << GetIndent(2) << "return false;\n";
+    *output_ << GetIndent(1) << "}\n";
+  }
+  *output_ << GetIndent(1) << "return true;\n";
+  *output_ << "}\n";
+  *output_ << "\n";
 }
 
 void GoCodeGenerator::GenerateObject(const ast::Enum &en) {
