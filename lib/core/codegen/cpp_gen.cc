@@ -198,10 +198,10 @@ void CppCodeGenerator::operator()(
         const auto &value = std::get<ast::Value>(*expr);
         if (std::holds_alternative<ast::ScalarValue<std::string>>(value)) {
           std::string str = std::get<ast::ScalarValue<std::string>>(value).value;
-          *output_ << "  constexpr static const char str_" << ++string_counter << "[] = \"" << str << "\";\n";
+          *output_ << "  constexpr static const char str_" << ++string_counter_ << "[] = \"" << str << "\";\n";
           ast::VarAccess new_expr;
           std::stringstream expr_name;
-          expr_name << "str_" << string_counter;
+          expr_name << "str_" << string_counter_;
           new_expr.var_identifier.name = InternedString(expr_name.str());
           expr                         = std::make_shared<ast::Expression>(new_expr);
         }

@@ -43,7 +43,7 @@ TEST_P(CPPMessagesCorrectnessTest, MessagesTest) {
   ASSERT_EQ(driver_->Run(kSamplesPath + dbuf_filename, kGenerationPath, formats), EXIT_SUCCESS);
 
   std::ifstream generated(kGenerationPath + cpp_filename);
-  std::ifstream required(kCorrectSamplesPath + cpp_filename);
+  std::ifstream required(kCorrectSamplesPath + filename);
   char actual;
   char expexted;
   while (generated.get(actual) && required.get(expexted)) {
