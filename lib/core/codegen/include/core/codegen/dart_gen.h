@@ -12,7 +12,7 @@ public:
 
     void operator()(const ast::Message& ast_message);
 
-    void operator()(const ast::Enum& ast_message) {};
+    void operator()(const ast::Enum& ast_message);
 
     void Generate(ast::AST* tree) override;
 
