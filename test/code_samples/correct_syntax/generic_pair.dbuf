@@ -1,0 +1,4 @@
+message TypedPair {
+    T Type;
+    p Pair T;
+}
