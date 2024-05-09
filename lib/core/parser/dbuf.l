@@ -41,9 +41,9 @@ string_literal \"(\\.|[^\\"])*\"
 "message" return token::TOK_MESSAGE;
 "enum"    return token::TOK_ENUM;
 "=>"      return token::TOK_IMPL;
-"func"      return token::TOK_FUNC;
+"func"    return token::TOK_FUNC;
 "->"      return token::TOK_ARROW;
-"="      return token::TOK_EQUAL;
+"="       return token::TOK_EQUAL;
 "false"   return token::TOK_FALSE;
 "true"    return token::TOK_TRUE;
 

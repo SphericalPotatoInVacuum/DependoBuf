@@ -44,7 +44,7 @@ std::optional<Error> NameResolutionChecker::operator()(const ast::AST &ast) {
 bool NameResolutionChecker::operator()(const ast::Message &ast_message) {
   PushScope();
   for (const auto &dependency : ast_message.type_dependencies) {
-    if (!(*this)(dependency, true)) {
+    if (!(*this)(dependency, false)) {
       return false;
     }
   }
@@ -60,7 +60,7 @@ bool NameResolutionChecker::operator()(const ast::Message &ast_message) {
 bool NameResolutionChecker::operator()(const ast::Enum &ast_enum) {
   PushScope();
   for (const auto &dependency : ast_enum.type_dependencies) {
-    if (!(*this)(dependency, true)) {
+    if (!(*this)(dependency, false)) {
       return false;
     };
   }
@@ -93,12 +93,12 @@ bool NameResolutionChecker::operator()(const ast::Enum::Rule &rule) {
 
 bool NameResolutionChecker::operator()(const ast::Func &ast_func){
   PushScope();
-  for (const auto& arg : ast_func.args){
-    if (!AddName(arg.name, "variable", false)){
+  for (const auto& arg : ast_func.type_dependencies){
+    if (!(*this)(arg, false)){
       return false;
     }
   }
-  if (!std::visit(*this, ast_func.return_value)){
+  if (!std::visit(*this, *ast_func.return_value)){
     return false;
   }
   PopScope();
@@ -158,6 +158,16 @@ bool NameResolutionChecker::operator()(const ast::CollectionValue & /* value */)
   return true;
 }
 
+bool NameResolutionChecker::operator()(const ast::FunctionValue &value) {
+  if (!IsInScope(value.function_identifier.name)) {
+    error_ = Error {"Undefined function: \"" + value.function_identifier.name.GetString() + "\""};
+    return false;
+  }
+  return std::ranges::all_of(value.args.begin(), value.args.end(), [this](auto arg) {
+    return std::visit(*this, *arg);
+  });
+}
+
 bool NameResolutionChecker::operator()(const ast::Star & /* value */) {
   return true;
 }
@@ -211,6 +221,7 @@ bool NameResolutionChecker::IsInScope(InternedString name) {
 
 bool NameResolutionChecker::AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing) {
   DCHECK(!scopes_.empty());
+  DLOG(INFO) << name << "   asdasda";
   if ((!allow_shadowing) && IsInScope(name)) {
     error_ = Error {"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""};
     return false;
@@ -229,7 +240,7 @@ bool NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
   if (!AddName(InternedString("Int"), "type", false) || !AddName(InternedString("Unsigned"), "type", false) ||
       !AddName(InternedString("String"), "type", false) || !AddName(InternedString("Float"), "type", false) ||
       !AddName(InternedString("Bool"), "type", false) || !AddName(InternedString("Array"), "type", false) ||
-      !AddName(InternedString("Set"), "type", false)) {
+      !AddName(InternedString("Set"), "type", false) || !AddName(InternedString("func"), "type", false)) {
     return false;
   };
 

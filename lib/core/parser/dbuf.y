@@ -173,19 +173,9 @@ definition
 
 %nterm <ast::Func> function_definition;
 function_definition 
-  : FUNC func_identifier arguments "->" "(" type_expr ")" "=" expression {
-    $$ = ast::Func{{$2}, {std::move($3)}, std::make_shared<const ast::Expression>(std::move($6)), std::move($9)};
+  : FUNC func_identifier type_dependencies ARROW "(" type_expr ")" EQUAL expression {
+    $$ = ast::Func{{$2}, {std::move($3)}, std::move($6), std::move($9)};
   }
-
-%nterm <ast::FuncArguments> arguments;  
-arguments
-  : %empty {
-    $$ = ast::FuncArguments{std::vector<ast::TypedVariable>()};
-  }
-  | type_dependencies {
-    $$ = ast::FuncArguments{std::move($1)};
-  } 
-  ;
 
 %nterm <ast::Message> message_definition;
 message_definition
@@ -314,7 +304,7 @@ type_expr
 
 %nterm <std::vector<ExprPtr>> func_type_expr;
 func_type_expr
-  : type_expr "->" "(" type_expr ")" {
+  : type_expr ARROW "(" type_expr ")" {
     if ($1.identifier.name.GetString() == "func") {
       throw syntax_error(@1, "Expected type expression, but got function: " + $1.identifier.name.GetString());
     }

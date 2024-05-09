@@ -49,6 +49,7 @@ public:
   }
   bool operator()(const ast::ConstructedValue &value);
   bool operator()(const ast::CollectionValue &value);
+  bool operator()(const ast::FunctionValue &value);
 
   bool operator()(const ast::Star &value);
 

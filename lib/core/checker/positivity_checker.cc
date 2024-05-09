@@ -66,6 +66,8 @@ void PositivityChecker::operator()(const ast::Enum &ast_enum) {
   }
 }
 
+void PositivityChecker::operator()(const ast::Func & /* ast_func */) {}
+
 void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
   if (!is_enum_field_) {
     cycle_graph_.at(current_type_).insert(type_expression.identifier.name);

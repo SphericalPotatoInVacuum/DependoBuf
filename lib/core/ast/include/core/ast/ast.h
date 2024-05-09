@@ -36,10 +36,6 @@ struct TypeWithFields {
   std::vector<TypedVariable> fields = {};
 };
 
-struct FuncArguments {
-  std::vector<TypedVariable> args = {};
-};
-
 struct Constructor
     : Identifiable
     , TypeWithFields {};
@@ -64,8 +60,8 @@ struct Enum
 
 struct Func
     : Identifiable
-    , FuncArguments {
-  ExprPtr return_type;
+    , DependentType {
+  TypeExpression return_type;
   ExprPtr return_value;
 };
 
