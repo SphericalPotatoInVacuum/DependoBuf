@@ -32,7 +32,7 @@ public:
 
   void operator()(const ast::Message &ast_message);
   void operator()(const ast::Enum &ast_enum);
-  void operator()(const ast::Func &ast_enum);
+  void operator()(const ast::Func &ast_func);
   void operator()(const ast::TypeExpression &type_expression);
 
   void operator()(const ast::Value &value);

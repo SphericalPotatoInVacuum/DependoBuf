@@ -91,14 +91,14 @@ bool NameResolutionChecker::operator()(const ast::Enum::Rule &rule) {
   return true;
 }
 
-bool NameResolutionChecker::operator()(const ast::Func &ast_func){
+bool NameResolutionChecker::operator()(const ast::Func &ast_func) {
   PushScope();
-  for (const auto& arg : ast_func.type_dependencies){
-    if (!(*this)(arg, false)){
+  for (const auto &arg : ast_func.type_dependencies) {
+    if (!(*this)(arg, false)) {
       return false;
     }
   }
-  if (!std::visit(*this, *ast_func.return_value)){
+  if (!std::visit(*this, *ast_func.return_value)) {
     return false;
   }
   PopScope();
@@ -139,12 +139,16 @@ bool NameResolutionChecker::operator()(const ast::ConstructedValue &value) {
     return false;
   }
   if (constructor_to_fields_[value.constructor_identifier.name].size() != value.fields.size()) {
-    error_ = Error (CreateError() << "Expected " << constructor_to_fields_[value.constructor_identifier.name].size() << " parameters, but got " << value.fields.size() << " in ConstructedValue " << value);
+    error_ = Error(
+        CreateError() << "Expected " << constructor_to_fields_[value.constructor_identifier.name].size()
+                      << " parameters, but got " << value.fields.size() << " in ConstructedValue " << value);
     return false;
   }
   for (size_t i = 0; i < value.fields.size(); ++i) {
     if (constructor_to_fields_[value.constructor_identifier.name][i] != value.fields[i].first.name) {
-      error_ = Error(CreateError() << "Expected field " << constructor_to_fields_[value.constructor_identifier.name][i] << ", but got " << value.fields[i].first.name << " in ConstructedValue " << value);
+      error_ = Error(
+          CreateError() << "Expected field " << constructor_to_fields_[value.constructor_identifier.name][i]
+                        << ", but got " << value.fields[i].first.name << " in ConstructedValue " << value);
       return false;
     }
     if (!(*this)(value.fields[i])) {
@@ -181,7 +185,8 @@ bool NameResolutionChecker::operator()(const ast::UnaryExpression &expr) {
 }
 
 bool NameResolutionChecker::operator()(const ast::TypeExpression &expr) {
-  if (!IsInScope(expr.identifier.name)) {
+  DLOG(INFO) << expr;
+  if (!IsInScope(expr.identifier.name) && expr.identifier.name != InternedString("func")) {
     error_ = Error(
         CreateError() << "Undefined type name: \"" << expr.identifier.name.GetString() << "\" at "
                       << expr.identifier.location);
@@ -240,7 +245,7 @@ bool NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
   if (!AddName(InternedString("Int"), "type", false) || !AddName(InternedString("Unsigned"), "type", false) ||
       !AddName(InternedString("String"), "type", false) || !AddName(InternedString("Float"), "type", false) ||
       !AddName(InternedString("Bool"), "type", false) || !AddName(InternedString("Array"), "type", false) ||
-      !AddName(InternedString("Set"), "type", false) || !AddName(InternedString("func"), "type", false)) {
+      !AddName(InternedString("Set"), "type", false)) {
     return false;
   };
 
@@ -257,7 +262,7 @@ bool NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
           return AddName(constructor.identifier.name, "constructor", false);
         });
       });
-    } else if constexpr(std::is_same_v<T, ast::Func>){
+    } else if constexpr (std::is_same_v<T, ast::Func>) {
       return AddName(type.identifier.name, "func", false);
     }
   };

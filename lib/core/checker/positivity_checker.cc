@@ -66,13 +66,22 @@ void PositivityChecker::operator()(const ast::Enum &ast_enum) {
   }
 }
 
-void PositivityChecker::operator()(const ast::Func & /* ast_func */) {}
+void PositivityChecker::operator()(const ast::Func &ast_func ) {
+  DLOG(INFO) << "Checking func: " << ast_func.identifier.name;
+  current_type_ = ast_func.identifier.name;
+  cycle_graph_.emplace(current_type_, std::set<InternedString> {});
+  order_graph_.emplace(current_type_, std::set<InternedString> {});
+  for (const auto &dep : ast_func.type_dependencies) {
+    (*this)(dep.type_expression);
+  }
+  (*this)(ast_func.return_type);
+}
 
 void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
   if (!is_enum_field_) {
     cycle_graph_.at(current_type_).insert(type_expression.identifier.name);
     DLOG(INFO) << "Adding dependency: " << current_type_ << " -> " << type_expression.identifier.name
-               << "to dependency graph";
+               << " to dependency graph";
   }
   order_graph_.at(current_type_).insert(type_expression.identifier.name);
   DLOG(INFO) << "Adding : " << current_type_ << " -> " << type_expression.identifier.name << " to order graph";
