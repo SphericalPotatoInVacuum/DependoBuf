@@ -19,3 +19,6 @@ endif()
 add_subdirectory("lib")
 add_subdirectory("src")
 add_subdirectory("test")
+
+# to start fuzzer remove -stdlib=libc++ from CMAKE_CXX_FLAGS
+# add_subdirectory("fuzzer")

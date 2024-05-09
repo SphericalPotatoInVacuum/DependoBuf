@@ -1,0 +1,14 @@
+enum Independent {
+    First {
+        a Int;
+        b Bool;
+    }
+    Second {
+        a Bool;
+        b Int;
+    }
+    Third {
+        a String;
+        b String;
+    }
+}
