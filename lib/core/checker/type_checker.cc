@@ -250,6 +250,10 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
   return true;
 }
 
+bool TypeChecker::operator()(const ast::Func &/*ast_func*/){
+  DLOG(FATAL) << "Not implemented func";
+}
+
 // Checks that all dependencies are correctly defined
 bool TypeChecker::CheckDependencies(const ast::DependentType &type) {
   Scope &scope = *context_.back();

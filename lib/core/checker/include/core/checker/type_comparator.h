@@ -14,6 +14,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/checker/common.h"
 #include "core/checker/expression_comparator.h"
 #include "core/substitutor/substitutor.h"
+#include "glog/logging.h"
 
 #include <cstdint>
 #include <optional>
@@ -53,6 +54,9 @@ public:
 
   bool operator()(const ast::ConstructedValue &val);
   bool operator()(const ast::CollectionValue &val);
+  bool operator()(const ast::FunctionValue & /*val*/){
+    DLOG(FATAL) << "Not implemented function";
+  }
 
 private:
   const ast::TypeExpression &expected_;

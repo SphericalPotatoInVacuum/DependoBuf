@@ -61,7 +61,8 @@ struct ExpressionToZ3 {
   z3::expr operator()(const ast::ScalarValue<double> &value);
   z3::expr operator()(const ast::ScalarValue<std::string> &value);
   z3::expr operator()(const ast::ConstructedValue &value);
-  z3::expr operator()(const ast::CollectionValue & /*value*/);
+  z3::expr operator()(const ast::CollectionValue & value);
+  z3::expr operator()(const ast::FunctionValue & /*value*/);
 };
 
 [[nodiscard]] std::optional<Error> CompareExpressions(

@@ -38,6 +38,7 @@ public:
 
   bool operator()(const ast::Message &ast_message);
   bool operator()(const ast::Enum &ast_enum);
+  bool operator()(const ast::Func &ast_func);
 
 private:
   const ast::AST &ast_;

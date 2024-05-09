@@ -11,8 +11,10 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/checker/expression_comparator.h"
 
 #include "core/ast/ast.h"
+#include "core/ast/expression.h"
 #include "core/checker/common.h"
 #include "core/interning/interned_string.h"
+#include "glog/logging.h"
 #include "z3++.h"
 
 #include <cstddef>
@@ -145,6 +147,10 @@ z3::expr ExpressionToZ3::operator()(const ast::CollectionValue &value) {
     vec           = z3::store(vec, z3_stuff.context_.int_val(i), elem);
   }
   return vec;
+}
+
+z3::expr ExpressionToZ3::operator()(const ast::FunctionValue & /*value*/) {
+  DLOG(FATAL) << "Not implemented function";
 }
 
 std::optional<Error> CompareExpressions(
