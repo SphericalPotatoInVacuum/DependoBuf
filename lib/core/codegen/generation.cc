@@ -1,6 +1,7 @@
 #include "core/codegen/generation.h"
 
 #include "core/codegen/cpp_gen.h"
+#include "core/codegen/sharp_target/sharp_gen.h"
 
 #include <filesystem>
 #include <set>
@@ -32,8 +33,17 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
       } else {
         throw std::string("You can add only one c++ file");
       }
+    } else if ((format == "cs") || (format == "c#")) {
+      if (!added_formats.contains("cs")) {
+        std::stringstream full_path;
+        full_path << path << "/" << filename << ".h";
+        targets_.emplace_back(std::make_shared<SharpCodeGenerator>(SharpCodeGenerator(full_path.str())));
+        added_formats.insert("cs");
+      } else {
+        throw std::string("You can add only one c# file");
+      }
     } else {
-      throw "Unsupported foramt: {}" + format;
+      throw "Unsupported format: {}" + format;
     }
   }
 }
