@@ -66,16 +66,7 @@ void PositivityChecker::operator()(const ast::Enum &ast_enum) {
   }
 }
 
-void PositivityChecker::operator()(const ast::Func &ast_func ) {
-  DLOG(INFO) << "Checking func: " << ast_func.identifier.name;
-  current_type_ = ast_func.identifier.name;
-  cycle_graph_.emplace(current_type_, std::set<InternedString> {});
-  order_graph_.emplace(current_type_, std::set<InternedString> {});
-  for (const auto &dep : ast_func.type_dependencies) {
-    (*this)(dep.type_expression);
-  }
-  (*this)(ast_func.return_type);
-}
+void PositivityChecker::operator()(const ast::Func & /* ast_func */) {}
 
 void PositivityChecker::operator()(const ast::TypeExpression &type_expression) {
   if (!is_enum_field_) {

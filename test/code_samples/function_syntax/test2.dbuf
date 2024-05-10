@@ -1,9 +1,16 @@
 func f (x Unsigned) (y Unsigned) (z Unsigned) -> (Unsigned) = x + y + z
 
 message DepOnFunc (g Unsigned -> (Unsigned)) { 
-    array Array (Int) (g (5));
+    array Array (Int) (g (5u));
 }
 
-message Foo {
-    dep DepOnFunc (f (1, 3));
+message Foo1 {
+    dep1 DepOnFunc (f (1u, 3u));
+    dep2 DepOnFunc (f (1u, 5u));
+}
+
+message C (array Array (Int) 20u) {}
+
+message A (foo Foo1) {
+    c C (foo.dep1.array || foo.dep2.array);
 }

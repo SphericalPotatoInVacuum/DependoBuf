@@ -10,27 +10,32 @@ the Free Software Foundation, either version 3 of the License, or
 */
 #include "core/substitutor/substitutor.h"
 
+#include "core/ast/ast.h"
 #include "core/ast/expression.h"
+#include "core/interning/interned_string.h"
 #include "glog/logging.h"
 #include "location.hh"
 
 #include <cassert>
+#include <cstddef>
+#include <deque>
 #include <memory>
 #include <ranges>
 #include <stdexcept>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
 
 namespace dbuf {
 
+Substitutor::Substitutor(const ast::AST &ast) : ast_(ast) {}
+
 // Add a new (name -> expression) substitution to last scope
 void Substitutor::AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression) {
   DCHECK(!substitute_.empty());
   DLOG(INFO) << "Adding substitution: " << name << " -> " << *expression;
-  auto expr = std::make_shared<ast::Expression>(std::visit(*this, *expression));
-  DLOG(INFO) << "Added substitution: " << name << " -> " << *expr;
-  substitute_.back().insert_or_assign(name, std::move(expr));
+  substitute_.back().insert_or_assign(name, std::move(expression));
 }
 
 // Add a new scope
@@ -81,7 +86,10 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value) {
     auto it = scope.find(value.var_identifier.name);
     if (it != scope.end()) {
       DLOG(INFO) << value;
-      return std::visit(*this, ast::Expression(value), *it->second);
+      if (std::holds_alternative<ast::VarAccess>(*it->second) && std::get<ast::VarAccess>(*it->second).var_identifier.name == value.var_identifier.name) {
+        return std::visit(*this, ast::Expression(value), *it->second);
+      } 
+      return std::visit(*this, ast::Expression(value), std::visit(*this, *it->second));
     }
   }
   return value;
@@ -122,13 +130,33 @@ ast::Expression Substitutor::operator()(const ast::CollectionValue &value) {
   return ast::CollectionValue {{value.location}, std::move(values)};
 }
 
-ast::Expression Substitutor::operator()(const ast::FunctionValue &value){
-  std::vector<ast::ExprPtr> values;
-  values.reserve(value.args.size());
-  for (const auto &elem : value.args) {
-    values.emplace_back(std::make_shared<const ast::Expression>(std::visit(*this, *elem)));
+ast::Expression Substitutor::operator()(const ast::FunctionValue &value) {
+  PushScope();
+  ast::Func func;
+  std::deque<ast::ExprPtr> args;
+  ast::FunctionValue current_value = value;
+  while (true) {
+    for (const auto& arg : std::ranges::reverse_view(current_value.args)) {
+      args.push_front(arg);
+    }
+    if (ast_.functions.contains(current_value.function_identifier.name)) {
+      func = ast_.functions.at(current_value.function_identifier.name);
+      break;
+    }
+    for (const auto &scope : std::ranges::reverse_view(substitute_)) {
+      auto it = scope.find(current_value.function_identifier.name);
+      if (it != scope.end()) {
+        current_value = std::get<ast::FunctionValue>(std::get<ast::Value>(*it->second));
+        break;
+      }
+    }
   }
-  return ast::FunctionValue {{value.location}, value.function_identifier, std::move(values)};
+  for (size_t i = 0; i < args.size(); ++i) {
+    AddSubstitution(func.type_dependencies[i].name, args[i]);
+  }
+  ast::Expression new_value = std::visit(*this, *func.return_value);
+  PopScope();
+  return new_value;
 }
 
 ast::Expression Substitutor::operator()(const ast::VarAccess &value, const ast::Value &substitution) {

@@ -26,7 +26,9 @@ namespace dbuf {
 
 class Substitutor {
 public:
-  void AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression);
+  explicit Substitutor(const ast::AST &ast);
+
+  void AddSubstitution(InternedString name, const ast::ExprPtr &expression);
   void PushScope();
   void PopScope();
 
@@ -67,6 +69,7 @@ public:
 private:
   using Scope = std::unordered_map<InternedString, ast::ExprPtr>;
   std::deque<Scope> substitute_;
+  const ast::AST &ast_;
 };
 
 } // namespace dbuf

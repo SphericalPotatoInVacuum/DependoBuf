@@ -149,8 +149,8 @@ z3::expr ExpressionToZ3::operator()(const ast::CollectionValue &value) {
   return vec;
 }
 
-z3::expr ExpressionToZ3::operator()(const ast::FunctionValue & /*value*/) {
-  DLOG(FATAL) << "Not implemented function";
+z3::expr ExpressionToZ3::operator()(const ast::FunctionValue & /* value */) {
+  LOG(FATAL) << "Can't create z3::expr for FunctionValue";
 }
 
 std::optional<Error> CompareExpressions(

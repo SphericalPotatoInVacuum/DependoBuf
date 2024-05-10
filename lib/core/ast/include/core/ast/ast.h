@@ -66,8 +66,9 @@ struct Func
 };
 
 struct AST {
-  std::unordered_map<InternedString, std::variant<Message, Enum, Func>> types;
+  std::unordered_map<InternedString, std::variant<Message, Enum>> types;
   std::unordered_map<InternedString, InternedString> constructor_to_type;
+  std::unordered_map<InternedString, Func> functions;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const TypedVariable &var) {

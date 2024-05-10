@@ -49,9 +49,9 @@ struct ExpressionToZ3 {
 
   z3::expr operator()(const ast::BinaryExpression &binary_expression);
   z3::expr operator()(const ast::UnaryExpression &unary_expression);
-  z3::expr operator()(const ast::TypeExpression & /* type_expression */);
+  z3::expr operator()(const ast::TypeExpression &type_expression);
   z3::expr operator()(const ast::VarAccess &var_access);
-  z3::expr operator()(const ast::ArrayAccess & /*value*/);
+  z3::expr operator()(const ast::ArrayAccess &value);
 
   z3::expr operator()(const ast::Value &value);
 
@@ -61,8 +61,8 @@ struct ExpressionToZ3 {
   z3::expr operator()(const ast::ScalarValue<double> &value);
   z3::expr operator()(const ast::ScalarValue<std::string> &value);
   z3::expr operator()(const ast::ConstructedValue &value);
-  z3::expr operator()(const ast::CollectionValue & value);
-  z3::expr operator()(const ast::FunctionValue & /*value*/);
+  z3::expr operator()(const ast::CollectionValue &value);
+  z3::expr operator()(const ast::FunctionValue &value);
 };
 
 [[nodiscard]] std::optional<Error> CompareExpressions(

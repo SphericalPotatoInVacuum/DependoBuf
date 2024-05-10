@@ -33,6 +33,11 @@ std::optional<Error> NameResolutionChecker::operator()(const ast::AST &ast) {
   }
   InitConstructorFields(ast);
 
+  for (const auto &[_, func] : ast.functions) {
+    if (!(*this)(func)) {
+      return error_;
+    }
+  }
   for (const auto &[_, type] : ast.types) {
     if (!std::visit(*this, type)) {
       return error_;
@@ -226,7 +231,6 @@ bool NameResolutionChecker::IsInScope(InternedString name) {
 
 bool NameResolutionChecker::AddName(InternedString name, std::string &&identifier_type, bool allow_shadowing) {
   DCHECK(!scopes_.empty());
-  DLOG(INFO) << name << "   asdasda";
   if ((!allow_shadowing) && IsInScope(name)) {
     error_ = Error {"Re-declaration of " + identifier_type + ": " + "\"" + name.GetString() + "\""};
     return false;
@@ -267,6 +271,11 @@ bool NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
     }
   };
 
+  for (const auto &[_, func] : ast.functions) {
+    if (!visitor(func)) {
+      return false;
+    }
+  }
   for (const auto &[_, type] : ast.types) {
     if (!std::visit(visitor, type)) {
       return false;

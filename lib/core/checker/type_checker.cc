@@ -16,6 +16,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/checker/expression_comparator.h"
 #include "core/checker/type_comparator.h"
 #include "core/interning/interned_string.h"
+#include "core/substitutor/substitutor.h"
 #include "glog/logging.h"
 #include "location.hh"
 #include "z3++.h"
@@ -32,9 +33,15 @@ namespace dbuf::checker {
 
 TypeChecker::TypeChecker(const ast::AST &ast, const std::vector<InternedString> &sorted_graph)
     : ast_(ast)
-    , sorted_graph_(sorted_graph) {}
+    , sorted_graph_(sorted_graph)
+    , substitutor_(ast) {}
 
 std::optional<Error> TypeChecker::CheckTypes() {
+  for (const auto &[_, func] : ast_.functions) {
+    if (!(*this)(func)) {
+      return error_;
+    }
+  }
   for (const auto &node : sorted_graph_) {
     if (!std::visit(*this, ast_.types.at(node))) {
       return error_;
@@ -46,6 +53,7 @@ std::optional<Error> TypeChecker::CheckTypes() {
 bool TypeChecker::operator()(const ast::Message &ast_message) {
   DLOG(INFO) << "Checking message: " << ast_message.identifier.name;
 
+  substitutor_.PushScope();
   auto scope = Scope(&context_);
   if (!CheckDependencies(ast_message)) {
     return false;
@@ -53,6 +61,7 @@ bool TypeChecker::operator()(const ast::Message &ast_message) {
   if (!CheckFields(ast_message)) {
     return false;
   }
+  substitutor_.PopScope();
 
   // initializing everything, that is used for the constructor
   z3::constructors cs(z3_stuff_.context_);
@@ -94,8 +103,9 @@ bool TypeChecker::operator()(const ast::Message &ast_message) {
 
 bool TypeChecker::operator()(const ast::Enum &ast_enum) {
   DLOG(INFO) << "Checking enum: " << ast_enum.identifier.name;
-
+  
   auto scope = Scope(&context_);
+  substitutor_.PushScope();
   if (!CheckDependencies(ast_enum)) {
     return false;
   }
@@ -112,8 +122,6 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
     }
 
     auto scope = Scope(&context_);
-    substitutor_.PushScope();
-
     // Check input patterns
     for (size_t id = 0; id < rule.inputs.size(); ++id) {
       // We ignore Stars as they match any type and do not declare new variables
@@ -122,8 +130,6 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
       }
 
       const auto &value = std::get<ast::Value>(rule.inputs[id]);
-      substitutor_.AddSubstitution(ast_enum.type_dependencies[id].name, std::make_shared<const ast::Expression>(value));
-
       // Check that value has expected type in this context
       error_ = TypeComparator(ast_enum.type_dependencies[id].type_expression, ast_, &context_, &substitutor_, &z3_stuff_).Compare(ast::Expression(value));
       if (error_.has_value()) {
@@ -189,6 +195,7 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
       }
     }
   }
+  substitutor_.PopScope();
 
   // Create a z3 sort for this enum
 
@@ -250,8 +257,16 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
   return true;
 }
 
-bool TypeChecker::operator()(const ast::Func &/*ast_func*/){
-  DLOG(FATAL) << "Not implemented func";
+bool TypeChecker::operator()(const ast::Func &ast_func){
+  auto scope = Scope(&context_);
+  if (!CheckDependencies(ast_func)) {
+    return false;
+  }
+  if (!CheckTypeExpression(ast_func.return_type)) {
+    return false;
+  }
+  error_ = TypeComparator(ast_func.return_type, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*ast_func.return_value);
+  return !error_.has_value();;
 }
 
 // Checks that all dependencies are correctly defined
@@ -272,14 +287,10 @@ bool TypeChecker::CheckDependencies(const ast::DependentType &type) {
 bool TypeChecker::CheckFields(const ast::TypeWithFields &type) {
   Scope scope(&context_);
   for (const auto &field : type.fields) {
-    DLOG(INFO) << "Checking field: " << field.name << " of type " << field.type_expression;
-    auto after_substitution = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
-    DLOG(INFO) << "After substitution: " << after_substitution;
-
-    if (!CheckTypeExpression(after_substitution)) {
+    if (!CheckTypeExpression(field.type_expression)) {
       return false;
     }
-    scope.AddName(field.name, after_substitution);
+    scope.AddName(field.name, field.type_expression);
   }
   return true;
 }
@@ -290,14 +301,14 @@ bool TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
       type_expression.identifier.name == InternedString("Unsigned") ||
       type_expression.identifier.name == InternedString("Bool") ||
       type_expression.identifier.name == InternedString("String") ||
-      type_expression.identifier.name == InternedString("Float")) {
+      type_expression.identifier.name == InternedString("Float") ||
+      type_expression.identifier.name.GetString() == "func") {
     return true;
   }
 
   if (type_expression.identifier.name == InternedString("Array") || type_expression.identifier.name == InternedString("Set")) {
     return CheckCollectionParameters(type_expression);
   }
-
   const ast::DependentType &type = std::visit(
       [](const auto &type) { return static_cast<ast::DependentType>(type); },
       ast_.types.at(type_expression.identifier.name));
@@ -308,25 +319,23 @@ bool TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
                       << type_expression.location);
       return false;
   }
-  substitutor_.PushScope();
 
-  for (size_t id = 0; id < type.type_dependencies.size(); ++id) {
-    DLOG(INFO) << "Comparing parameter " << *type_expression.parameters[id] << " with type "
-               << type.type_dependencies[id].type_expression;
-    DLOG(INFO) << "Type before substitution: " << type.type_dependencies[id].type_expression;
+  for (size_t i = 0; i < type.type_dependencies.size(); ++i) {
+    DLOG(INFO) << "Comparing parameter " << *type_expression.parameters[i] << " with type "
+               << type.type_dependencies[i].type_expression;
+    DLOG(INFO) << "Type before substitution: " << type.type_dependencies[i].type_expression;
     ast::TypeExpression substituted_type =
-        std::get<ast::TypeExpression>(substitutor_(type.type_dependencies[id].type_expression));
+        std::get<ast::TypeExpression>(substitutor_(type.type_dependencies[i].type_expression));
     DLOG(INFO) << "Type after substitution: " << substituted_type;
 
     error_ = TypeComparator(substituted_type, ast_, &context_, &substitutor_, &z3_stuff_)
-                        .Compare(*type_expression.parameters[id]);
+                        .Compare(*type_expression.parameters[i]);
     if (error_.has_value()) {
       return false;
     }
-    substitutor_.AddSubstitution(type.type_dependencies[id].name, type_expression.parameters[id]);
+    substitutor_.AddSubstitution(type.type_dependencies[i].name, type_expression.parameters[i]);
   }
 
-  substitutor_.PopScope();
   return true;
 }
 

@@ -254,6 +254,7 @@ bool TypeComparator::operator()(const ast::VarAccess &expr) {
   if (expr.field_identifiers.empty()) {
     return CompareTypeExpressions(expected_, outer_scope.LookupName(expr.var_identifier.name), z3_stuff_);
   }
+  substitutor_.PushScope();
   InternedString message_name   = outer_scope.LookupName(expr.var_identifier.name).identifier.name;
   InternedString expected_field = expr.field_identifiers[0].name;
   const auto &type              = ast_.types.at(message_name);
@@ -262,8 +263,8 @@ bool TypeComparator::operator()(const ast::VarAccess &expr) {
     return false;
   }
   const auto &message = std::get<ast::Message>(type);
+  
   bool found          = false;
-
   Scope scope(&context_);
   for (const auto &dependencie : message.type_dependencies) {
     scope.AddName(dependencie.name, dependencie.type_expression);
@@ -271,6 +272,12 @@ bool TypeComparator::operator()(const ast::VarAccess &expr) {
   for (const auto &field : message.fields) {
     scope.AddName(field.name, field.type_expression);
     if (field.name == expected_field) {
+      if (ast_.types.contains(field.type_expression.identifier.name)) {
+        const ast::DependentType &next_type = std::visit([](const auto &type) { return static_cast<ast::DependentType>(type); }, ast_.types.at(field.type_expression.identifier.name));
+        for (size_t i = 0; i < field.type_expression.parameters.size(); ++i) {
+          substitutor_.AddSubstitution(next_type.type_dependencies[i].name, field.type_expression.parameters[i]);
+        }
+      }
       found = true;
       break;
     }
@@ -282,7 +289,11 @@ bool TypeComparator::operator()(const ast::VarAccess &expr) {
   ast::VarAccess var_access {
       {{parser::location()}, {expected_field}},
       std::vector<ast::Identifier>(expr.field_identifiers.begin() + 1, expr.field_identifiers.end())};
-  return (*this)(var_access);
+  if (!(*this)(var_access)) {
+    return false;
+  }
+  substitutor_.PopScope();
+  return true;
 }
 
 bool TypeComparator::operator()(const ast::ArrayAccess &expr) {
@@ -364,7 +375,7 @@ bool TypeComparator::operator()(const ast::CollectionValue &val) {
         std::make_shared<const ast::Expression>(zero));
   }
   return std::ranges::all_of(val.values.begin(), val.values.end(), [this](const auto &value) {
-    error_ = TypeComparator(std::get<ast::TypeExpression>(*expected_.parameters[0]), ast_, &context_, &substitutor_, &z3_stuff_) .Compare(*value);
+    error_ = TypeComparator(std::get<ast::TypeExpression>(*expected_.parameters[0]), ast_, &context_, &substitutor_, &z3_stuff_).Compare(*value);
     return !error_.has_value();
   });
 }
@@ -376,18 +387,16 @@ bool TypeComparator::operator()(const ast::FunctionValue &val) {
   ast::TypeExpression func_type_expr;
   if (outer_scope.IsInScope(val.function_identifier.name)) {
     func_type_expr = outer_scope.LookupName(val.function_identifier.name);
-  } else {
-    auto type = ast_.types.at(val.function_identifier.name);
-    if (!std::holds_alternative<ast::Func>(type)) {
-      error_ = Error (CreateError() << val.function_identifier.name << " is not a function at " << val.location);
-      return false;
-    }
-    ast::Func func = std::get<ast::Func>(type);
+  } else if (ast_.functions.contains(val.function_identifier.name)) {
+    ast::Func func = ast_.functions.at(val.function_identifier.name);
     func_type_expr = ast::TypeExpression{{func.identifier.location}, ast::Identifier{{func.identifier.location}, {InternedString("func")}}, std::vector<ast::ExprPtr>()};
     for (auto &type_dependencie : func.type_dependencies) {
       func_type_expr.parameters.emplace_back(std::make_shared<const ast::Expression>(type_dependencie.type_expression));
     }
     func_type_expr.parameters.emplace_back(std::make_shared<const ast::Expression>(func.return_type));
+  } else {
+    error_ = Error (CreateError() << val.function_identifier.name << " is not a function at " << val.location);
+    return false;
   }
   if (func_type_expr.identifier.name.GetString() != "func") {
     error_ = Error (CreateError() << val.function_identifier.name << " is not a function at " << val.location);
@@ -432,7 +441,7 @@ bool TypeComparator::CompareTypeExpressions(
       return false;
     }
     if (expected_type.identifier.name == InternedString("Array")) {
-      bin_expr_.right      = expression.parameters[1];
+      bin_expr_.right      = std::get<ast::TypeExpression>(substitutor_(expression)).parameters[1];
       ast::Expression zero = ast::ScalarValue<uint64_t>({parser::location()}, 0);
       bin_expr_            = ast::BinaryExpression(
           {parser::location()},
@@ -442,6 +451,15 @@ bool TypeComparator::CompareTypeExpressions(
     }
     return true;
   }
+  if (expected_type.identifier.name.GetString() == "func") {
+    for (size_t i = 0; i < expected_type.parameters.size(); ++i) {
+      if (!CompareTypeExpressions(std::get<ast::TypeExpression>(*expected_type.parameters[i]), std::get<ast::TypeExpression>(*expression.parameters[i]), z3_stuff_)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   for (size_t id = 0; id < expected_type.parameters.size(); ++id) {
     auto cmp_error =
         CompareExpressions(*expected_type.parameters[id], *expression.parameters[id], z3_stuff, ast_, context_);
@@ -457,14 +475,13 @@ bool TypeComparator::CompareTypeExpressions(
 bool TypeComparator::CheckConstructedValue(const ast::ConstructedValue &val, const ast::TypeWithFields &constructor) {
   for (size_t i = 0; i < constructor.fields.size(); ++i) {
     const auto field         = constructor.fields[i];
-    const auto expected_type = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
-    DLOG(INFO) << "Checking that field " << field.name << " has type " << expected_type;
+    DLOG(INFO) << "Checking that field " << field.name << " has type " << field.type_expression;
     if (std::holds_alternative<ast::VarAccess>(*val.fields[i].second)) {
       const auto &var_access = std::get<ast::VarAccess>(*val.fields[i].second);
-      context_.back()->AddName(var_access.var_identifier.name, expected_type);
+      context_.back()->AddName(var_access.var_identifier.name, field.type_expression);
       continue;
     }
-    auto cmp_error = TypeComparator(expected_type, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*val.fields[i].second);
+    auto cmp_error = TypeComparator(field.type_expression, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*val.fields[i].second);
     if (cmp_error.has_value()) {
       DLOG(ERROR) << "Field " << field.name << " has incorrect type";
       return false;

@@ -1,5 +1,11 @@
-func f (x Unsigned) (y Unsigned) (z Unsigned) -> (Unsigned) = x + y + z 
+func f (x Unsigned) (y Unsigned) (z Unsigned) -> (Unsigned) = x + x 
 
 message Kek {
-    array Array (Int) (f (1u, 2u, 3u)); 
+    array Array (Int) (f (5u, 2u, 3u)); 
+}
+
+message C (array Array (Int) 20u) {}
+
+message A (kek Kek) {
+    c C (kek.array || kek.array);
 }

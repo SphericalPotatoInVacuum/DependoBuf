@@ -166,8 +166,7 @@ definition
       throw syntax_error(@1, "Duplicate type definition: " + $1.identifier.name.GetString());
     }
     InternedString name($1.identifier.name);
-    ast->types.insert(std::make_pair(name, std::move($1)));
-    ast->constructor_to_type.emplace(name, name);
+    ast->functions.insert(std::make_pair(name, std::move($1)));
   }
   ;
 
