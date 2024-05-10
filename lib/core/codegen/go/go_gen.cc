@@ -197,6 +197,7 @@ GoWriter &GoWriter::Write(const ast::Message &msg) {
   std::cout << "generating message" << std::endl;
   // generate struct
   const auto &message_name = msg.identifier.name.GetString();
+  Write('\n');
   Write("type ").Write(message_name).Write(" struct {").Write('\n');
   if (!msg.type_dependencies.empty()) {
     Write(GetIndent(1)).Write("// dependencies").Write('\n');
@@ -289,7 +290,6 @@ GoWriter &GoWriter::Write(const ast::Message &msg) {
   }
   Write(GetIndent(1)).Write("return true;").Write('\n');
   Write('}').Write('\n');
-  Write('\n');
   return *this;
 }
 
@@ -298,6 +298,7 @@ GoWriter &GoWriter::Write(const ast::Enum &en) {
   std::cout << "generating enum" << std::endl;
   // generate struct
   const auto &enum_name = en.identifier.name.GetString();
+  Write('\n');
   Write("type ").Write(enum_name).Write(" struct {").Write('\n');
   for (const auto &dependency : en.type_dependencies) {
     const std::string dependency_name = dependency.name.GetString();
@@ -401,7 +402,6 @@ GoWriter &GoWriter::Write(const ast::Enum &en) {
       .Write('\n');
   Write(GetIndent(1)).Write("enum.InternalValue = value").Write('\n');
   Write('}').Write('\n');
-  Write('\n');
   return *this;
 }
 
