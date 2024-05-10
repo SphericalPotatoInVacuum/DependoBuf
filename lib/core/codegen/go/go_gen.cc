@@ -108,22 +108,17 @@ GoWriter &GoWriter::Write(const T &value) {
 
 template <>
 GoWriter &GoWriter::Write(const InternedString &value) {
-  Write(value.GetString());
-  return *this;
+  return Write(value.GetString());
 }
 
 template <typename T>
 GoWriter &GoWriter::Write(const ast::ScalarValue<T> &value) {
-  Write(value.value);
-  return *this;
+  return Write(value.value);
 }
 
 template <>
 GoWriter &GoWriter::Write(const ast::ScalarValue<std::string> &value) {
-  Write('"');
-  Write(value.value);
-  Write('"');
-  return *this;
+  return Write('"').Write(value.value).Write('"');
 }
 
 template <>
@@ -131,29 +126,25 @@ GoWriter &GoWriter::Write(const ast::Expression &value);
 
 template <>
 GoWriter &GoWriter::Write(const ast::BinaryExpression &value) {
-  Write("(");
-  Write(*value.left);
-  Write(" ");
-  Write(static_cast<char>(value.type));
-  Write(" ");
-  Write(*value.right);
-  Write(")");
-  return *this;
+  return Write("(")
+      .Write(*value.left)
+      .Write(" ")
+      .Write(static_cast<char>(value.type))
+      .Write(" ")
+      .Write(*value.right)
+      .Write(")");
 }
 
 template <>
 GoWriter &GoWriter::Write(const ast::UnaryExpression &value) {
-  *output_ << static_cast<char>(value.type);
-  Write(*value.expression);
-  return *this;
+  return Write(static_cast<char>(value.type)).Write(*value.expression);
 }
 
 template <>
 GoWriter &GoWriter::Write(const ast::TypeExpression &value) {
-  Write(value.identifier.name.GetString());
+  Write(value.identifier.name);
   for (const auto &parameter : value.parameters) {
-    Write(" ");
-    Write(*parameter);
+    Write(" ").Write(*parameter);
   }
   return *this;
 }
@@ -163,20 +154,16 @@ GoWriter &GoWriter::Write(const ast::Value &value);
 
 template <>
 GoWriter &GoWriter::Write(const ast::VarAccess &value) {
-  Write("obj.");
-  Write(value.var_identifier.name.GetString());
-  std::cout << "field cnt: " << value.field_identifiers.size() << std::endl;
+  Write("obj.").Write(value.var_identifier.name);
   for (const auto &field : value.field_identifiers) {
-    Write(".");
-    Write(field.name.GetString());
+    Write(".").Write(field.name);
   }
   return *this;
 }
 
 template <>
 GoWriter &GoWriter::Write(const ast::ConstructedValue &value) {
-  Write(value.constructor_identifier.name.GetString());
-  Write("{");
+  Write(value.constructor_identifier.name).Write("{");
   if (!value.fields.empty()) {
     Write('\n');
     bool is_first_field = true;
@@ -186,14 +173,11 @@ GoWriter &GoWriter::Write(const ast::ConstructedValue &value) {
       } else {
         Write(", ");
       }
-      Write(identifier.name.GetString());
-      Write(": ");
-      Write(*value);
+      Write(identifier.name).Write(": ").Write(*value);
     }
     Write('\n');
   }
-  Write("}");
-  return *this;
+  return Write("}");
 }
 
 template <>
@@ -212,10 +196,10 @@ template <>
 GoWriter &GoWriter::Write(const ast::Message &msg) {
   std::cout << "generating message" << std::endl;
   // generate struct
-  const std::string &message_name = msg.identifier.name.GetString();
-  *output_ << "type " << message_name << " struct {\n";
+  const auto &message_name = msg.identifier.name.GetString();
+  Write("type ").Write(message_name).Write(" struct {").Write('\n');
   if (!msg.type_dependencies.empty()) {
-    *output_ << GetIndent(1) << "// dependencies\n";
+    Write(GetIndent(1)).Write("// dependencies").Write('\n');
     for (const auto &dependency : msg.type_dependencies) {
       const auto &dependency_name = dependency.name.GetString();
       std::string dependency_type = dependency.type_expression.identifier.name.GetString();
@@ -224,10 +208,10 @@ GoWriter &GoWriter::Write(const ast::Message &msg) {
       } else {
         dependency_type = "*" + dependency_type;
       }
-      *output_ << GetIndent(1) << dependency_name << ' ' << dependency_type << '\n';
+      Write(GetIndent(1)).Write(dependency_name).Write(' ').Write(dependency_type).Write('\n');
     }
     if (!msg.fields.empty()) {
-      *output_ << '\n';
+      Write('\n');
     }
   }
   for (const auto &field : msg.fields) {
@@ -238,12 +222,12 @@ GoWriter &GoWriter::Write(const ast::Message &msg) {
     } else {
       field_type = "*" + field_type;
     }
-    *output_ << GetIndent(1) << field_name << ' ' << field_type << '\n';
+    Write(GetIndent(1)).Write(field_name).Write(' ').Write(field_type).Write('\n');
   }
-  *output_ << "}\n";
-  *output_ << '\n';
+  Write('}').Write('\n');
+  Write('\n');
   // generate New
-  *output_ << "func New" << message_name << "(";
+  Write("func New").Write(message_name).Write('(');
   if (!msg.type_dependencies.empty()) {
     bool is_first_argument = true;
     for (const auto &dependency : msg.type_dependencies) {
@@ -256,57 +240,56 @@ GoWriter &GoWriter::Write(const ast::Message &msg) {
       }
       if (is_first_argument) {
         is_first_argument = false;
-        *output_ << dependency_name << ' ' << dependency_type;
+        Write(dependency_name).Write(' ').Write(dependency_type);
       } else {
-        *output_ << ", " << dependency_name << ' ' << dependency_type;
+        Write(", ").Write(dependency_name).Write(' ').Write(dependency_type);
       }
     }
   }
-  *output_ << ") *" << message_name << " {\n";
-  *output_ << GetIndent(1) << "return &" << message_name << "{";
+  Write(") *").Write(message_name).Write(" {").Write('\n');
+  Write(GetIndent(1)).Write("return &").Write(message_name).Write("{");
   if (!msg.type_dependencies.empty()) {
-    *output_ << '\n';
-    *output_ << GetIndent(2);
+    Write('\n');
+    Write(GetIndent(2));
     for (const auto &dependency : msg.type_dependencies) {
       const auto &dependency_name = dependency.name.GetString();
-      *output_ << dependency_name << ": " << dependency_name << ", ";
+      Write(dependency_name).Write(": ").Write(dependency_name).Write(", ");
     }
-    *output_ << '\n';
-    *output_ << GetIndent(1) << "}\n";
+    Write('\n');
+    Write(GetIndent(1)).Write('}').Write('\n');
   } else {
-    *output_ << "}\n";
+    Write('}').Write('\n');
   }
-  *output_ << "}\n";
-  *output_ << '\n';
+  Write('}').Write('\n');
+  Write('\n');
   // generate Validate
-  *output_ << "func(obj *" << message_name << ") Validate() bool {";
+  Write("func(obj *").Write(message_name).Write(") Validate() bool {");
   if (!msg.type_dependencies.empty() || !msg.fields.empty()) {
-    *output_ << '\n';
+    Write('\n');
   }
   for (const auto &dependency : msg.type_dependencies) {
     if (dependency.type_expression.parameters.empty()) {
       continue;
     }
     const auto &dependency_type = dependency.type_expression.identifier.name.GetString();
-    *output_ << GetIndent(1) << "if (";
+    Write(GetIndent(1)).Write("if (");
     bool is_first_condition = true;
     for (const auto &type_parameter_ptr : dependency.type_expression.parameters) {
       if (is_first_condition) {
         is_first_condition = false;
       } else {
-        *output_ << " || ";
+        Write(" || ");
       }
-      *output_ << "obj." << dependency.name.GetString() << " != ";
-      GoWriter writer {output_};
-      std::visit([&writer](const auto &parameter) { writer.Write(parameter); }, *type_parameter_ptr);
+      Write("obj.").Write(dependency.name).Write(" != ");
+      std::visit([this](const auto &parameter) { Write(parameter); }, *type_parameter_ptr);
     }
-    *output_ << ") {\n";
-    *output_ << GetIndent(2) << "return false;\n";
-    *output_ << GetIndent(1) << "}\n";
+    Write(") {").Write('\n');
+    Write(GetIndent(2)).Write("return false;").Write('\n');
+    Write(GetIndent(1)).Write('}').Write('\n');
   }
-  *output_ << GetIndent(1) << "return true;\n";
-  *output_ << "}\n";
-  *output_ << "\n";
+  Write(GetIndent(1)).Write("return true;").Write('\n');
+  Write('}').Write('\n');
+  Write('\n');
   return *this;
 }
 
@@ -315,7 +298,7 @@ GoWriter &GoWriter::Write(const ast::Enum &en) {
   std::cout << "generating enum" << std::endl;
   // generate struct
   const auto &enum_name = en.identifier.name.GetString();
-  *output_ << "type " << enum_name << " struct {\n";
+  Write("type ").Write(enum_name).Write(" struct {").Write('\n');
   for (const auto &dependency : en.type_dependencies) {
     const std::string dependency_name = dependency.name.GetString();
     std::string dependency_type       = dependency.type_expression.identifier.name.GetString();
@@ -324,19 +307,19 @@ GoWriter &GoWriter::Write(const ast::Enum &en) {
     } else {
       dependency_type = "*" + dependency_type;
     }
-    *output_ << GetIndent(1) << dependency_name << ' ' << dependency_type << '\n';
+    Write(GetIndent(1)).Write(dependency_name).Write(' ').Write(dependency_type).Write('\n');
   }
-  *output_ << '\n';
-  *output_ << GetIndent(1) << "InternalValue interface{}\n";
-  *output_ << "}\n";
-  *output_ << '\n';
+  Write('\n');
+  Write(GetIndent(1)).Write("InternalValue interface{}").Write('\n');
+  Write('}').Write('\n');
+  Write('\n');
   // constructors
   std::vector<std::string> constructor_names;
   for (const auto &pattern : en.pattern_mapping) {
     for (const auto &constructor : pattern.outputs) {
       const auto &constructor_name = constructor.identifier.name.GetString();
       constructor_names.push_back(constructor_name);
-      *output_ << "type " << constructor_name << " struct {\n";
+      Write("type ").Write(constructor_name).Write(" struct {").Write('\n');
       for (const auto &field : constructor.fields) {
         const std::string field_name = GetExportName(field.name.GetString());
         std::string field_type       = field.type_expression.identifier.name.GetString();
@@ -345,33 +328,33 @@ GoWriter &GoWriter::Write(const ast::Enum &en) {
         } else {
           field_type = "*" + field_type;
         }
-        *output_ << GetIndent(1) << field_name << ' ' << field_type << '\n';
+        Write(GetIndent(1)).Write(field_name).Write(' ').Write(field_type).Write('\n');
       }
-      *output_ << "}\n";
-      *output_ << '\n';
+      Write('}').Write('\n');
+      Write('\n');
     }
   }
   // type constraint
   const std::string type_constraint_name = en.identifier.name.GetString() + "TypeConstraint";
-  *output_ << "type " << type_constraint_name << " interface {";
+  Write("type ").Write(type_constraint_name).Write(" interface {");
   if (!constructor_names.empty()) {
-    *output_ << '\n';
-    *output_ << GetIndent(1);
+    Write('\n');
+    Write(GetIndent(1));
   }
   bool is_first_name = true;
   for (const auto &constructor_name : constructor_names) {
     if (is_first_name) {
       is_first_name = false;
-      *output_ << constructor_name;
+      Write(constructor_name);
     } else {
-      *output_ << " | " << constructor_name;
+      Write(" | ").Write(constructor_name);
     }
   }
-  *output_ << "\n";
-  *output_ << "}\n";
-  *output_ << '\n';
+  Write('\n');
+  Write('}').Write('\n');
+  Write('\n');
   // generate New
-  *output_ << "func New" << enum_name << "(";
+  Write("func New").Write(enum_name).Write('(');
   if (!en.type_dependencies.empty()) {
     bool is_first_argument = true;
     for (const auto &dependency : en.type_dependencies) {
@@ -384,34 +367,41 @@ GoWriter &GoWriter::Write(const ast::Enum &en) {
       }
       if (is_first_argument) {
         is_first_argument = false;
-        *output_ << dependency_name << ' ' << dependency_type;
+        Write(dependency_name).Write(' ').Write(dependency_type);
       } else {
-        *output_ << ", " << dependency_name << ' ' << dependency_type;
+        Write(", ").Write(dependency_name).Write(' ').Write(dependency_type);
       }
     }
   }
-  *output_ << ") *" << enum_name << " {\n";
-  *output_ << GetIndent(1) << "return &" << enum_name << "{";
+  Write(") *").Write(enum_name).Write(" {").Write('\n');
+  Write(GetIndent(1)).Write("return &").Write(enum_name).Write('{');
   if (!en.type_dependencies.empty()) {
-    *output_ << '\n';
-    *output_ << GetIndent(2);
+    Write('\n');
+    Write(GetIndent(2));
     for (const auto &dependency : en.type_dependencies) {
       const auto &dependency_name = dependency.name.GetString();
-      *output_ << dependency_name << ": " << dependency_name << ", ";
+      Write(dependency_name).Write(": ").Write(dependency_name).Write(", ");
     }
-    *output_ << '\n';
-    *output_ << GetIndent(1) << "}\n";
+    Write('\n');
+    Write(GetIndent(1)).Write('}').Write('\n');
   } else {
-    *output_ << "}\n";
+    Write('}').Write('\n');
   }
-  *output_ << "}\n";
-  *output_ << '\n';
+  Write('}').Write('\n');
+  Write('\n');
   // SetValue
-  *output_ << "func SetValue" << enum_name << "[T " << type_constraint_name << "](enum *" << enum_name << ", "
-           << "value *T) {\n";
-  *output_ << GetIndent(1) << "enum.InternalValue = value\n";
-  *output_ << "}\n";
-  *output_ << '\n';
+  Write("func SetValue")
+      .Write(enum_name)
+      .Write("[T ")
+      .Write(type_constraint_name)
+      .Write("](enum *")
+      .Write(enum_name)
+      .Write(", ")
+      .Write("value *T) {")
+      .Write('\n');
+  Write(GetIndent(1)).Write("enum.InternalValue = value").Write('\n');
+  Write('}').Write('\n');
+  Write('\n');
   return *this;
 }
 
@@ -420,8 +410,8 @@ GoWriter &GoWriter::Write(const ast::Enum &en) {
 void GoCodeGenerator::Generate(ast::AST *tree) {
   GoWriter writer(output_);
 
-  *output_ << "package " << kDefaultPackageName << "\n\n";
-  *output_ << "// " << kDoNotEdit << "\n\n";
+  writer.Write("package ").Write(kDefaultPackageName).Write('\n').Write('\n');
+  writer.Write("// ").Write(kDoNotEdit).Write('\n');
   for (const auto &item : tree->visit_order) {
     const auto &variant = tree->types.at(item);
     std::visit([&writer, &item](const auto &entity) { writer.SaveDependencyNames(item, entity); }, variant);
