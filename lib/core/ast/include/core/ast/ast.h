@@ -85,7 +85,7 @@ struct AST {
 };
 
 namespace debug {
-  std::string ToString(const AST& ast);
+std::string ToString(const AST &ast);
 }
 
 } // namespace dbuf::ast
