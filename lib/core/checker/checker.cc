@@ -53,6 +53,7 @@ ErrorList Checker::CheckTypeResolution(const ast::AST &ast) {
 }
 
 int Checker::CheckAll(ast::AST &ast) {
+  DLOG(INFO) << "CheckAll AST\n" << ast::debug::ToString(ast);
   ErrorList name_resolution_errors = CheckNameResolution(ast);
   if (!name_resolution_errors.empty()) {
     for (const auto &error : name_resolution_errors) {
