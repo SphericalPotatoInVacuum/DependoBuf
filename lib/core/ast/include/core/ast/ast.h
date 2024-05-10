@@ -84,4 +84,8 @@ struct AST {
   std::vector<InternedString> visit_order;
 };
 
+namespace debug {
+  std::string ToString(const AST& ast);
+}
+
 } // namespace dbuf::ast
