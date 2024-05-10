@@ -71,7 +71,7 @@ std::optional<Error> Checker::CheckPositivity(const ast::AST &ast) {
     ss << " -> " << visit_order_[i];
   }
 
-  DLOG(INFO) << "Visit order: " << ss.str();  
+  DLOG(INFO) << "Visit order: " << ss.str();
   return {};
 }
 

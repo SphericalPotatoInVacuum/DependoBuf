@@ -69,8 +69,9 @@ bool TypeChecker::operator()(const ast::Message &ast_message) {
   std::vector<z3::sort> accessor_sorts;
   for (const auto &field : ast_message.fields) {
     accessor_names.push_back(z3_stuff_.context_.str_symbol(field.name.GetString().c_str()));
-    if (field.type_expression.identifier.name.GetString() == "Array" || field.type_expression.identifier.name.GetString() == "Set") {
-      const auto type_expr = std::get<ast::TypeExpression>(*field.type_expression.parameters[0]);
+    if (field.type_expression.identifier.name.GetString() == "Array" ||
+        field.type_expression.identifier.name.GetString() == "Set") {
+      const auto type_expr      = std::get<ast::TypeExpression>(*field.type_expression.parameters[0]);
       z3::sort collections_sort = GetZ3SortForCollcections(type_expr);
       accessor_sorts.push_back(collections_sort);
     } else {
@@ -80,9 +81,14 @@ bool TypeChecker::operator()(const ast::Message &ast_message) {
 
   // Creating a z3 datatype for this message
   z3::symbol name_symbol = z3_stuff_.context_.str_symbol(ast_message.identifier.name.GetString().c_str());
-  cs.add(name_symbol, z3_stuff_.context_.str_symbol(("is_" + ast_message.identifier.name.GetString()).c_str()), ast_message.fields.size(), accessor_names.data(), accessor_sorts.data());
+  cs.add(
+      name_symbol,
+      z3_stuff_.context_.str_symbol(("is_" + ast_message.identifier.name.GetString()).c_str()),
+      ast_message.fields.size(),
+      accessor_names.data(),
+      accessor_sorts.data());
   z3_stuff_.sorts_.try_emplace(ast_message.identifier.name, z3_stuff_.context_.datatype(name_symbol, cs));
- 
+
   // Declare a constructor and accessors for this message
   z3::func_decl message_constructor(z3_stuff_.context_);
   z3::func_decl is_message_constructor_recognizer(z3_stuff_.context_);
@@ -103,7 +109,7 @@ bool TypeChecker::operator()(const ast::Message &ast_message) {
 
 bool TypeChecker::operator()(const ast::Enum &ast_enum) {
   DLOG(INFO) << "Checking enum: " << ast_enum.identifier.name;
-  
+
   auto scope = Scope(&context_);
   substitutor_.PushScope();
   if (!CheckDependencies(ast_enum)) {
@@ -113,7 +119,7 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
   // The next step is to check the pattern mathcing
   for (const auto &rule : ast_enum.pattern_mapping) {
     DLOG(INFO) << "Checking rule with inputs " << rule.inputs;
-    
+
     if (rule.inputs.size() != ast_enum.type_dependencies.size()) {
       error_ = Error(
           CreateError() << "Expected " << ast_enum.type_dependencies.size() << " inputs in pattern for enum \""
@@ -131,7 +137,9 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
 
       const auto &value = std::get<ast::Value>(rule.inputs[id]);
       // Check that value has expected type in this context
-      error_ = TypeComparator(ast_enum.type_dependencies[id].type_expression, ast_, &context_, &substitutor_, &z3_stuff_).Compare(ast::Expression(value));
+      error_ =
+          TypeComparator(ast_enum.type_dependencies[id].type_expression, ast_, &context_, &substitutor_, &z3_stuff_)
+              .Compare(ast::Expression(value));
       if (error_.has_value()) {
         return false;
       }
@@ -171,7 +179,10 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
       const auto &type_with_fields = *type_ptr;
 
       if (type_with_fields.fields.size() != constructed_value.fields.size()) {
-        error_ = Error (CreateError() << "Expected " << type_with_fields.fields.size() << " fields in constructor \"" << identifier.name << "\", but got " << constructed_value.fields.size() << " at " << constructed_value.location);
+        error_ = Error(
+            CreateError() << "Expected " << type_with_fields.fields.size() << " fields in constructor \""
+                          << identifier.name << "\", but got " << constructed_value.fields.size() << " at "
+                          << constructed_value.location);
         return false;
       }
 
@@ -210,8 +221,9 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
       std::vector<z3::sort> accessor_sorts;
       for (const auto &field : constructor.fields) {
         accessor_names.push_back(z3_stuff_.context_.str_symbol(field.name.GetString().c_str()));
-        if (field.type_expression.identifier.name.GetString() == "Array" || field.type_expression.identifier.name.GetString() == "Set") {
-          const auto type_expr = std::get<ast::TypeExpression>(*field.type_expression.parameters[0]);
+        if (field.type_expression.identifier.name.GetString() == "Array" ||
+            field.type_expression.identifier.name.GetString() == "Set") {
+          const auto type_expr      = std::get<ast::TypeExpression>(*field.type_expression.parameters[0]);
           z3::sort collections_sort = GetZ3SortForCollcections(type_expr);
           accessor_sorts.push_back(collections_sort);
         } else {
@@ -257,7 +269,7 @@ bool TypeChecker::operator()(const ast::Enum &ast_enum) {
   return true;
 }
 
-bool TypeChecker::operator()(const ast::Func &ast_func){
+bool TypeChecker::operator()(const ast::Func &ast_func) {
   auto scope = Scope(&context_);
   if (!CheckDependencies(ast_func)) {
     return false;
@@ -265,8 +277,10 @@ bool TypeChecker::operator()(const ast::Func &ast_func){
   if (!CheckTypeExpression(ast_func.return_type)) {
     return false;
   }
-  error_ = TypeComparator(ast_func.return_type, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*ast_func.return_value);
-  return !error_.has_value();;
+  error_ =
+      TypeComparator(ast_func.return_type, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*ast_func.return_value);
+  return !error_.has_value();
+  ;
 }
 
 // Checks that all dependencies are correctly defined
@@ -306,7 +320,8 @@ bool TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
     return true;
   }
 
-  if (type_expression.identifier.name == InternedString("Array") || type_expression.identifier.name == InternedString("Set")) {
+  if (type_expression.identifier.name == InternedString("Array") ||
+      type_expression.identifier.name == InternedString("Set")) {
     return CheckCollectionParameters(type_expression);
   }
   const ast::DependentType &type = std::visit(
@@ -317,7 +332,7 @@ bool TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
         CreateError() << "Expected " << type.type_dependencies.size() << " parameters in "
                       << type_expression.identifier.name << ", but got " << type_expression.parameters.size() << " at "
                       << type_expression.location);
-      return false;
+    return false;
   }
 
   for (size_t i = 0; i < type.type_dependencies.size(); ++i) {
@@ -329,7 +344,7 @@ bool TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
     DLOG(INFO) << "Type after substitution: " << substituted_type;
 
     error_ = TypeComparator(substituted_type, ast_, &context_, &substitutor_, &z3_stuff_)
-                        .Compare(*type_expression.parameters[i]);
+                 .Compare(*type_expression.parameters[i]);
     if (error_.has_value()) {
       return false;
     }
@@ -342,11 +357,15 @@ bool TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
 bool TypeChecker::CheckCollectionParameters(const ast::TypeExpression &type_expr) {
   if (type_expr.identifier.name == InternedString("Array")) {
     if (type_expr.parameters.size() != 2) {
-      error_ = Error(CreateError() << "Expected 2 parmeters in Array constructor, but got " << type_expr.parameters.size() << " at " << type_expr.location);
+      error_ = Error(
+          CreateError() << "Expected 2 parmeters in Array constructor, but got " << type_expr.parameters.size()
+                        << " at " << type_expr.location);
       return false;
     }
     if (!std::holds_alternative<ast::TypeExpression>(*type_expr.parameters[0])) {
-      error_ = Error(CreateError() << "Expected first parmeter of Array to be a TypeExpression, but got " << *type_expr.parameters[0] << " at " << type_expr.location);
+      error_ = Error(
+          CreateError() << "Expected first parmeter of Array to be a TypeExpression, but got "
+                        << *type_expr.parameters[0] << " at " << type_expr.location);
       return false;
     }
     auto elem_type_expr = std::get<ast::TypeExpression>(*type_expr.parameters[0]);
@@ -359,7 +378,8 @@ bool TypeChecker::CheckCollectionParameters(const ast::TypeExpression &type_expr
         {parser::location()},
         ast::Identifier({type_expr.location}, {InternedString("Unsigned")}),
         std::vector<ast::ExprPtr>());
-    error_ = TypeComparator(expected_unsigned_type_expr, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*type_expr.parameters[1]);
+    error_ = TypeComparator(expected_unsigned_type_expr, ast_, &context_, &substitutor_, &z3_stuff_)
+                 .Compare(*type_expr.parameters[1]);
     return !error_.has_value();
   }
 
@@ -368,8 +388,9 @@ bool TypeChecker::CheckCollectionParameters(const ast::TypeExpression &type_expr
     return false;
   }
   if (!std::holds_alternative<ast::TypeExpression>(*type_expr.parameters[0])) {
-      error_ =  Error(CreateError() << "Expected first parmeter of Set to be a TypeExpression, but got " << *type_expr.parameters[0]);
-      return false;
+    error_ = Error(
+        CreateError() << "Expected first parmeter of Set to be a TypeExpression, but got " << *type_expr.parameters[0]);
+    return false;
   }
   auto elem_type_expr = std::get<ast::TypeExpression>(*type_expr.parameters[0]);
   if (elem_type_expr.identifier.name.GetString() == "Array" || elem_type_expr.identifier.name.GetString() == "Set") {
@@ -381,7 +402,7 @@ bool TypeChecker::CheckCollectionParameters(const ast::TypeExpression &type_expr
 }
 
 z3::sort TypeChecker::GetZ3SortForCollcections(const ast::TypeExpression &type_expr) {
-  if (type_expr.identifier.name.GetString() == "Int" || type_expr.identifier.name.GetString() == "Unsigned") {      
+  if (type_expr.identifier.name.GetString() == "Int" || type_expr.identifier.name.GetString() == "Unsigned") {
     return z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.int_sort());
   }
   if (type_expr.identifier.name.GetString() == "Bool") {
@@ -393,7 +414,7 @@ z3::sort TypeChecker::GetZ3SortForCollcections(const ast::TypeExpression &type_e
   if (type_expr.identifier.name.GetString() == "Float") {
     return z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), z3_stuff_.context_.fpa_sort(11, 53));
   }
-  if (type_expr.identifier.name.GetString() == "Array" || type_expr.identifier.name.GetString() == "Set")  {
+  if (type_expr.identifier.name.GetString() == "Array" || type_expr.identifier.name.GetString() == "Set") {
     z3::sort elem_sort = GetZ3SortForCollcections(std::get<ast::TypeExpression>(*type_expr.parameters[0]));
     return z3_stuff_.context_.array_sort(z3_stuff_.context_.int_sort(), elem_sort);
   }

@@ -205,19 +205,15 @@ inline std::ostream &operator<<(std::ostream &os, const Star & /*star*/) {
 }
 
 inline std::ostream &operator<<(std::ostream &os, const BinaryExpressionType &var) {
-  if (var == BinaryExpressionType::DoubleAnd){
+  if (var == BinaryExpressionType::DoubleAnd) {
     os << "&&";
-  }
-  else if (var == BinaryExpressionType::DoubleOr){
+  } else if (var == BinaryExpressionType::DoubleOr) {
     os << "||";
-  }
-  else if (var == BinaryExpressionType::BackSlash){
+  } else if (var == BinaryExpressionType::BackSlash) {
     os << "\\";
-  }
-  else if (var == BinaryExpressionType::In){
+  } else if (var == BinaryExpressionType::In) {
     os << "in";
-  }
-  else {
+  } else {
     os << static_cast<char>(var);
   }
   return os;

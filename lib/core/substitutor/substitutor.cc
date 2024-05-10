@@ -29,7 +29,8 @@ the Free Software Foundation, either version 3 of the License, or
 
 namespace dbuf {
 
-Substitutor::Substitutor(const ast::AST &ast) : ast_(ast) {}
+Substitutor::Substitutor(const ast::AST &ast)
+    : ast_(ast) {}
 
 // Add a new (name -> expression) substitution to last scope
 void Substitutor::AddSubstitution(InternedString name, const std::shared_ptr<const ast::Expression> &expression) {
@@ -86,9 +87,10 @@ ast::Expression Substitutor::operator()(const ast::VarAccess &value) {
     auto it = scope.find(value.var_identifier.name);
     if (it != scope.end()) {
       DLOG(INFO) << value;
-      if (std::holds_alternative<ast::VarAccess>(*it->second) && std::get<ast::VarAccess>(*it->second).var_identifier.name == value.var_identifier.name) {
+      if (std::holds_alternative<ast::VarAccess>(*it->second) &&
+          std::get<ast::VarAccess>(*it->second).var_identifier.name == value.var_identifier.name) {
         return std::visit(*this, ast::Expression(value), *it->second);
-      } 
+      }
       return std::visit(*this, ast::Expression(value), std::visit(*this, *it->second));
     }
   }
@@ -136,7 +138,7 @@ ast::Expression Substitutor::operator()(const ast::FunctionValue &value) {
   std::deque<ast::ExprPtr> args;
   ast::FunctionValue current_value = value;
   while (true) {
-    for (const auto& arg : std::ranges::reverse_view(current_value.args)) {
+    for (const auto &arg : std::ranges::reverse_view(current_value.args)) {
       args.push_front(arg);
     }
     if (ast_.functions.contains(current_value.function_identifier.name)) {
