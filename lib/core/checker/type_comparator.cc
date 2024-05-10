@@ -309,7 +309,7 @@ std::optional<Error>
 TypeComparator::CheckConstructedValue(const ast::ConstructedValue &val, const ast::TypeWithFields &constructor) {
   // Check that all fields have the correct types
   for (size_t i = 0; i < constructor.fields.size(); ++i) {
-    const auto &field         = constructor.fields[i];
+    const auto &field        = constructor.fields[i];
     const auto expected_type = std::get<ast::TypeExpression>(substitutor_(field.type_expression));
     DLOG(INFO) << "Checking that field " << field.name << " has type " << expected_type;
     if (std::holds_alternative<ast::VarAccess>(*val.fields[i].second)) {
