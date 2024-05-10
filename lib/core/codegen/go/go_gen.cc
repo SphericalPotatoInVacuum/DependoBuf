@@ -32,10 +32,6 @@ struct GoNamedType {
   std::string type;
 };
 
-struct GoStatementBody {
-  std::vector<std::string> expressions;
-};
-
 struct GoFunction {
   std::optional<GoNamedType> receiver;
   std::string name;
@@ -80,6 +76,11 @@ public:
 
   void SaveDependencyNames(InternedString type_name, const ast::DependentType &value);
 
+  void SaveVariableNames(const ast::Message &value);
+  void SaveVariableNames(const ast::Enum &value);
+
+  void ClearVariableNames();
+
   template <typename T>
   GoWriter &Write(const T &value);
 
@@ -89,6 +90,7 @@ public:
 private:
   std::shared_ptr<std::ofstream> output_;
   std::unordered_map<InternedString, std::vector<InternedString>> dependency_names_;
+  std::unordered_map<InternedString, std::string> go_variable_names_;
 };
 
 void GoWriter::SaveDependencyNames(InternedString type_name, const ast::DependentType &value) {
@@ -98,6 +100,25 @@ void GoWriter::SaveDependencyNames(InternedString type_name, const ast::Dependen
     names.push_back(dependency.name);
   }
   dependency_names_[type_name] = std::move(names);
+}
+
+void GoWriter::SaveVariableNames(const ast::Message &value) {
+  for (const auto &dependency : value.type_dependencies) {
+    go_variable_names_[dependency.name] = dependency.name.GetString();
+  }
+  for (const auto &field : value.fields) {
+    go_variable_names_[field.name] = GetExportName(field.name.GetString());
+  }
+}
+
+void GoWriter::SaveVariableNames(const ast::Enum &value) {
+  for (const auto &dependency : value.type_dependencies) {
+    go_variable_names_[dependency.name] = dependency.name.GetString();
+  }
+}
+
+void GoWriter::ClearVariableNames() {
+  go_variable_names_.clear();
 }
 
 template <typename T>
@@ -154,9 +175,9 @@ GoWriter &GoWriter::Write(const ast::Value &value);
 
 template <>
 GoWriter &GoWriter::Write(const ast::VarAccess &value) {
-  Write("obj.").Write(value.var_identifier.name);
+  Write("obj.").Write(go_variable_names_.at(value.var_identifier.name));
   for (const auto &field : value.field_identifiers) {
-    Write(".").Write(field.name);
+    Write(".").Write(go_variable_names_.at(field.name));
   }
   return *this;
 }
@@ -173,7 +194,7 @@ GoWriter &GoWriter::Write(const ast::ConstructedValue &value) {
       } else {
         Write(", ");
       }
-      Write(identifier.name).Write(": ").Write(*value);
+      Write(go_variable_names_.at(identifier.name)).Write(": ").Write(*value);
     }
     Write('\n');
   }
@@ -275,16 +296,56 @@ GoWriter &GoWriter::Write(const ast::Message &msg) {
     const auto &dependency_type = dependency.type_expression.identifier.name.GetString();
     Write(GetIndent(1)).Write("if (");
     bool is_first_condition = true;
-    for (const auto &type_parameter_ptr : dependency.type_expression.parameters) {
+    for (std::size_t i = 0; i < dependency.type_expression.parameters.size(); ++i) {
+      const auto &type_parameter = *dependency.type_expression.parameters[i];
       if (is_first_condition) {
         is_first_condition = false;
       } else {
         Write(" || ");
       }
-      Write("obj.").Write(dependency.name).Write(" != ");
-      std::visit([this](const auto &parameter) { Write(parameter); }, *type_parameter_ptr);
+      Write("obj.")
+          .Write(go_variable_names_.at(dependency.name))
+          .Write('.')
+          .Write(dependency_names_.at(dependency.type_expression.identifier.name)[i])
+          .Write(" != ");
+      std::visit([this](const auto &parameter) { Write(parameter); }, type_parameter);
     }
     Write(") {").Write('\n');
+    Write(GetIndent(2)).Write("return false;").Write('\n');
+    Write(GetIndent(1)).Write('}').Write('\n');
+    Write(GetIndent(1))
+        .Write("if (!obj.")
+        .Write(go_variable_names_.at(dependency.name))
+        .Write(".Validate()) {")
+        .Write('\n');
+    Write(GetIndent(2)).Write("return false;").Write('\n');
+    Write(GetIndent(1)).Write('}').Write('\n');
+  }
+  for (const auto &field : msg.fields) {
+    if (field.type_expression.parameters.empty()) {
+      continue;
+    }
+    const auto &dependency_type = field.type_expression.identifier.name.GetString();
+    Write(GetIndent(1)).Write("if (");
+    bool is_first_condition = true;
+    for (std::size_t i = 0; i < field.type_expression.parameters.size(); ++i) {
+      const auto &type_parameter = *field.type_expression.parameters[i];
+      if (is_first_condition) {
+        is_first_condition = false;
+      } else {
+        Write(" || ");
+      }
+      Write("obj.")
+          .Write(go_variable_names_.at(field.name))
+          .Write('.')
+          .Write(dependency_names_.at(field.type_expression.identifier.name)[i])
+          .Write(" != ");
+      std::visit([this](const auto &parameter) { Write(parameter); }, type_parameter);
+    }
+    Write(") {").Write('\n');
+    Write(GetIndent(2)).Write("return false;").Write('\n');
+    Write(GetIndent(1)).Write('}').Write('\n');
+    Write(GetIndent(1)).Write("if (!obj.").Write(go_variable_names_.at(field.name)).Write(".Validate()) {").Write('\n');
     Write(GetIndent(2)).Write("return false;").Write('\n');
     Write(GetIndent(1)).Write('}').Write('\n');
   }
@@ -412,13 +473,21 @@ void GoCodeGenerator::Generate(ast::AST *tree) {
 
   writer.Write("package ").Write(kDefaultPackageName).Write('\n').Write('\n');
   writer.Write("// ").Write(kDoNotEdit).Write('\n');
+
   for (const auto &item : tree->visit_order) {
     const auto &variant = tree->types.at(item);
     std::visit([&writer, &item](const auto &entity) { writer.SaveDependencyNames(item, entity); }, variant);
   }
+
   for (const auto &item : tree->visit_order) {
     const auto &variant = tree->types.at(item);
-    std::visit([&writer, &item](const auto &entity) { writer.Write(entity); }, variant);
+    std::visit(
+        [&writer, &item](const auto &entity) {
+          writer.SaveVariableNames(entity);
+          writer.Write(entity);
+          writer.ClearVariableNames();
+        },
+        variant);
   }
 }
 
