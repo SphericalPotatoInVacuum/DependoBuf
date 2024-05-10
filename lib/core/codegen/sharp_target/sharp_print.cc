@@ -43,7 +43,9 @@ SharpPrinter::SharpPrinter(std::shared_ptr<std::ofstream> output) {
 void SharpPrinter::PrintVariables(
         const std::vector<ast::TypedVariable> &variables,
         std::string &&delimeter,
-        bool add_last_delimeter) {
+        bool add_last_delimeter,
+        bool is_public,
+        bool need_getter_and_setter) {
     bool first = true;
     for (const auto &var : variables) {
         if (first) {
@@ -51,21 +53,25 @@ void SharpPrinter::PrintVariables(
         } else {
             *out_ << delimeter;
         }
+        const std::string &access = is_public ? "public" : "private";
         const std::string &type = GetVariableType(var);
         const std::string &name = GetVariableName(var);
-        *out_ << type_constructor_.ConstructSharpType(type) << " " << name;
+        *out_ << access << " " << type_constructor_.ConstructSharpType(type) << " " << name;
+        if (need_getter_and_setter) {
+            *out_ << " " << kGetterAndSetter;
+        }
     }
     if (add_last_delimeter && !first) {
         *out_ << delimeter;
     }
 }
 
-void SharpPrinter::PrintStructBegin(const std::string &name) {
-    *out_ << "struct " << name << " {\n";
+void SharpPrinter::PrintClassBegin(const std::string &name) {
+    *out_ << "public class " << name << " {\n";
 }
 
-void SharpPrinter::PrintStructEnd() {
-    *out_ << "};\n";
+void SharpPrinter::PrintClassEnd() {
+    *out_ << "}\n";
 }
 
 std::string SharpPrinter::GetVariableName(const ast::TypedVariable &var) {

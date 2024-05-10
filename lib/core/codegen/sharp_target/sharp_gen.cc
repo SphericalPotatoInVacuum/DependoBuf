@@ -31,7 +31,7 @@ void SharpCodeGenerator::Generate(const ast::AST *tree) {
 
 void SharpCodeGenerator::operator()(const ast::Message &ast_message) {
     const std::string &message_name = ast_message.identifier.name.GetString();
-    printer_.PrintStructBegin(message_name);
+    printer_.PrintClassBegin(message_name);
 
     std::vector<ast::TypedVariable> variables;
     variables.reserve(ast_message.fields.size());
@@ -39,8 +39,8 @@ void SharpCodeGenerator::operator()(const ast::Message &ast_message) {
     for (const auto &field : ast_message.fields) {
         variables.push_back(field);
     }
-    printer_.PrintVariables(variables, ";\n", true);
-    printer_.PrintStructEnd();
+    printer_.PrintVariables(variables, ";\n", true, true, true);
+    printer_.PrintClassEnd();
 }
 
 void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {

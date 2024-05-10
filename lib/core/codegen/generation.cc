@@ -36,7 +36,7 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
     } else if ((format == "cs") || (format == "c#")) {
       if (!added_formats.contains("cs")) {
         std::stringstream full_path;
-        full_path << path << "/" << filename << ".h";
+        full_path << path << "/" << filename << ".cs";
         targets_.emplace_back(std::make_shared<SharpCodeGenerator>(SharpCodeGenerator(full_path.str())));
         added_formats.insert("cs");
       } else {
