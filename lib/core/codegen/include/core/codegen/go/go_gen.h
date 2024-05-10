@@ -11,10 +11,6 @@ public:
       : ITargetCodeGenerator(out_file) {}
 
   void Generate(ast::AST *tree) override;
-
-private:
-  void GenerateObject(const ast::Message &);
-  void GenerateObject(const ast::Enum &);
 };
 
 } // namespace dbuf::gen

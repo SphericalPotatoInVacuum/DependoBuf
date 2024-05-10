@@ -78,120 +78,138 @@ public:
   GoWriter(std::shared_ptr<std::ofstream> output)
       : output_(output) {}
 
-  template <typename T>
-  void Write(T value);
-
-  void WriteString(const std::string &value);
-
-  void WriteNewLine();
-
-  void WriteExpression(const ast::Expression &value);
-  void WriteExpression(const ast::BinaryExpression &value);
-  void WriteExpression(const ast::UnaryExpression &value);
-  void WriteExpression(const ast::TypeExpression &value);
-  void WriteExpression(const ast::Value &value);
-  void WriteExpression(const ast::VarAccess &value);
+  void SaveDependencyNames(InternedString type_name, const ast::DependentType &value);
 
   template <typename T>
-  void WriteExpression(const ast::ScalarValue<T> &value);
+  GoWriter &Write(const T &value);
 
-  void WriteExpression(const ast::ConstructedValue &value);
+  template <typename T>
+  GoWriter &Write(const ast::ScalarValue<T> &value);
 
 private:
   std::shared_ptr<std::ofstream> output_;
   std::unordered_map<InternedString, std::vector<InternedString>> dependency_names_;
 };
 
-template <typename T>
-void GoWriter::Write(T value) {
-  *output_ << value;
-}
-
-void GoWriter::WriteString(const std::string &value) {
-  *output_ << value;
-}
-
-void GoWriter::WriteNewLine() {
-  *output_ << '\n';
+void GoWriter::SaveDependencyNames(InternedString type_name, const ast::DependentType &value) {
+  std::vector<InternedString> names;
+  names.reserve(value.type_dependencies.size());
+  for (const auto &dependency : value.type_dependencies) {
+    names.push_back(dependency.name);
+  }
+  dependency_names_[type_name] = std::move(names);
 }
 
 template <typename T>
-void GoWriter::WriteExpression(const ast::ScalarValue<T> &value) {
-  Write(value.value);
+GoWriter &GoWriter::Write(const T &value) {
+  *output_ << value;
+  return *this;
 }
 
 template <>
-void GoWriter::WriteExpression(const ast::ScalarValue<std::string> &value) {
-  Write('"');
-  WriteString(value.value);
-  Write('"');
+GoWriter &GoWriter::Write(const InternedString &value) {
+  Write(value.GetString());
+  return *this;
 }
 
-void GoWriter::WriteExpression(const ast::Expression &value) {
-  std::visit([this](const auto &inner_value) { WriteExpression(inner_value); }, value);
+template <typename T>
+GoWriter &GoWriter::Write(const ast::ScalarValue<T> &value) {
+  Write(value.value);
+  return *this;
 }
 
-void GoWriter::WriteExpression(const ast::BinaryExpression &value) {
-  WriteString("(");
-  WriteExpression(*value.left);
-  WriteString(" ");
+template <>
+GoWriter &GoWriter::Write(const ast::ScalarValue<std::string> &value) {
+  Write('"');
+  Write(value.value);
+  Write('"');
+  return *this;
+}
+
+template <>
+GoWriter &GoWriter::Write(const ast::Expression &value);
+
+template <>
+GoWriter &GoWriter::Write(const ast::BinaryExpression &value) {
+  Write("(");
+  Write(*value.left);
+  Write(" ");
   Write(static_cast<char>(value.type));
-  WriteString(" ");
-  WriteExpression(*value.right);
-  WriteString(")");
+  Write(" ");
+  Write(*value.right);
+  Write(")");
+  return *this;
 }
 
-void GoWriter::WriteExpression(const ast::UnaryExpression &value) {
+template <>
+GoWriter &GoWriter::Write(const ast::UnaryExpression &value) {
   *output_ << static_cast<char>(value.type);
-  WriteExpression(*value.expression);
+  Write(*value.expression);
+  return *this;
 }
 
-void GoWriter::WriteExpression(const ast::TypeExpression &value) {
-  WriteString(value.identifier.name.GetString());
+template <>
+GoWriter &GoWriter::Write(const ast::TypeExpression &value) {
+  Write(value.identifier.name.GetString());
   for (const auto &parameter : value.parameters) {
-    WriteString(" ");
-    WriteExpression(*parameter);
+    Write(" ");
+    Write(*parameter);
   }
+  return *this;
 }
 
-void GoWriter::WriteExpression(const ast::Value &value) {
-  std::visit([this](const auto &inner_value) { WriteExpression(inner_value); }, value);
-}
+template <>
+GoWriter &GoWriter::Write(const ast::Value &value);
 
-void GoWriter::WriteExpression(const ast::VarAccess &value) {
-  WriteString("obj.");
-  WriteString(value.var_identifier.name.GetString());
+template <>
+GoWriter &GoWriter::Write(const ast::VarAccess &value) {
+  Write("obj.");
+  Write(value.var_identifier.name.GetString());
   std::cout << "field cnt: " << value.field_identifiers.size() << std::endl;
   for (const auto &field : value.field_identifiers) {
-    WriteString(".");
-    WriteString(field.name.GetString());
+    Write(".");
+    Write(field.name.GetString());
   }
+  return *this;
 }
 
-void GoWriter::WriteExpression(const ast::ConstructedValue &value) {
-  WriteString(value.constructor_identifier.name.GetString());
-  WriteString("{");
+template <>
+GoWriter &GoWriter::Write(const ast::ConstructedValue &value) {
+  Write(value.constructor_identifier.name.GetString());
+  Write("{");
   if (!value.fields.empty()) {
-    WriteNewLine();
+    Write('\n');
     bool is_first_field = true;
     for (const auto &[identifier, value] : value.fields) {
       if (is_first_field) {
         is_first_field = false;
       } else {
-        WriteString(", ");
+        Write(", ");
       }
-      WriteString(identifier.name.GetString());
-      WriteString(": ");
-      WriteExpression(*value);
+      Write(identifier.name.GetString());
+      Write(": ");
+      Write(*value);
     }
-    WriteNewLine();
+    Write('\n');
   }
-  WriteString("}");
+  Write("}");
+  return *this;
 }
 
-} // namespace
+template <>
+GoWriter &GoWriter::Write(const ast::Value &value) {
+  std::visit([this](const auto &inner_value) { Write(inner_value); }, value);
+  return *this;
+}
 
-void GoCodeGenerator::GenerateObject(const ast::Message &msg) {
+template <>
+GoWriter &GoWriter::Write(const ast::Expression &value) {
+  std::visit([this](const auto &inner_value) { Write(inner_value); }, value);
+  return *this;
+}
+
+template <>
+GoWriter &GoWriter::Write(const ast::Message &msg) {
   std::cout << "generating message" << std::endl;
   // generate struct
   const std::string &message_name = msg.identifier.name.GetString();
@@ -280,7 +298,7 @@ void GoCodeGenerator::GenerateObject(const ast::Message &msg) {
       }
       *output_ << "obj." << dependency.name.GetString() << " != ";
       GoWriter writer {output_};
-      std::visit([&writer](const auto &parameter) { writer.WriteExpression(parameter); }, *type_parameter_ptr);
+      std::visit([&writer](const auto &parameter) { writer.Write(parameter); }, *type_parameter_ptr);
     }
     *output_ << ") {\n";
     *output_ << GetIndent(2) << "return false;\n";
@@ -289,9 +307,11 @@ void GoCodeGenerator::GenerateObject(const ast::Message &msg) {
   *output_ << GetIndent(1) << "return true;\n";
   *output_ << "}\n";
   *output_ << "\n";
+  return *this;
 }
 
-void GoCodeGenerator::GenerateObject(const ast::Enum &en) {
+template <>
+GoWriter &GoWriter::Write(const ast::Enum &en) {
   std::cout << "generating enum" << std::endl;
   // generate struct
   const auto &enum_name = en.identifier.name.GetString();
@@ -392,14 +412,23 @@ void GoCodeGenerator::GenerateObject(const ast::Enum &en) {
   *output_ << GetIndent(1) << "enum.InternalValue = value\n";
   *output_ << "}\n";
   *output_ << '\n';
+  return *this;
 }
 
+} // namespace
+
 void GoCodeGenerator::Generate(ast::AST *tree) {
+  GoWriter writer(output_);
+
   *output_ << "package " << kDefaultPackageName << "\n\n";
   *output_ << "// " << kDoNotEdit << "\n\n";
   for (const auto &item : tree->visit_order) {
     const auto &variant = tree->types.at(item);
-    std::visit([this](const auto &entity) { GenerateObject(entity); }, variant);
+    std::visit([&writer, &item](const auto &entity) { writer.SaveDependencyNames(item, entity); }, variant);
+  }
+  for (const auto &item : tree->visit_order) {
+    const auto &variant = tree->types.at(item);
+    std::visit([&writer, &item](const auto &entity) { writer.Write(entity); }, variant);
   }
 }
 
