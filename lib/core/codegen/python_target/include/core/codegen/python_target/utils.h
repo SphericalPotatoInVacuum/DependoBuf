@@ -23,4 +23,6 @@ std::string typed_args(
 
 std::string untyped_args(const std::vector<std::string> &names);
 
+std::string py_tuple(const std::vector<std::string> &names);
+
 }

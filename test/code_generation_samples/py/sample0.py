@@ -10,6 +10,17 @@ from typing import Annotated
 Unsigned = Annotated[int, Ge(0)]
 
 
+def __is_consistent(actual: tuple, expected: tuple) -> bool:
+    for i in range(len(actual)):
+        if expected[i] is None:
+            continue
+
+        if actual[i] != expected[i]:
+            return False
+
+    return True
+
+
 class Color:
     @dataclass
     class __Red:
@@ -30,10 +41,11 @@ class Color:
 
     @classmethod
     def possible_types(cls, s: str) -> set[type]:
-        return {}
+        actual = (s, )
+        
 
     def __init__(self, s: str) -> None:
-        self.dependencies = (s)
+        self.dependencies = (s, )
 
     def red(self, r: int) -> __Red:
         obj = self.__Red(r)
@@ -61,37 +73,13 @@ class Painter:
         return {}
 
     def __init__(self, f: float, c: Color.color_type) -> None:
-        c_deps = ('green')
+        c_deps = ('green', )
         c.check(*c_deps)
-        self.dependencies = (f, c)
+
+        self.dependencies = (f, c, )
 
     def construct(self) -> __Painter:
         obj = self.__Painter()
-        obj.check(*self.dependencies)
-        return obj
-
-
-class Painting:
-    @dataclass
-    class __Painting:
-
-        def check(self, col: str, c: Color.color_type) -> None:
-            if type(self) not in Painting.possible_types(col, c):
-                raise TypeError('Non-compliance with type dependencies')
-
-    painting_type = __Painting
-
-    @classmethod
-    def possible_types(cls, col: str, c: Color.color_type) -> set[type]:
-        return {}
-
-    def __init__(self, col: str, c: Color.color_type) -> None:
-        c_deps = (col)
-        c.check(*c_deps)
-        self.dependencies = (col, c)
-
-    def construct(self) -> __Painting:
-        obj = self.__Painting()
         obj.check(*self.dependencies)
         return obj
 
@@ -100,24 +88,21 @@ class Museum:
     @dataclass
     class __Museum:
 
-        def check(self, f: float, p: Painter.painter_type, art: Painting.painting_type, ccc: Color.color_type) -> None:
-            if type(self) not in Museum.possible_types(f, p, art, ccc):
+        def check(self, f: float, p: Painter.painter_type) -> None:
+            if type(self) not in Museum.possible_types(f, p):
                 raise TypeError('Non-compliance with type dependencies')
 
     museum_type = __Museum
 
     @classmethod
-    def possible_types(cls, f: float, p: Painter.painter_type, art: Painting.painting_type, ccc: Color.color_type) -> set[type]:
+    def possible_types(cls, f: float, p: Painter.painter_type) -> set[type]:
         return {}
 
-    def __init__(self, f: float, p: Painter.painter_type, art: Painting.painting_type, ccc: Color.color_type) -> None:
-        p_deps = (2 + f, Color.__Green(12))
+    def __init__(self, f: float, p: Painter.painter_type) -> None:
+        p_deps = (2 * f / 10 - 4, Color._Color__Green(12), )
         p.check(*p_deps)
-        art_deps = ('red', Color.__Red(22))
-        art.check(*art_deps)
-        ccc_deps = ('yellow')
-        ccc.check(*ccc_deps)
-        self.dependencies = (f, p, art, ccc)
+
+        self.dependencies = (f, p, )
 
     def construct(self) -> __Museum:
         obj = self.__Museum()

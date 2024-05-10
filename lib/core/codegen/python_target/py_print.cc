@@ -128,8 +128,43 @@ void PyPrinter::print_dep_deps(
   print_line(tokens, level);
 }
 
+void PyPrinter::print_def_is_consistent() {
+	print_line();
+	print_line();
+	print_line({"def _is_consistent(actual: tuple, expected: tuple) -> bool:"});
+	print_line({"for i in range(len(actual)):"}, 1);
+	print_line({"if expected[i] is None:"}, 2);
+	print_line({"continue"}, 3);
+	print_line();
+	print_line({"if actual[i] != expected[i]:"}, 2);
+	print_line({"return False"}, 3);
+	print_line();
+	print_line({"return True"}, 1);
+}
+
+void PyPrinter::print_consistency_check(
+		const std::string &expected,
+		const std::vector<std::string> &types,
+		int level) {
+
+	std::vector<std::string> return_set = {"return {"};
+	std::string sep = ", cls.__";
+	for (int i = 0; i < types.size(); ++i) {
+		if (i != 0) {
+			return_set.push_back(sep);
+		}
+		return_set.push_back(types[i]);
+	}
+	return_set.emplace_back("}");
+
+	print_line({"expected = ", expected}, level);
+	print_line({"if _is_consistent(actual, expected):"}, level++);
+	print_line(return_set, level);
+}
+
 void PyPrinter::init_file() {
   *out_ << kReadme << kImports << kCreateUnsigned;
+	print_def_is_consistent();
 }
 
 void PyPrinter::print_outer_class(const std::string &name) {
@@ -239,7 +274,7 @@ void PyPrinter::print_def_init(
   }
 
   // self.dependencies = (x, y)
-  std::string tuple = untyped_args(names);
+  std::string tuple = py_tuple(names);
   print_line({"self.dependencies = ", tuple}, level);
 }
 

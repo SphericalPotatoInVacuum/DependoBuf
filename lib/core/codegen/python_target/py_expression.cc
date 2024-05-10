@@ -21,10 +21,8 @@ namespace dbuf::gen {
     buf_ << "(";
     std::string sep = ", ";
     for (int i = 0; i < expressions.size(); ++i) {
-      if (i != 0) {
-        buf_ << sep;
-      }
       (*this)(*expressions[i]);
+      buf_ << sep;
     }
     buf_ << ")";
   }
@@ -79,7 +77,7 @@ namespace dbuf::gen {
     const std::string &struct_name = constructor_to_type_->at(interned_constructor_name).GetString();
     const std::string &constructor_name = interned_constructor_name.GetString();
 
-    buf_ << struct_name << ".__" << constructor_name << "(";
+    buf_ << struct_name << "._" << struct_name << "__" << constructor_name << "(";
 
     std::string sep = ", ";
     for (int i = 0; i < constructed.fields.size(); ++i) {

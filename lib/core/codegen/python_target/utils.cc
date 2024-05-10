@@ -39,7 +39,7 @@ std::string typed_args(
     const std::vector<std::string> &names,
     const std::vector<std::string> &types,
     const std::string &first_arg) {
-  // self, x: int, y: float
+  // (self, x: int, y: float)
   std::stringstream args;
   args << "(" << first_arg;
   std::string sep = ", ";
@@ -53,7 +53,7 @@ std::string typed_args(
 }
 
 std::string untyped_args(const std::vector<std::string> &names) {
-  // self, x: int, y: float
+  // (x, y, z)
   std::string args = "(";
   std::string sep  = ", ";
 
@@ -66,6 +66,19 @@ std::string untyped_args(const std::vector<std::string> &names) {
 
   args += ")";
   return args;
+}
+
+std::string py_tuple(const std::vector<std::string> &names) {
+  // (x, y, )
+  std::string tup = "(";
+  std::string sep = ", ";
+
+  for (int i = 0; i < names.size(); ++i) {
+    tup += names[i];
+    tup += sep;
+  }
+  tup += ")";
+  return tup;
 }
 
 }

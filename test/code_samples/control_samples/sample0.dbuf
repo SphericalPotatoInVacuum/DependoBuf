@@ -15,10 +15,7 @@ message Painter (f Float) (c Color "green") {
 
 }
 
-message Painting (col String) (c Color col) {
+message Museum (f Float) (p Painter (2.0 * f / 10.0 - 4.0) Green {g: 12}) {
 
 }
 
-message Museum (f Float) (p Painter (2.0 + f) Green {g: 12}) (art Painting "red" Red {r: 22}) (ccc Color "yellow") {
-
-}

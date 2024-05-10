@@ -104,6 +104,13 @@ private:
       const std::string &dep_name,
       const std::string &deps,
       int level);
+  
+  void print_def_is_consistent();
+
+  void print_consistency_check(
+      const std::string &expected,
+      const std::vector<std::string> &types,
+      int level);
 
   std::shared_ptr<std::ofstream> out_ = nullptr;
   std::vector<std::string> tabs_;

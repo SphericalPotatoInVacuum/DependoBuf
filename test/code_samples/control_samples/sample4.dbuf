@@ -1,5 +1,8 @@
 message Message2 {
   name String;
+  id Unsigned;
+  a Int;
+  b Float;
 }
 
 message Message3 (m2 Message2) {
@@ -8,5 +11,9 @@ message Message3 (m2 Message2) {
 }
 
 message Message4 {
-  m3 Message3 Message2 {name: "Evgeny"};
+  m3 Message3 Message2 {name: "Evgeny", id: 1u, a: 10, b: 20.0};
+}
+
+message Message5 (m3 Message3 Message2 {name: "Evgeny", id: 1u, a: 10, b: 20.0}) {
+
 }
