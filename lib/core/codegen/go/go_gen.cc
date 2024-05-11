@@ -296,10 +296,7 @@ GoWriter &GoWriter::Write(const ast::Message &msg) {
   Write('}').Write('\n');
   Write('\n');
   // generate Validate
-  Write("func(obj *").Write(message_name).Write(") Validate() bool {");
-  if (!msg.type_dependencies.empty() || !msg.fields.empty()) {
-    Write('\n');
-  }
+  Write("func(obj *").Write(message_name).Write(") Validate() bool {").Write('\n');
   for (const auto &dependency : msg.type_dependencies) {
     if (dependency.type_expression.parameters.empty()) {
       continue;
@@ -550,6 +547,11 @@ GoWriter &GoWriter::Write(const ast::Enum &en) {
       .Write('\n');
   Write(GetIndent(1)).Write("_, ok := enum.InternalValue.(T)").Write('\n');
   Write(GetIndent(1)).Write("return ok").Write('\n');
+  Write('}').Write('\n');
+  Write('\n');
+  // generate Validate
+  Write("func(obj *").Write(enum_name).Write(") Validate() bool {").Write('\n');
+  Write(GetIndent(1)).Write("return true").Write('\n');
   Write('}').Write('\n');
   return *this;
 }
