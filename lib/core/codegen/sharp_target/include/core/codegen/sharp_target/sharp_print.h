@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "core/ast/ast.h"
+#include "core/ast/expression.h"
 
 namespace dbuf::gen {
 
@@ -34,21 +35,47 @@ public:
 
     void InitFile();
 
-    void PrintVariables(
+    void PrintClassBegin(const std::string &name);
+
+    void PrintClassEnd();
+
+    void PrintEnumBegin(const std::string &name);
+
+    void PrintEnumEnd();
+
+    void PrintTypedVariables(
         const std::vector<ast::TypedVariable> &variables,
         std::string &&delimeter,
         bool add_last_delimeter,
         bool is_public,
         bool need_getter_and_setter);
     
-    void PrintClassBegin(const std::string &name);
+    void PrintTypeExpression(
+        const ast::TypeExpression &expression,
+        bool is_public);
+    
+    void PrintBinaryExpressionBegin();
 
-    void PrintClassEnd();
+    void PrintBinaryExpressionType(const ast::BinaryExpression &binary_expr);
+
+    void PrintBinaryExpressionEnd();
+
+    void PrintUnaryExpressionType(const ast::UnaryExpression &unary_expr);
+
+    void PrintConstructedValueBegin(const ast::ConstructedValue &constr_value);
+
+    void PrintConstructedValueEnd();
+    
+    void PrintValue(const ast::Value &value);
+
+    void PrintVarAccess(const ast::VarAccess &var_access);
 
 private:
     static std::string GetVariableName(const ast::TypedVariable &var);
 
     static std::string GetVariableType(const ast::TypedVariable &var);
+
+    static std::string GetExpressionType(const ast::TypeExpression &expr);
 
     std::shared_ptr<std::ofstream> out_ = nullptr;
 
