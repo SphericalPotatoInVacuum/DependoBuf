@@ -141,6 +141,12 @@ GoWriter &GoWriter::Write(const T &value) {
 }
 
 template <>
+GoWriter &GoWriter::Write(const bool &value) {
+  *output_ << (value ? "true" : "false");
+  return *this;
+}
+
+template <>
 GoWriter &GoWriter::Write(const InternedString &value) {
   return Write(value.GetString());
 }
