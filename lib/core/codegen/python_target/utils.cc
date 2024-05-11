@@ -81,4 +81,8 @@ std::string py_tuple(const std::vector<std::string> &names) {
   return tup;
 }
 
+bool tuple_is_empty(const std::string &tuple_str) {
+  return (tuple_str.size() <= 2);
+}
+
 }

@@ -14,6 +14,10 @@ public:
 
   void init_file();
 
+  void print_line(const std::vector<std::string> &tokens, int level = 0);
+
+  void print_line(std::vector<std::string> &&tokens = {}, int level = 0);
+
   void print_outer_class(const std::string &name);
 
   void print_inner_class(const std::string &name, int level = 1);
@@ -21,8 +25,10 @@ public:
   void print_inner_class_field(const std::string &name, const std::string &type, int level = 2);
 
   void print_def_check(
-      const std::vector<std::string> &names,
-      const std::vector<std::string> &types,
+      const std::vector<std::string> &dep_names,
+      const std::vector<std::string> &dep_types,
+      const std::vector<std::string> &field_names,
+      const std::vector<std::string> &field_deps,
       const std::string &struct_name,
       int level = 2);
 
@@ -34,6 +40,8 @@ public:
   void print_def_possible_types(
       const std::vector<std::string> &names,
       const std::vector<std::string> &types,
+      const std::vector<std::string> &expected_params_matrix,
+      const std::vector<std::vector<std::string>> &possible_types_matrix,
       int level = 1);
 
   void print_def_init(
@@ -55,10 +63,6 @@ public:
       int level = 1);
 
 private:
-  void print_line(const std::vector<std::string> &tokens, int level = 0);
-
-  void print_line(std::vector<std::string> &&tokens = {}, int level = 0);
-
   void print_def_with_typed_args(
       const std::string &name,
       const std::string &first_arg,
@@ -100,7 +104,7 @@ private:
       const std::vector<std::string> &types,
       int level);
   
-  void print_dep_deps(
+  void print_var_deps(
       const std::string &dep_name,
       const std::string &deps,
       int level);

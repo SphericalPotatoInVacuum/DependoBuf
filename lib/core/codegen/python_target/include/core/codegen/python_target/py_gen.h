@@ -19,11 +19,12 @@ public:
 private:
   static std::tuple<std::string, std::string> get_name_and_type(const ast::TypedVariable &var);
 
-  void prepare_deps(
-      const std::vector<ast::TypedVariable>& type_dependencies,
-      std::vector<std::string> &dep_names,
-      std::vector<std::string> &dep_types,
-      std::vector<std::string> &dep_deps);
+  void prepare_names_types_deps(
+      const std::vector<ast::TypedVariable>& typed_vars,
+      std::vector<std::string> &names,
+      std::vector<std::string> &types,
+      std::vector<std::string> &deps,
+      bool fields_mode = false);
 
   PyPrinter printer_;
 

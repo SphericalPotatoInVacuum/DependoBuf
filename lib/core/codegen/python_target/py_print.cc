@@ -118,7 +118,7 @@ void PyPrinter::print_constructor(
   print_line({"return obj"}, level);
 }
 
-void PyPrinter::print_dep_deps(
+void PyPrinter::print_var_deps(
     const std::string &dep_name,
     const std::string &deps,
     int level) {
@@ -148,11 +148,12 @@ void PyPrinter::print_consistency_check(
 		int level) {
 
 	std::vector<std::string> return_set = {"return {"};
-	std::string sep = ", cls.__";
+	std::string sep = ", ";
 	for (int i = 0; i < types.size(); ++i) {
 		if (i != 0) {
 			return_set.push_back(sep);
 		}
+		return_set.emplace_back("cls.__");
 		return_set.push_back(types[i]);
 	}
 	return_set.emplace_back("}");
@@ -160,6 +161,7 @@ void PyPrinter::print_consistency_check(
 	print_line({"expected = ", expected}, level);
 	print_line({"if _is_consistent(actual, expected):"}, level++);
 	print_line(return_set, level);
+	print_line();
 }
 
 void PyPrinter::init_file() {
@@ -188,19 +190,20 @@ void PyPrinter::print_inner_class_field(const std::string &name, const std::stri
 }
 
 void PyPrinter::print_def_check(
-    const std::vector<std::string> &names,
-    const std::vector<std::string> &types,
+    const std::vector<std::string> &dep_names,
+    const std::vector<std::string> &dep_types,
+		const std::vector<std::string> &field_names,
+		const std::vector<std::string> &field_deps,
     const std::string &struct_name,
     int level) {
-  print_line();
 
   // def check(self, x: int, y: float, z: str) -> None:
   std::string def_name = "check";
-  print_instance_method(def_name, names, types, level);
+  print_instance_method(def_name, dep_names, dep_types, level);
   level++;
 
   // if type(self) not in SomeMessage.possible_types(x, y, z):
-  std::string args                = untyped_args(names);
+  std::string args                = untyped_args(dep_names);
   std::vector<std::string> tokens = {"if type(self) not in ", struct_name, ".possible_types", args, ":"};
   print_line(tokens, level);
   level++;
@@ -208,6 +211,15 @@ void PyPrinter::print_def_check(
   std::string raise_exc = "raise TypeError('Non-compliance with type dependencies')";
   print_line({raise_exc}, level);
   level--;
+
+	for (int i = 0; i < field_names.size(); ++i) {
+		if (!tuple_is_empty(field_deps[i])) {
+			print_line();
+			print_var_deps(field_names[i], field_deps[i], level);
+      std::vector<std::string> tokens = {"self.", field_names[i], ".check(*", field_names[i], "_deps)"};
+      print_line(tokens, level);
+		}
+	}
 }
 
 void PyPrinter::print_type(
@@ -233,6 +245,8 @@ void PyPrinter::print_type(
 void PyPrinter::print_def_possible_types(
     const std::vector<std::string> &names,
     const std::vector<std::string> &types,
+		const std::vector<std::string> &expected_params_matrix,
+    const std::vector<std::vector<std::string>> &possible_types_matrix,
     int level) {
   std::string res_type = "set[type]";
   std::string def_name = "possible_types";
@@ -244,9 +258,19 @@ void PyPrinter::print_def_possible_types(
   print_class_method(def_name, names, types, level, res_type);
   level++;
 
-  // return {cls.__SomeMessage}
-  std::vector<std::string> tokens = {"return {}"};
-  print_line(tokens, level);
+	if (expected_params_matrix.size() == 0) {
+		std::string message_type = possible_types_matrix[0][0];
+		print_line({"return {cls.__", message_type, "}"}, level);
+		return;
+	}
+
+	print_line({"actual = ", py_tuple(names)}, level);
+
+  for (int i = 0; i < expected_params_matrix.size(); ++i) {
+		print_consistency_check(expected_params_matrix[i], possible_types_matrix[i], level);
+	}
+
+	print_line({"return {}"}, level);
 }
 
 void PyPrinter::print_def_init(
@@ -263,10 +287,10 @@ void PyPrinter::print_def_init(
   print_instance_method(def_name, names, types, level);
   level++;
 
-  // x.check(*self.__x_deps)
+  // x.check(*x_deps)
   for (int i = 0; i < names.size(); ++i) {
-    if (deps[i].size() > 2) {
-			print_dep_deps(names[i], deps[i], level);
+    if (!tuple_is_empty(deps[i])) {
+			print_var_deps(names[i], deps[i], level);
       std::vector<std::string> tokens = {names[i], ".check(*", names[i], "_deps)"};
       print_line(tokens, level);
 			print_line();

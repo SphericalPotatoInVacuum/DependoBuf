@@ -25,4 +25,6 @@ std::string untyped_args(const std::vector<std::string> &names);
 
 std::string py_tuple(const std::vector<std::string> &names);
 
+bool tuple_is_empty(const std::string &tuple_str);
+
 }

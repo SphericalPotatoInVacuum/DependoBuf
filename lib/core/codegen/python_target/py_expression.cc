@@ -17,6 +17,13 @@ namespace dbuf::gen {
     return res;
   }
 
+  std::string PyExpression::get_instances(const std::vector<std::variant<ast::Value, ast::Star>> &expressions) {
+    (*this)(expressions);
+    std::string res = buf_.str();
+    buf_.str("");
+    return res;
+  }
+
   void PyExpression::operator()(const std::vector<std::shared_ptr<const ast::Expression>> &expressions) {
     buf_ << "(";
     std::string sep = ", ";
@@ -27,28 +34,56 @@ namespace dbuf::gen {
     buf_ << ")";
   }
 
+  void PyExpression::operator()(const std::vector<std::variant<ast::Value, ast::Star>> &expressions) {
+    buf_ << "(";
+    std::string sep = ", ";
+    for (int i = 0; i < expressions.size(); ++i) {
+      std::visit(*this, expressions[i]);
+      buf_ << sep;
+    }
+    buf_ << ")";
+  }
+
   void PyExpression::operator()(const ast::Expression &expr) {
     std::visit(*this, expr);
   }
 
   void PyExpression::operator()(const ast::BinaryExpression &bin_ex) {
+    if (need_brackets_) {
+      buf_ << "(";
+    }
+    bool cur_need_brackets = need_brackets_;
+    need_brackets_ = true;
+
     (*this)(*bin_ex.left);
 
     std::string op = kBinaryOperations.at(static_cast<char>(bin_ex.type));
     buf_ << " " << op << " ";
 
     (*this)(*bin_ex.right);
+
+    need_brackets_ = cur_need_brackets;
+    if (need_brackets_) {
+      buf_ << ")";
+    }
   }
 
   void PyExpression::operator()(const ast::UnaryExpression &un_ex) {
+    if (need_brackets_) {
+      buf_ << "(";
+    }
+    bool cur_need_brackets = need_brackets_;
+    need_brackets_ = true;
+
     std::string op = kUnaryOperations.at(static_cast<char>(un_ex.type));
     buf_ << op;
 
     (*this)(*un_ex.expression);
-  }
 
-  void PyExpression::operator()(const ast::TypeExpression &typ_expr) {
-    buf_ << ":(";
+    need_brackets_ = cur_need_brackets;
+    if (need_brackets_) {
+      buf_ << ")";
+    }
   }
 
   void PyExpression::operator()(const ast::Value &val) {
@@ -57,6 +92,15 @@ namespace dbuf::gen {
 
   void PyExpression::operator()(const ast::VarAccess &var_acc) {
     buf_ << var_acc;
+  }
+
+  void PyExpression::operator()(const ast::ScalarValue<int64_t> &scalar) {
+    if (scalar.value >= 0) {
+      buf_ << scalar.value;
+      return;
+    }
+
+    buf_ << "(" << scalar.value << ")";
   }
 
   void PyExpression::operator()(const ast::ScalarValue<bool> &scalar) {
@@ -87,6 +131,10 @@ namespace dbuf::gen {
       (*this)(*constructed.fields[i].second);
     }
     buf_ << ")";
+  }
+
+  void PyExpression::operator()(const ast::Star &star) {
+    buf_ << "None";
   }
 
   const std::unordered_map<char, std::string> PyExpression::kBinaryOperations = {

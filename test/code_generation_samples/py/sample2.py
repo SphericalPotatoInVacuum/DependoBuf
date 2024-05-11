@@ -10,6 +10,17 @@ from typing import Annotated
 Unsigned = Annotated[int, Ge(0)]
 
 
+def _is_consistent(actual: tuple, expected: tuple) -> bool:
+    for i in range(len(actual)):
+        if expected[i] is None:
+            continue
+
+        if actual[i] != expected[i]:
+            return False
+
+    return True
+
+
 class Address:
     @dataclass
     class __Address:
@@ -26,7 +37,7 @@ class Address:
 
     @classmethod
     def possible_types(cls) -> set[type]:
-        return {}
+        return {cls.__Address}
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -52,7 +63,7 @@ class Pet:
 
     @classmethod
     def possible_types(cls) -> set[type]:
-        return {}
+        return {cls.__Pet}
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -80,7 +91,7 @@ class User:
 
     @classmethod
     def possible_types(cls) -> set[type]:
-        return {}
+        return {cls.__User}
 
     def __init__(self) -> None:
         self.dependencies = ()

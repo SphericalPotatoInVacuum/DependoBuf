@@ -1,21 +1,16 @@
-enum Color (s String) {
-  "red" => {
-    Red {
-      r Int;
+enum Cat (age Int) {
+  0 => {
+    Child {
+      name String;
     }
   }
-  "green" => {
-    Green {
-      g Int;
+  * => {
+    Adult {
+      name String;
     }
   }
 }
 
-message Painter (f Float) (c Color "green") {
-
+message House (n Int) {
+  cat Cat (-(n + 5) - -2);
 }
-
-message Museum (f Float) (p Painter (2.0 * f / 10.0 - 4.0) Green {g: 12}) {
-
-}
-

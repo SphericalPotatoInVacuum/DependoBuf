@@ -10,7 +10,7 @@ from typing import Annotated
 Unsigned = Annotated[int, Ge(0)]
 
 
-def __is_consistent(actual: tuple, expected: tuple) -> bool:
+def _is_consistent(actual: tuple, expected: tuple) -> bool:
     for i in range(len(actual)):
         if expected[i] is None:
             continue
@@ -21,90 +21,74 @@ def __is_consistent(actual: tuple, expected: tuple) -> bool:
     return True
 
 
-class Color:
+class Cat:
     @dataclass
-    class __Red:
-        r: int
+    class __Child:
+        name: str
 
-        def check(self, s: str) -> None:
-            if type(self) not in Color.possible_types(s):
-                raise TypeError('Non-compliance with type dependencies')
-    @dataclass
-    class __Green:
-        g: int
-
-        def check(self, s: str) -> None:
-            if type(self) not in Color.possible_types(s):
+        def check(self, age: int) -> None:
+            if type(self) not in Cat.possible_types(age):
                 raise TypeError('Non-compliance with type dependencies')
 
-    color_type = __Red | __Green
+    @dataclass
+    class __Adult:
+        name: str
+
+        def check(self, age: int) -> None:
+            if type(self) not in Cat.possible_types(age):
+                raise TypeError('Non-compliance with type dependencies')
+
+    cat_type = __Child | __Adult
 
     @classmethod
-    def possible_types(cls, s: str) -> set[type]:
-        actual = (s, )
-        
+    def possible_types(cls, age: int) -> set[type]:
+        actual = (age, )
+        expected = (0, )
+        if _is_consistent(actual, expected):
+            return {cls.__Child}
 
-    def __init__(self, s: str) -> None:
-        self.dependencies = (s, )
+        expected = (None, )
+        if _is_consistent(actual, expected):
+            return {cls.__Adult}
 
-    def red(self, r: int) -> __Red:
-        obj = self.__Red(r)
-        obj.check(*self.dependencies)
-        return obj
-
-    def green(self, g: int) -> __Green:
-        obj = self.__Green(g)
-        obj.check(*self.dependencies)
-        return obj
-
-
-class Painter:
-    @dataclass
-    class __Painter:
-
-        def check(self, f: float, c: Color.color_type) -> None:
-            if type(self) not in Painter.possible_types(f, c):
-                raise TypeError('Non-compliance with type dependencies')
-
-    painter_type = __Painter
-
-    @classmethod
-    def possible_types(cls, f: float, c: Color.color_type) -> set[type]:
         return {}
 
-    def __init__(self, f: float, c: Color.color_type) -> None:
-        c_deps = ('green', )
-        c.check(*c_deps)
+    def __init__(self, age: int) -> None:
+        self.dependencies = (age, )
 
-        self.dependencies = (f, c, )
+    def child(self, name: str) -> __Child:
+        obj = self.__Child(name)
+        obj.check(*self.dependencies)
+        return obj
 
-    def construct(self) -> __Painter:
-        obj = self.__Painter()
+    def adult(self, name: str) -> __Adult:
+        obj = self.__Adult(name)
         obj.check(*self.dependencies)
         return obj
 
 
-class Museum:
+class House:
     @dataclass
-    class __Museum:
+    class __House:
+        cat: Cat.cat_type
 
-        def check(self, f: float, p: Painter.painter_type) -> None:
-            if type(self) not in Museum.possible_types(f, p):
+        def check(self, n: int) -> None:
+            if type(self) not in House.possible_types(n):
                 raise TypeError('Non-compliance with type dependencies')
 
-    museum_type = __Museum
+            cat_deps = ((-(n + 5)) - (-2), )
+            self.cat.check(*cat_deps)
+
+    house_type = __House
 
     @classmethod
-    def possible_types(cls, f: float, p: Painter.painter_type) -> set[type]:
-        return {}
+    def possible_types(cls, n: int) -> set[type]:
+        return {cls.__House}
 
-    def __init__(self, f: float, p: Painter.painter_type) -> None:
-        p_deps = (2 * f / 10 - 4, Color._Color__Green(12), )
-        p.check(*p_deps)
+    def __init__(self, n: int) -> None:
+        self.dependencies = (n, )
 
-        self.dependencies = (f, p, )
-
-    def construct(self) -> __Museum:
-        obj = self.__Museum()
+    def construct(self, cat: Cat.cat_type) -> __House:
+        obj = self.__House(cat)
         obj.check(*self.dependencies)
         return obj
