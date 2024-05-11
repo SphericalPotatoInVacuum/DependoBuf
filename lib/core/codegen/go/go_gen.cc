@@ -4,8 +4,6 @@
 #include "core/ast/expression.h"
 #include "core/interning/interned_string.h"
 
-#include <iostream>
-
 namespace dbuf::gen {
 
 namespace {
@@ -232,13 +230,11 @@ GoWriter &GoWriter::Write(const ast::Expression &value) {
 
 template <>
 GoWriter &GoWriter::Write(const ast::Message &msg) {
-  std::cout << "generating message" << std::endl;
   // generate struct
   const auto &message_name = msg.identifier.name.GetString();
   Write('\n');
   Write("type ").Write(message_name).Write(" struct {").Write('\n');
   if (!msg.type_dependencies.empty()) {
-    Write(GetIndent(1)).Write("// dependencies").Write('\n');
     for (const auto &dependency : msg.type_dependencies) {
       const auto &dependency_name = dependency.name.GetString();
       std::string dependency_type = dependency.type_expression.identifier.name.GetString();
@@ -434,7 +430,6 @@ GoWriter &GoWriter::Write(const ast::Message &msg) {
 
 template <>
 GoWriter &GoWriter::Write(const ast::Enum &en) {
-  std::cout << "generating enum" << std::endl;
   // generate struct
   const auto &enum_name = en.identifier.name.GetString();
   Write('\n');
