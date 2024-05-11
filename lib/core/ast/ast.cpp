@@ -1,5 +1,6 @@
 #include "core/ast/ast.h"
 
+#include "core/ast/expression.h"
 #include "core/interning/interned_string.h"
 
 #include <cassert>
@@ -59,7 +60,7 @@ private:
   void Print(const Message &message) {
     auto defer = MakeNewScope();
     result_ << current_indent_ << "identifier: " << message.identifier.name << "\n";
-    result_ << current_indent_ << "Field\n";
+    result_ << current_indent_ << "Fields\n";
     Print(message.fields);
     result_ << current_indent_ << "Type dependencies\n";
     Print(message.type_dependencies);
@@ -70,9 +71,65 @@ private:
     result_ << current_indent_ << string << "\n";
   }
 
+  void Print(const TypeExpression &type_expr) {
+    auto defer = MakeNewScope();
+    result_ << current_indent_ << "typename: " << type_expr.identifier.name << "\n";
+    result_ << current_indent_ << "Parameters\n";
+    Print(type_expr.parameters);
+  }
+
+  void Print(const BinaryExpression &value) {
+    auto defer = MakeNewScope();
+    result_ << current_indent_ << "Left\n";
+    Print(value.left);
+    result_ << current_indent_ << "Right\n";
+    Print(value.right);
+    result_ << current_indent_ << "Operation\n" << static_cast<char>(value.type);
+  }
+
+  void Print(const UnaryExpression &value) {
+    auto defer = MakeNewScope();
+    result_ << current_indent_ << "Value\n";
+    Print(value.expression);
+    result_ << current_indent_ << "Operation\n" << static_cast<char>(value.type);
+  }
+
+  void Print(const std::pair<Identifier, std::shared_ptr<const Expression>> &value) {
+    auto defer = MakeNewScope();
+    result_ << current_indent_ << "name: " << value.first.name << "\n";
+    result_ << current_indent_ << "Value\n";
+    Print(value.second);
+  }
+
+  void Print(const ConstructedValue &value) {
+    auto defer = MakeNewScope();
+    result_ << current_indent_ << "name: " << value.constructor_identifier.name << "\n";
+    result_ << current_indent_ << "Fields\n";
+    Print(value.fields);
+  }
+
+  void Print(const Value &value) {
+    auto defer = MakeNewScope();
+    if (std::holds_alternative<ConstructedValue>(value)) {
+      Print(std::get<ConstructedValue>(value));
+    } else {
+      result_ << current_indent_ << value << "\n";
+    }
+  }
+
+  void Print(const VarAccess &value) {
+    auto defer = MakeNewScope();
+    result_ << current_indent_ << value;
+  }
+
+  void Print(const std::shared_ptr<const dbuf::ast::Expression> &value) {
+    std::visit([this](auto &&arg) { this->Print(arg); }, *value);
+  }
+
   void Print(const TypedVariable &variable) {
     auto defer = MakeNewScope();
-    result_ << current_indent_ << variable << "\n";
+    result_ << current_indent_ << "name: " << variable.name << "\n";
+    Print(variable.type_expression);
   }
 
   void Print(const Enum &value) {
