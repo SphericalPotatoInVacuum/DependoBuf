@@ -546,7 +546,7 @@ GoWriter &GoWriter::Write(const ast::Enum &en) {
       .Write(enum_name)
       .Write(") bool {")
       .Write('\n');
-  Write(GetIndent(1)).Write("_, ok := enum.InternalValue.(T)").Write('\n');
+  Write(GetIndent(1)).Write("_, ok := enum.InternalValue.(*T)").Write('\n');
   Write(GetIndent(1)).Write("return ok").Write('\n');
   Write('}').Write('\n');
   Write('\n');
