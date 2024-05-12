@@ -30,6 +30,8 @@ void PyCodeGenerator::Generate(ast::AST *tree) {
       (*this)(enu);
     }
   }
+
+  printer_.print_def_is_consistent();
 }
 
 // print message
@@ -65,6 +67,7 @@ void PyCodeGenerator::operator()(const ast::Message &ast_message) {
       dep_types,
       field_names,
       field_deps,
+      message_name,
       message_name
   );
 
@@ -139,7 +142,8 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
           dep_types,
           field_names,
           field_deps,
-          enum_name
+          enum_name,
+          constructor_name
       );
 
       field_names_map[constructor_name] = std::move(field_names);

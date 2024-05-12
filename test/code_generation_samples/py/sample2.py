@@ -10,15 +10,8 @@ from typing import Annotated
 Unsigned = Annotated[int, Ge(0)]
 
 
-def _is_consistent(actual: tuple, expected: tuple) -> bool:
-    for i in range(len(actual)):
-        if expected[i] is None:
-            continue
-
-        if actual[i] != expected[i]:
-            return False
-
-    return True
+class DbufError(TypeError):
+    pass
 
 
 class Address:
@@ -30,13 +23,15 @@ class Address:
         withIntercom: bool
 
         def check(self) -> None:
-            if type(self) not in Address.possible_types():
-                raise TypeError('Non-compliance with type dependencies')
+            if type(self) not in Address._possible_types():
+                raise DbufError(
+                    'Type Address.__Address does not match given dependencies.'
+                )
 
     address_type = __Address
 
     @classmethod
-    def possible_types(cls) -> set[type]:
+    def _possible_types(cls) -> set[type]:
         return {cls.__Address}
 
     def __init__(self) -> None:
@@ -56,13 +51,15 @@ class Pet:
         name: str
 
         def check(self) -> None:
-            if type(self) not in Pet.possible_types():
-                raise TypeError('Non-compliance with type dependencies')
+            if type(self) not in Pet._possible_types():
+                raise DbufError(
+                    'Type Pet.__Pet does not match given dependencies.'
+                )
 
     pet_type = __Pet
 
     @classmethod
-    def possible_types(cls) -> set[type]:
+    def _possible_types(cls) -> set[type]:
         return {cls.__Pet}
 
     def __init__(self) -> None:
@@ -84,13 +81,15 @@ class User:
         money: float
 
         def check(self) -> None:
-            if type(self) not in User.possible_types():
-                raise TypeError('Non-compliance with type dependencies')
+            if type(self) not in User._possible_types():
+                raise DbufError(
+                    'Type User.__User does not match given dependencies.'
+                )
 
     user_type = __User
 
     @classmethod
-    def possible_types(cls) -> set[type]:
+    def _possible_types(cls) -> set[type]:
         return {cls.__User}
 
     def __init__(self) -> None:
@@ -100,3 +99,14 @@ class User:
         obj = self.__User(id, name, address, pet, money)
         obj.check(*self.dependencies)
         return obj
+
+
+def _is_consistent(actual: tuple, expected: tuple) -> bool:
+    for i in range(len(actual)):
+        if expected[i] is None:
+            continue
+
+        if actual[i] != expected[i]:
+            return False
+
+    return True

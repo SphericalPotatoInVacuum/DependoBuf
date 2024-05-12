@@ -10,15 +10,8 @@ from typing import Annotated
 Unsigned = Annotated[int, Ge(0)]
 
 
-def _is_consistent(actual: tuple, expected: tuple) -> bool:
-    for i in range(len(actual)):
-        if expected[i] is None:
-            continue
-
-        if actual[i] != expected[i]:
-            return False
-
-    return True
+class DbufError(TypeError):
+    pass
 
 
 class Cat:
@@ -27,21 +20,25 @@ class Cat:
         name: str
 
         def check(self, age: int) -> None:
-            if type(self) not in Cat.possible_types(age):
-                raise TypeError('Non-compliance with type dependencies')
+            if type(self) not in Cat._possible_types(age):
+                raise DbufError(
+                    'Type Cat.__Child does not match given dependencies.'
+                )
 
     @dataclass
     class __Adult:
         name: str
 
         def check(self, age: int) -> None:
-            if type(self) not in Cat.possible_types(age):
-                raise TypeError('Non-compliance with type dependencies')
+            if type(self) not in Cat._possible_types(age):
+                raise DbufError(
+                    'Type Cat.__Adult does not match given dependencies.'
+                )
 
     cat_type = __Child | __Adult
 
     @classmethod
-    def possible_types(cls, age: int) -> set[type]:
+    def _possible_types(cls, age: int) -> set[type]:
         actual = (age, )
         expected = (0, )
         if _is_consistent(actual, expected):
@@ -73,8 +70,10 @@ class House:
         cat: Cat.cat_type
 
         def check(self, n: int) -> None:
-            if type(self) not in House.possible_types(n):
-                raise TypeError('Non-compliance with type dependencies')
+            if type(self) not in House._possible_types(n):
+                raise DbufError(
+                    'Type House.__House does not match given dependencies.'
+                )
 
             cat_deps = ((-(n + 5)) - (-2), )
             self.cat.check(*cat_deps)
@@ -82,7 +81,7 @@ class House:
     house_type = __House
 
     @classmethod
-    def possible_types(cls, n: int) -> set[type]:
+    def _possible_types(cls, n: int) -> set[type]:
         return {cls.__House}
 
     def __init__(self, n: int) -> None:
@@ -92,3 +91,14 @@ class House:
         obj = self.__House(cat)
         obj.check(*self.dependencies)
         return obj
+
+
+def _is_consistent(actual: tuple, expected: tuple) -> bool:
+    for i in range(len(actual)):
+        if expected[i] is None:
+            continue
+
+        if actual[i] != expected[i]:
+            return False
+
+    return True

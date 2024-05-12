@@ -14,6 +14,8 @@ public:
 
   void init_file();
 
+  void print_def_is_consistent();
+
   void print_line(const std::vector<std::string> &tokens, int level = 0);
 
   void print_line(std::vector<std::string> &&tokens = {}, int level = 0);
@@ -30,6 +32,7 @@ public:
       const std::vector<std::string> &field_names,
       const std::vector<std::string> &field_deps,
       const std::string &struct_name,
+      const std::string &constructor_name,
       int level = 2);
 
   void print_type(
@@ -108,13 +111,13 @@ private:
       const std::string &dep_name,
       const std::string &deps,
       int level);
-  
-  void print_def_is_consistent();
 
   void print_consistency_check(
       const std::string &expected,
       const std::vector<std::string> &types,
       int level);
+  
+  void print_dbuf_error();
 
   std::shared_ptr<std::ofstream> out_ = nullptr;
   std::vector<std::string> tabs_;
