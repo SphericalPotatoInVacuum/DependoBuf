@@ -34,10 +34,13 @@ TypeChecker::TypeChecker(const ast::AST &ast)
     : ast_(ast) {}
 
 ErrorList TypeChecker::CheckTypes() {
-  for (const auto &node : ast_.visit_order) {
-    std::visit(*this, ast_.types.at(node));
+  try {
+    for (const auto &node : ast_.visit_order) {
+      std::visit(*this, ast_.types.at(node));
+    }
+  } catch (z3::exception &exception) {
+    errors_.emplace_back(exception.msg());
   }
-
   return errors_;
 }
 
