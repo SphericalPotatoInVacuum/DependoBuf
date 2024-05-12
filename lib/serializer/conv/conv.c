@@ -3,6 +3,7 @@
 #include "limits.h"
 #include "stdint.h"
 
+#include "stdio.h"
 
 #if UINT_BYTE_SIZE == 2
     static inline size_t GetValBitsForUINT16(uint16_t inp) {
@@ -27,6 +28,9 @@
 #endif
 
 static size_t GetValBits(uint64_t inp) {
+    if (inp == 0) {
+        return 0;
+    }
     size_t val_bits = 0;
     #if UINT_BYTE_SIZE <= 4
         if (!(inp >> UINT32_BITS)) {
@@ -45,60 +49,69 @@ static size_t GetValBits(uint64_t inp) {
 size_t GetVarintSizeOfUINT(uint64_t inp) {
     size_t val_bits = GetValBits(inp);
     size_t one_bytes = val_bits / (CHAR_BIT - 1);
-    if (val_bits % (CHAR_BIT - 1) == 0) {
+    if (val_bits % (CHAR_BIT - 1) == 0 && inp != 0) {
         --one_bytes;
     }
     return one_bytes + 1;
 }
 
-int ConvertVARINTtoUINT32(const char* varint, uint32_t* res) {
+int ConvertVARINTtoUINT32(const char* varint_bebra, uint32_t* res) {
     *res = 0;
-
-    const char* curr_byte_iter = varint;
+    if (*varint_bebra == 0) {
+        return 0;
+    }
+    const unsigned char* varint = (unsigned char*)varint_bebra;
+    const unsigned char* curr_byte_iter = varint;
     while (*curr_byte_iter >> (CHAR_BIT - 1)) {
         ++curr_byte_iter;
     }
-    size_t varint_size = curr_byte_iter - varint;
+    size_t varint_size = (curr_byte_iter - varint) / sizeof(char); //NOLINT
     size_t total_bits = varint_size * (CHAR_BIT - 1);
     if (*curr_byte_iter != 0) {
-        total_bits += CHAR_BIT - GetValBits(*curr_byte_iter);
+        total_bits += GetValBits(*curr_byte_iter);
     }
     if (total_bits > UINT32_BITS) {
         return 1;
     }
-
     size_t curr_shift = 0;
     for (size_t i = 0; i < varint_size; ++i) {
-        char curr_byte = varint[i] << 1;
-        *res += ((uint32_t)(curr_byte >> 1)) << (curr_shift);
+        unsigned char curr_byte = varint[i] << 1;
+        curr_byte = curr_byte >> 1;
+        *res += ((uint64_t)(curr_byte)) << (curr_shift);
         curr_shift += CHAR_BIT - 1;
     }
-    *res += (uint32_t)*curr_byte_iter << curr_shift;
+    unsigned char last_byte = *(unsigned char*)curr_byte_iter;
+    *res += (uint64_t)last_byte << curr_shift;
     return 0;
 }
 
-int ConvertVARINTtoUINT64(const char* varint, uint64_t* res) {
+int ConvertVARINTtoUINT64(const char* varint_bebra, uint64_t* res) {
     *res = 0;
-    const char* curr_byte_iter = varint;
+    if (*varint_bebra == 0) {
+        return 0;
+    }
+    const unsigned char* varint = (unsigned char*)varint_bebra;
+    const unsigned char* curr_byte_iter = varint;
     while (*curr_byte_iter >> (CHAR_BIT - 1)) {
         ++curr_byte_iter;
     }
-    size_t varint_size = curr_byte_iter - varint;
+    size_t varint_size = (curr_byte_iter - varint) / sizeof(char); //NOLINT
     size_t total_bits = varint_size * (CHAR_BIT - 1);
     if (*curr_byte_iter != 0) {
-        total_bits += CHAR_BIT - GetValBits(*curr_byte_iter);
+        total_bits += GetValBits(*curr_byte_iter);
     }
     if (total_bits > UINT64_BITS) {
         return 1;
     }
-
     size_t curr_shift = 0;
     for (size_t i = 0; i < varint_size; ++i) {
-        char curr_byte = varint[i] << 1;
-        *res += ((uint64_t)(curr_byte >> 1)) << (curr_shift);
+        unsigned char curr_byte = varint[i] << 1;
+        curr_byte = curr_byte >> 1;
+        *res += ((uint64_t)(curr_byte)) << (curr_shift);
         curr_shift += CHAR_BIT - 1;
     }
-    *res += (uint64_t)*curr_byte_iter << curr_shift;
+    unsigned char last_byte = *(unsigned char*)curr_byte_iter;
+    *res += (uint64_t)last_byte << curr_shift;
     return 0;
 }
 

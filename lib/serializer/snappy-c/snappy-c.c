@@ -442,7 +442,7 @@ static inline bool writer_append_from_self(struct writer *w, u32 offset,
 	CHECK_LE(op, w->op_limit);
 	const u32 space_left = w->op_limit - op;
 
-	if (op - w->base <= offset - 1u)	/* -1u catches offset==0 */
+	if (op - w->base <= offset - 1u)	/* -1u catches offset==0 */ //NOLINT
 		return false;
 	if (len <= 16 && offset >= 8 && space_left >= 16) {
 		/* Fast path, used for the majority (70-80%) of dynamic
@@ -539,9 +539,9 @@ EXPORT_SYMBOL(snappy_max_compressed_length);
 
 enum {
 	LITERAL = 0,
-	COPY_1_BYTE_OFFSET = 1,	/* 3 bit length + 3 bits of offset in opcode */
-	COPY_2_BYTE_OFFSET = 2,
-	COPY_4_BYTE_OFFSET = 3
+	COPY_1_BYTE_OFFSET = 1,	/* 3 bit length + 3 bits of offset in opcode */ //NOLINT
+	COPY_2_BYTE_OFFSET = 2, //NOLINT
+	COPY_4_BYTE_OFFSET = 3 //NOLINT
 };
 
 static inline char *emit_literal(char *op,
@@ -650,7 +650,7 @@ bool snappy_uncompressed_length(const char *start, size_t n, size_t * result)
 	if (varint_parse32_with_limit(start, limit, &v) != NULL) {
 		*result = v;
 		return true;
-	} else {
+	} else { //NOLINT
 		return false;
 	}
 }
@@ -1004,8 +1004,8 @@ emit_remainder:
  */
 
 /* Mapping from i in range [0,4] to a mask to extract the bottom 8*i bits */
-static const u32 wordmask[] = {
-	0u, 0xffu, 0xffffu, 0xffffffu, 0xffffffffu
+static const u32 wordmask[] = { //NOLINT
+	0u, 0xffu, 0xffffu, 0xffffffu, 0xffffffffu //NOLINT
 };
 
 /*
@@ -1021,7 +1021,7 @@ static const u32 wordmask[] = {
  *      (1) Extracting a byte is faster than a bit-field
  *      (2) It properly aligns copy offset so we do not need a <<8
  */
-static const u16 char_table[256] = {
+static const u16 char_table[256] = { //NOLINT
 	0x0001, 0x0804, 0x1001, 0x2001, 0x0002, 0x0805, 0x1002, 0x2002,
 	0x0003, 0x0806, 0x1003, 0x2003, 0x0004, 0x0807, 0x1004, 0x2004,
 	0x0005, 0x0808, 0x1005, 0x2005, 0x0006, 0x0809, 0x1006, 0x2006,
@@ -1305,7 +1305,7 @@ static inline int compress(struct snappy_env *env, struct source *reader,
 {
 	int err;
 	size_t written = 0;
-	int N = available(reader);
+	int N = available(reader); //NOLINT
 	char ulength[kmax32];
 	char *p = varint_encode32(ulength, N);
 
@@ -1502,7 +1502,7 @@ EXPORT_SYMBOL(snappy_uncompress);
 int snappy_compress(struct snappy_env *env,
 		    const char *input,
 		    size_t input_length,
-		    char *compressed, size_t *compressed_length)
+		    char *compressed, size_t *compressed_length) //NOLINT
 {
 	struct source reader = {
 		.ptr = input,
@@ -1530,7 +1530,7 @@ EXPORT_SYMBOL(snappy_compress);
  *
  * Return 0 on success, otherwise an negative error code.
  */
-int snappy_uncompress(const char *compressed, size_t n, char *uncompressed)
+int snappy_uncompress(const char *compressed, size_t n, char *uncompressed) //NOLINT
 {
 	struct source reader = {
 		.ptr = compressed,

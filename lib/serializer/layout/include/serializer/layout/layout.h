@@ -69,9 +69,13 @@ typedef struct Value {
 } Value;
 
 //Constructs Value by its layout and pure values
-Value ConstructValue(const Layout* layout, void **values);
+//Value ConstructValue(const Layout* layout, void **values);
 //Constructs value based on Built-in Layout and pure value
 Value ConstructPrimitiveValue(const Layout* layout, ...);
+//Construct value based on Built-in Layout and pure value without copying BARRAY and VARINT types
+Value ConstructPrimitiveValueNoCopy(const Layout*, ...);
+//Constructs value based on CONSTRUCTED Layout.
+Value ConstructConstructedValue(const Layout* layout, ...);
 //Non-recursive DeepCopy of Value
 Value CopyValue(const Layout *layout, const Value *value);
 //Separate bool constructor (due to constraints in stdarg.h)

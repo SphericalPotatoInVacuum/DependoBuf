@@ -17,6 +17,6 @@
 #define UINT_BYTE_SIZE 8
 
 #else
-#erorr "UINT size not defined"
+#erorr "unsigned integer size not defined"
 
 #endif

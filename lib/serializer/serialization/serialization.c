@@ -1,6 +1,8 @@
 #include "serializer/serialization/serialization.h"
+#include "serializer/error_handler/error_handler.h"
 #include "serializer/layout/node_handler.h"
 #include "serializer/layout/linked_list.h"
+#include "serializer/snappy-c/snappy-c.h"
 
 
 #include "stdlib.h"
@@ -21,27 +23,26 @@ static int SerializeDOUBLE(char* byte_array, size_t* byte_iter, double inp, size
 static int SerializeBARRAY(char* byte_array, size_t* byte_iter, const char* barray_value, size_t data_size);
 
 //Handle errors, mop up used heap memory in case of an error.
-static int HandleSerializationOutOfSizeError();
-static void HandleSerializationArrayAllocationError();
-static void MopUpAfterError(List* list, char* byte_array);
-static void HandleUknownKindError();
+static inline int HandleSerializationOutOfSizeError();
+static inline void MopUpAfterError(List* list);
+static inline void HandleAllocationError();
+static inline void HandleUknownKindError();
 
-static int HandleSerializationOutOfSizeError() {
+static inline int HandleSerializationOutOfSizeError() {
     err_code = SERSIZEERR;
     return err_code;
 }
 
-static void HandleSerializationArrayAllocationError() {
+static inline void HandleAllocationError() {
     err_code = ALLOCERR;
 }
 
-static void MopUpAfterError(List* list, char* byte_array) {
+static inline void MopUpAfterError(List* list) {
     Clear(&avalible_nodes);
     Clear(list);
-    free(byte_array);
 }
 
-static void HandleUknownKindError() {
+static inline void HandleUknownKindError() {
     err_code = UNKNKIND;
 }
 
@@ -54,10 +55,12 @@ static int SerializeBARRAY(char *byte_array, size_t *byte_iter, const char *barr
         *byte_iter += 1;
         ++barray_value;
     }
-    if (*byte_iter >= data_size) {
+    if (*byte_iter + 1 >= data_size) {
         return HandleSerializationOutOfSizeError();
     }
     byte_array[*byte_iter] = *barray_value;
+    *byte_iter += 1;
+    byte_array[*byte_iter] = *(barray_value + 1);
     *byte_iter += 1;
     return 0;
 }
@@ -147,12 +150,13 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
     if (err_code != NOERR) {
         return 0;
     }
+
     List layer_list = {.head = NULL, .tail = NULL};
     size_t res = 0;
 
     Node* first_node = GetNode();
     if (first_node == NULL) {
-        HandleNodeAllocationError(&layer_list);
+        err_code = ALLOCERR;
         return 0;
     }
     first_node->layout = layout;
@@ -165,7 +169,9 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
             for (size_t i = 0; i < curr_node->layout->field_q; ++i) {
                 Node* new_node = GetNode();
                 if (new_node == NULL) {
-                    HandleNodeAllocationError(&layer_list);
+                    err_code = ALLOCERR;
+                    GiveNode(curr_node);
+                    MopUpAfterError(&layer_list);
                     return 0;
                 }
                 new_node->layout = curr_node->layout->fields[i];
@@ -201,7 +207,8 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
             res += 2;
         } else {
             HandleUknownKindError();
-            MopUpAfterError(&layer_list, NULL);
+            GiveNode(curr_node);
+            MopUpAfterError(&layer_list);
             return 0;
         }
         GiveNode(curr_node);
@@ -209,7 +216,7 @@ static size_t SerializedDataSize(const Layout* layout, Value* value) {
     return res;
 }
 
-void SerializeInBuffer(const Layout *layout, Value value, char *byte_array, size_t data_size) {
+void SerializeInBuffer(const Layout *layout, Value* value, char *byte_array, size_t data_size) {
     if (err_code != NOERR) {
         return;
     }
@@ -217,12 +224,12 @@ void SerializeInBuffer(const Layout *layout, Value value, char *byte_array, size
     List layer_list = {.head = NULL, .tail = NULL};
     Node* first_node = GetNode();
     if (first_node == NULL) {
-        HandleNodeAllocationError(&layer_list);
-        MopUpAfterError(NULL, byte_array);
+        HandleAllocationError();
+        MopUpAfterError(&layer_list);
         return;
     }
     first_node->layout = layout;
-    first_node->value_place = &value;
+    first_node->value_place = value;
     PushBack(&layer_list, first_node);
 
     while (!Empty(&layer_list)) {
@@ -232,8 +239,9 @@ void SerializeInBuffer(const Layout *layout, Value value, char *byte_array, size
             for (size_t i = 0; i < curr_node->layout->field_q; ++i) {
                 Node* new_node = GetNode();
                 if (new_node == NULL) {
-                    HandleNodeAllocationError(&layer_list);
-                    MopUpAfterError(NULL, byte_array);
+                    HandleAllocationError();
+                    GiveNode(curr_node);
+                    MopUpAfterError(&layer_list);
                     return;
                 }
                 new_node->layout = curr_node->layout->fields[curr_node->layout->field_q - 1 - i];
@@ -243,77 +251,87 @@ void SerializeInBuffer(const Layout *layout, Value value, char *byte_array, size
         } else if (curr_node->layout->kind == VARINT) {
             int exit_code = SerializeVARINT(byte_array, &byte_iter, curr_node->value_place->varint_value, data_size);
             if (exit_code) {
-                MopUpAfterError(&layer_list, byte_array);
+                GiveNode(curr_node);
+                MopUpAfterError(&layer_list);
                 return;
             }
         } else if (curr_node->layout->kind == INT32 || curr_node->layout->kind == UINT32) {
             int exit_code = SerializeINT32(byte_array, &byte_iter, curr_node->value_place->uint_value, data_size);
             if (exit_code) {
-                MopUpAfterError(&layer_list, byte_array);
+                GiveNode(curr_node);
+                MopUpAfterError(&layer_list);
                 return;
             }
         } else if (curr_node->layout->kind == INT64 || curr_node->layout->kind == UINT64) {
             int exit_code = SerializeINT64(byte_array, &byte_iter, curr_node->value_place->uint_value, data_size);
             if (exit_code) {
-                MopUpAfterError(&layer_list, byte_array); 
+                GiveNode(curr_node);
+                MopUpAfterError(&layer_list); 
                 return;
             }
         } else if (curr_node->layout->kind == BOOL) {
             int exit_code = SerializeBOOL(byte_array, &byte_iter, curr_node->value_place->bool_value, data_size);
             if (exit_code) {
-                MopUpAfterError(&layer_list, byte_array);
+                GiveNode(curr_node);
+                MopUpAfterError(&layer_list);
                 return;
             }
         } else if (curr_node->layout->kind == STRING) {
             int exit_code = SerializeSTRING(byte_array, &byte_iter, curr_node->value_place->string_ptr, data_size);
             if (exit_code) {
-                MopUpAfterError(&layer_list, byte_array);
+                GiveNode(curr_node);
+                MopUpAfterError(&layer_list);
                 return;
             }
         } else if (curr_node->layout->kind == BARRAY) {
             int exit_code = SerializeBARRAY(byte_array, &byte_iter, curr_node->value_place->barray_value, data_size);
             if (exit_code) {
-                MopUpAfterError(&layer_list, byte_array);
+                GiveNode(curr_node);
+                MopUpAfterError(&layer_list);
                 return;
             }
         } else if (curr_node->layout->kind == FLOAT) {
             int exit_code = SerializeFLOAT(byte_array, &byte_iter, curr_node->value_place->float_value, data_size);
             if (exit_code) {
-                MopUpAfterError(&layer_list, byte_array);
+                GiveNode(curr_node);
+                MopUpAfterError(&layer_list);
                 return;
             }
         } else if (curr_node->layout->kind == DOUBLE) {
             int exit_code = SerializeDOUBLE(byte_array, &byte_iter, curr_node->value_place->double_value, data_size);
             if (exit_code) {
-                MopUpAfterError(&layer_list, byte_array);
+                GiveNode(curr_node);
+                MopUpAfterError(&layer_list);
                 return;
             }
         } else {
             HandleUknownKindError();
-            MopUpAfterError(&layer_list, byte_array);
+            GiveNode(curr_node);
+            MopUpAfterError(&layer_list);
             return;
         }
         GiveNode(curr_node);
     }
-    Clear(&avalible_nodes);
+    Clear(&layer_list);
 }
 
-char* Serialize(const Layout* layout, Value value) {
+char* Serialize(const Layout* layout, Value* value) {
     if (err_code != NOERR) {
         return NULL;
     }
 
-    size_t data_size = SerializedDataSize(layout, &value);
+    size_t data_size = SerializedDataSize(layout, value);
     if (err_code != NOERR) {
         return NULL;
     }
 
-    char* byte_array = malloc(SerializedDataSize(layout, &value));
+    char* byte_array = malloc(SerializedDataSize(layout, value));
     if (byte_array == NULL) {
-        HandleSerializationArrayAllocationError();
+        HandleAllocationError();
         return NULL;
     }
     SerializeInBuffer(layout, value, byte_array, data_size);
+    Clear(&avalible_nodes);
     if (err_code != NOERR) {
         free(byte_array);
         return NULL;
