@@ -10,15 +10,8 @@ from typing import Annotated
 Unsigned = Annotated[int, Ge(0)]
 
 
-def _is_consistent(actual: tuple, expected: tuple) -> bool:
-    for i in range(len(actual)):
-        if expected[i] is None:
-            continue
-
-        if actual[i] != expected[i]:
-            return False
-
-    return True
+class DbufError(TypeError):
+    pass
 
 
 class Message2:
@@ -28,14 +21,17 @@ class Message2:
         id: Unsigned
         a: int
         b: float
+
         def check(self) -> None:
-            if type(self) not in Message2.possible_types():
-                raise TypeError('Non-compliance with type dependencies')
+            if type(self) not in Message2._possible_types():
+                raise DbufError(
+                    'Type Message2.__Message2 does not match given dependencies.'
+                )
 
     message2_type = __Message2
 
     @classmethod
-    def possible_types(cls) -> set[type]:
+    def _possible_types(cls) -> set[type]:
         return {cls.__Message2}
 
     def __init__(self) -> None:
@@ -52,14 +48,17 @@ class Message3:
     class __Message3:
         x: int
         y: int
+
         def check(self, m2: Message2.message2_type) -> None:
-            if type(self) not in Message3.possible_types(m2):
-                raise TypeError('Non-compliance with type dependencies')
+            if type(self) not in Message3._possible_types(m2):
+                raise DbufError(
+                    'Type Message3.__Message3 does not match given dependencies.'
+                )
 
     message3_type = __Message3
 
     @classmethod
-    def possible_types(cls, m2: Message2.message2_type) -> set[type]:
+    def _possible_types(cls, m2: Message2.message2_type) -> set[type]:
         return {cls.__Message3}
 
     def __init__(self, m2: Message2.message2_type) -> None:
@@ -75,14 +74,20 @@ class Message4:
     @dataclass
     class __Message4:
         m3: Message3.message3_type
+
         def check(self) -> None:
-            if type(self) not in Message4.possible_types():
-                raise TypeError('Non-compliance with type dependencies')
+            if type(self) not in Message4._possible_types():
+                raise DbufError(
+                    'Type Message4.__Message4 does not match given dependencies.'
+                )
+
+            m3_deps = (Message2._Message2__Message2('Evgeny', 1, 10, 20), )
+            self.m3.check(*m3_deps)
 
     message4_type = __Message4
 
     @classmethod
-    def possible_types(cls) -> set[type]:
+    def _possible_types(cls) -> set[type]:
         return {cls.__Message4}
 
     def __init__(self) -> None:
@@ -97,14 +102,17 @@ class Message4:
 class Message5:
     @dataclass
     class __Message5:
+
         def check(self, m3: Message3.message3_type) -> None:
-            if type(self) not in Message5.possible_types(m3):
-                raise TypeError('Non-compliance with type dependencies')
+            if type(self) not in Message5._possible_types(m3):
+                raise DbufError(
+                    'Type Message5.__Message5 does not match given dependencies.'
+                )
 
     message5_type = __Message5
 
     @classmethod
-    def possible_types(cls, m3: Message3.message3_type) -> set[type]:
+    def _possible_types(cls, m3: Message3.message3_type) -> set[type]:
         return {cls.__Message5}
 
     def __init__(self, m3: Message3.message3_type) -> None:
@@ -117,3 +125,14 @@ class Message5:
         obj = self.__Message5()
         obj.check(*self.dependencies)
         return obj
+
+
+def _is_consistent(actual: tuple, expected: tuple) -> bool:
+    for i in range(len(actual)):
+        if expected[i] is None:
+            continue
+
+        if actual[i] != expected[i]:
+            return False
+
+    return True
