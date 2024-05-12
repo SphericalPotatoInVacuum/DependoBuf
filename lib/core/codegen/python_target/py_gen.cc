@@ -43,33 +43,15 @@ void PyCodeGenerator::operator()(const ast::Message &ast_message) {
   std::vector<std::string> dep_names;
   std::vector<std::string> dep_types;
   std::vector<std::string> dep_deps;
-  prepare_names_types_deps(
-      ast_message.type_dependencies,
-      dep_names,
-      dep_types,
-      dep_deps
-  );
+  prepare_names_types_deps(ast_message.type_dependencies, dep_names, dep_types, dep_deps);
 
   std::vector<std::string> field_names;
   std::vector<std::string> field_types;
   std::vector<std::string> field_deps;
-  prepare_names_types_deps(
-      ast_message.fields,
-      field_names,
-      field_types,
-      field_deps,
-      true
-  );
+  prepare_names_types_deps(ast_message.fields, field_names, field_types, field_deps, true);
 
   printer_.print_line();
-  printer_.print_def_check(
-      dep_names,
-      dep_types,
-      field_names,
-      field_deps,
-      message_name,
-      message_name
-  );
+  printer_.print_def_check(dep_names, dep_types, field_names, field_deps, message_name, message_name);
 
   std::vector<std::string> inner_types = {message_name};
   printer_.print_type(message_name, inner_types);
@@ -89,12 +71,7 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
   std::vector<std::string> dep_names;
   std::vector<std::string> dep_types;
   std::vector<std::string> dep_deps;
-  prepare_names_types_deps(
-      ast_enum.type_dependencies,
-      dep_names,
-      dep_types,
-      dep_deps
-  );
+  prepare_names_types_deps(ast_enum.type_dependencies, dep_names, dep_types, dep_deps);
 
   std::vector<std::string> constructors;
   std::unordered_map<std::string, std::vector<std::string>> field_names_map;
@@ -126,25 +103,12 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
       std::vector<std::string> field_names;
       std::vector<std::string> field_types;
       std::vector<std::string> field_deps;
-      prepare_names_types_deps(
-          enum_constructor.fields,
-          field_names,
-          field_types,
-          field_deps,
-          true
-      );
+      prepare_names_types_deps(enum_constructor.fields, field_names, field_types, field_deps, true);
 
-      if (field_names.size() != 0) {
+      if (!field_names.empty()) {
         printer_.print_line();
       }
-      printer_.print_def_check(
-          dep_names,
-          dep_types,
-          field_names,
-          field_deps,
-          enum_name,
-          constructor_name
-      );
+      printer_.print_def_check(dep_names, dep_types, field_names, field_deps, enum_name, constructor_name);
 
       field_names_map[constructor_name] = std::move(field_names);
       field_types_map[constructor_name] = std::move(field_types);
@@ -156,11 +120,7 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
 
   printer_.print_type(enum_name, constructors);
 
-  printer_.print_def_possible_types(
-      dep_names, dep_types,
-      expected_params_matrix,
-      possible_types_matrix
-  );
+  printer_.print_def_possible_types(dep_names, dep_types, expected_params_matrix, possible_types_matrix);
 
   printer_.print_def_init(dep_names, dep_types, dep_deps);
 
@@ -179,24 +139,23 @@ std::tuple<std::string, std::string> PyCodeGenerator::get_name_and_type(const as
 }
 
 void PyCodeGenerator::prepare_names_types_deps(
-    const std::vector<ast::TypedVariable>& typed_vars,
+    const std::vector<ast::TypedVariable> &typed_vars,
     std::vector<std::string> &names,
     std::vector<std::string> &types,
     std::vector<std::string> &deps,
     bool fields_mode) {
-
   size_t dep_size = typed_vars.size();
-  names = std::vector<std::string>(dep_size);
-  types = std::vector<std::string>(dep_size);
-  deps = std::vector<std::string>(dep_size);
+  names           = std::vector<std::string>(dep_size);
+  types           = std::vector<std::string>(dep_size);
+  deps            = std::vector<std::string>(dep_size);
 
   for (size_t i = 0; i < dep_size; ++i) {
     auto [name, type] = get_name_and_type(typed_vars[i]);
-    names[i] = name;
-    types[i] = type;
+    names[i]          = name;
+    types[i]          = type;
 
     std::string var_deps = py_exression_.get_instances(typed_vars[i].type_expression.parameters);
-    deps[i] = std::move(var_deps);
+    deps[i]              = std::move(var_deps);
 
     if (fields_mode) {
       printer_.print_inner_class_field(name, type);

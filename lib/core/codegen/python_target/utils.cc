@@ -35,10 +35,8 @@ std::string get_python_type(const std::string &type, bool inside_outer_class) {
   return struct_type;
 }
 
-std::string typed_args(
-    const std::vector<std::string> &names,
-    const std::vector<std::string> &types,
-    const std::string &first_arg) {
+std::string
+typed_args(const std::vector<std::string> &names, const std::vector<std::string> &types, const std::string &first_arg) {
   // (self, x: int, y: float)
   std::stringstream args;
   args << "(" << first_arg;
@@ -73,8 +71,8 @@ std::string py_tuple(const std::vector<std::string> &names) {
   std::string tup = "(";
   std::string sep = ", ";
 
-  for (int i = 0; i < names.size(); ++i) {
-    tup += names[i];
+  for (const auto &name : names) {
+    tup += name;
     tup += sep;
   }
   tup += ")";
@@ -85,4 +83,4 @@ bool tuple_is_empty(const std::string &tuple_str) {
   return (tuple_str.size() <= 2);
 }
 
-}
+} // namespace dbuf::gen

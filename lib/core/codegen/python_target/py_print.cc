@@ -1,4 +1,5 @@
 #include "core/codegen/python_target/py_print.h"
+
 #include "core/codegen/python_target/utils.h"
 
 #include <iostream>
@@ -23,21 +24,21 @@ PyPrinter::PyPrinter(std::shared_ptr<std::ofstream> output) {
 
 void PyPrinter::init_file() {
   *out_ << kReadme << kImports << kCreateUnsigned;
-	print_dbuf_error();
+  print_dbuf_error();
 }
 
 void PyPrinter::print_def_is_consistent() {
-	print_line();
-	print_line();
-	print_line({"def _is_consistent(actual: tuple, expected: tuple) -> bool:"});
-	print_line({"for i in range(len(actual)):"}, 1);
-	print_line({"if expected[i] is None:"}, 2);
-	print_line({"continue"}, 3);
-	print_line();
-	print_line({"if actual[i] != expected[i]:"}, 2);
-	print_line({"return False"}, 3);
-	print_line();
-	print_line({"return True"}, 1);
+  print_line();
+  print_line();
+  print_line({"def _is_consistent(actual: tuple, expected: tuple) -> bool:"});
+  print_line({"for i in range(len(actual)):"}, 1);
+  print_line({"if expected[i] is None:"}, 2);
+  print_line({"continue"}, 3);
+  print_line();
+  print_line({"if actual[i] != expected[i]:"}, 2);
+  print_line({"return False"}, 3);
+  print_line();
+  print_line({"return True"}, 1);
 }
 
 void PyPrinter::print_line(const std::vector<std::string> &tokens, int level) {
@@ -76,12 +77,11 @@ void PyPrinter::print_inner_class_field(const std::string &name, const std::stri
 void PyPrinter::print_def_check(
     const std::vector<std::string> &dep_names,
     const std::vector<std::string> &dep_types,
-		const std::vector<std::string> &field_names,
-		const std::vector<std::string> &field_deps,
+    const std::vector<std::string> &field_names,
+    const std::vector<std::string> &field_deps,
     const std::string &struct_name,
-		const std::string &constructor_name,
+    const std::string &constructor_name,
     int level) {
-
   // def check(self, x: int, y: float, z: str) -> None:
   std::string def_name = "check";
   print_instance_method(def_name, dep_names, dep_types, level);
@@ -93,26 +93,23 @@ void PyPrinter::print_def_check(
   print_line(tokens, level);
   level++;
 
-	print_line({"raise DbufError("}, level++);
-	std::string type_name = struct_name + ".__" + constructor_name;
-	std::vector<std::string> error_message = {"'Type ", type_name, " does not match given dependencies.'"};
-	print_line(error_message, level--);
-	print_line({")"}, level--);
+  print_line({"raise DbufError("}, level++);
+  std::string type_name                  = struct_name + ".__" + constructor_name;
+  std::vector<std::string> error_message = {"'Type ", type_name, " does not match given dependencies.'"};
+  print_line(error_message, level--);
+  print_line({")"}, level--);
 
-	for (int i = 0; i < field_names.size(); ++i) {
-		if (!tuple_is_empty(field_deps[i])) {
-			print_line();
-			print_var_deps(field_names[i], field_deps[i], level);
+  for (int i = 0; i < field_names.size(); ++i) {
+    if (!tuple_is_empty(field_deps[i])) {
+      print_line();
+      print_var_deps(field_names[i], field_deps[i], level);
       std::vector<std::string> tokens = {"self.", field_names[i], ".check(*", field_names[i], "_deps)"};
       print_line(tokens, level);
-		}
-	}
+    }
+  }
 }
 
-void PyPrinter::print_type(
-    const std::string &struct_name,
-    const std::vector<std::string> &inner_types,
-    int level) {
+void PyPrinter::print_type(const std::string &struct_name, const std::vector<std::string> &inner_types, int level) {
   // some_enam_type = __Nil | __Succ
   print_line();
 
@@ -132,7 +129,7 @@ void PyPrinter::print_type(
 void PyPrinter::print_def_possible_types(
     const std::vector<std::string> &names,
     const std::vector<std::string> &types,
-		const std::vector<std::string> &expected_params_matrix,
+    const std::vector<std::string> &expected_params_matrix,
     const std::vector<std::vector<std::string>> &possible_types_matrix,
     int level) {
   std::string res_type = "set[type]";
@@ -145,27 +142,26 @@ void PyPrinter::print_def_possible_types(
   print_class_method(def_name, names, types, level, res_type);
   level++;
 
-	if (expected_params_matrix.size() == 0) {
-		std::string message_type = possible_types_matrix[0][0];
-		print_line({"return {cls.__", message_type, "}"}, level);
-		return;
-	}
+  if (expected_params_matrix.empty()) {
+    std::string message_type = possible_types_matrix[0][0];
+    print_line({"return {cls.__", message_type, "}"}, level);
+    return;
+  }
 
-	print_line({"actual = ", py_tuple(names)}, level);
+  print_line({"actual = ", py_tuple(names)}, level);
 
   for (int i = 0; i < expected_params_matrix.size(); ++i) {
-		print_consistency_check(expected_params_matrix[i], possible_types_matrix[i], level);
-	}
+    print_consistency_check(expected_params_matrix[i], possible_types_matrix[i], level);
+  }
 
-	print_line({"return {}"}, level);
+  print_line({"return {}"}, level);
 }
 
 void PyPrinter::print_def_init(
     const std::vector<std::string> &names,
     const std::vector<std::string> &types,
-		const std::vector<std::string> &deps,
+    const std::vector<std::string> &deps,
     int level) {
-
   std::string def_name = "__init__";
 
   print_line();
@@ -177,10 +173,10 @@ void PyPrinter::print_def_init(
   // x.check(*x_deps)
   for (int i = 0; i < names.size(); ++i) {
     if (!tuple_is_empty(deps[i])) {
-			print_var_deps(names[i], deps[i], level);
+      print_var_deps(names[i], deps[i], level);
       std::vector<std::string> tokens = {names[i], ".check(*", names[i], "_deps)"};
       print_line(tokens, level);
-			print_line();
+      print_line();
     }
   }
 
@@ -283,43 +279,35 @@ void PyPrinter::print_constructor(
   print_line({"return obj"}, level);
 }
 
-void PyPrinter::print_var_deps(
-    const std::string &dep_name,
-    const std::string &deps,
-    int level) {
-
+void PyPrinter::print_var_deps(const std::string &dep_name, const std::string &deps, int level) {
   // __k_deps = ()
   std::vector<std::string> tokens = {dep_name, "_deps = ", deps};
   print_line(tokens, level);
 }
 
-void PyPrinter::print_consistency_check(
-		const std::string &expected,
-		const std::vector<std::string> &types,
-		int level) {
+void PyPrinter::print_consistency_check(const std::string &expected, const std::vector<std::string> &types, int level) {
+  std::vector<std::string> return_set = {"return {"};
+  std::string sep                     = ", ";
+  for (int i = 0; i < types.size(); ++i) {
+    if (i != 0) {
+      return_set.push_back(sep);
+    }
+    return_set.emplace_back("cls.__");
+    return_set.push_back(types[i]);
+  }
+  return_set.emplace_back("}");
 
-	std::vector<std::string> return_set = {"return {"};
-	std::string sep = ", ";
-	for (int i = 0; i < types.size(); ++i) {
-		if (i != 0) {
-			return_set.push_back(sep);
-		}
-		return_set.emplace_back("cls.__");
-		return_set.push_back(types[i]);
-	}
-	return_set.emplace_back("}");
-
-	print_line({"expected = ", expected}, level);
-	print_line({"if _is_consistent(actual, expected):"}, level++);
-	print_line(return_set, level);
-	print_line();
+  print_line({"expected = ", expected}, level);
+  print_line({"if _is_consistent(actual, expected):"}, level++);
+  print_line(return_set, level);
+  print_line();
 }
 
 void PyPrinter::print_dbuf_error() {
-	print_line();
-	print_line();
-	print_line({"class DbufError(TypeError):"});
-	print_line({"pass"}, 1);
+  print_line();
+  print_line();
+  print_line({"class DbufError(TypeError):"});
+  print_line({"pass"}, 1);
 }
 
 const std::string PyPrinter::kReadme = "# This file was automatically generated by DependoBuf.\n"

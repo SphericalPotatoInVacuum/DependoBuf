@@ -1,7 +1,7 @@
 #include "core/ast/ast.h"
 
-#include <string>
 #include <sstream>
+#include <string>
 
 namespace dbuf::gen {
 
@@ -18,7 +18,7 @@ public:
   void operator()(const std::vector<std::shared_ptr<const ast::Expression>> &expressions);
 
   void operator()(const std::vector<std::variant<ast::Value, ast::Star>> &expressions);
-  
+
   void operator()(const ast::Expression &expr);
 
   void operator()(const ast::BinaryExpression &bin_ex);
@@ -35,7 +35,7 @@ public:
 
   void operator()(const ast::ScalarValue<std::string> &scalar);
 
-  template<typename T>
+  template <typename T>
   void operator()(const ast::ScalarValue<T> &scalar);
 
   void operator()(const ast::ConstructedValue &constructed);
@@ -56,4 +56,4 @@ private:
   std::shared_ptr<const std::unordered_map<InternedString, InternedString>> constructor_to_type_ = nullptr;
 };
 
-}
+} // namespace dbuf::gen
