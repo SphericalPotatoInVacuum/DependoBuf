@@ -337,11 +337,14 @@ expression
       std::move($2)
     });
   }
-  | type_expr {
+  | value {
     $$ = std::make_shared<const ast::Expression>(std::move($1));
   }
-  | primary {
-    $$ = std::move($1);
+  | var_access {
+    $$ = std::make_shared<const ast::Expression>(std::move($1));
+  }
+  | "(" expression ")" {
+    $$ = std::move($2);
   }
   ;
 
