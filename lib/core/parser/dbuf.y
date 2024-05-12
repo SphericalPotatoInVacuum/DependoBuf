@@ -186,12 +186,12 @@ independent_enum
   }
   ;
 
-%nterm <std::vector<ast::TypeExpression>> generic_dependencies;
+%nterm <std::vector<ast::Identifier>> generic_dependencies;
 generic_dependencies
   : %empty {
-    $$ = std::vector<ast::TypeExpression>();
+    $$ = std::vector<ast::Identifier>();
   }
-  | generic_dependencies "[" type_expr "]" {
+  | generic_dependencies "[" type_identifier "]" {
     $$ = std::move($1);
     $$.emplace_back(std::move($3));
   }
