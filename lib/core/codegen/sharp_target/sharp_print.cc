@@ -1,5 +1,6 @@
 #include "core/codegen/sharp_target/sharp_print.h"
 #include "core/ast/expression.h"
+#include <ostream>
 
 namespace dbuf::gen {
 
@@ -33,8 +34,7 @@ constexpr std::string SharpTypes::ConstructSharpType(const std::string &dbuf_typ
             return kTypes[4];
             break;
     }
-    std::cerr << "Unsupported sharp type: " << dbuf_type << std::endl;
-    return "";
+    return dbuf_type;
 }
 
 SharpPrinter::SharpPrinter(std::shared_ptr<std::ofstream> output) {
@@ -42,7 +42,13 @@ SharpPrinter::SharpPrinter(std::shared_ptr<std::ofstream> output) {
 }
 
 void SharpPrinter::InitFile() {
-    *out_ << kReadme;
+    *out_ << kReadme << std::endl;
+    *out_ << kIncludedLibraries << std::endl;
+    *out_ << kOpenNamespace << std::endl;
+}
+
+void SharpPrinter::CompleteFile() {
+    *out_ << kCloseNamespace << std::endl;
 }
 
 // Class
@@ -51,7 +57,7 @@ void SharpPrinter::PrintClassBegin(const std::string &name) {
 }
 
 void SharpPrinter::PrintClassEnd() {
-    *out_ << "}\n";
+    *out_ << "}\n\n";
 }
 
 // Enum
@@ -63,40 +69,45 @@ void SharpPrinter::PrintEnumEnd() {
     *out_ << "}\n";
 }
 
-// TypedVariables
-void SharpPrinter::PrintTypedVariables(
-        const std::vector<ast::TypedVariable> &variables,
-        std::string &&delimeter,
-        bool add_last_delimeter,
-        bool is_public,
-        bool need_getter_and_setter) {
+void SharpPrinter::PrintConstructorBegin(
+    const std::string &name,
+    const std::unordered_map<InternedString, InternedString> &dependent_variables) {
+    *out_ << "\n\tpublic " << name << "(";
     bool first = true;
-    for (const auto &var : variables) {
-        if (first) {
-            first = false;
-        } else {
-            *out_ << delimeter;
+    for (const auto &dependent_var : dependent_variables) {
+        if (!first) {
+            *out_ << ", ";
         }
-        const std::string &access = is_public ? "public" : "private";
-        const std::string &type = GetVariableType(var);
-        const std::string &name = GetVariableName(var);
-        *out_ << access << " " << type_constructor_.ConstructSharpType(type) << " " << name;
-        if (need_getter_and_setter) {
-            *out_ << " " << kGetterAndSetter;
-        }
+        *out_ << type_constructor_.ConstructSharpType(dependent_var.second.GetString()) << " "
+              << dependent_var.first << "_";
+        first = false;
     }
-    if (add_last_delimeter && !first) {
-        *out_ << delimeter;
+    *out_ << ") {\n";
+
+    for (const auto &dependent_var : dependent_variables) {
+        *out_ << "\t\t"
+              << dependent_var.first << " = "
+              << dependent_var.first << "_;\n";
     }
+}
+
+void SharpPrinter::PrintConstructorEnd() {
+    *out_ << "\t}\n";
 }
 
 // TypeExpression
 void SharpPrinter::PrintTypeExpression(
         const ast::TypeExpression &expression,
-        bool is_public) {
-    const std::string &access = is_public ? "public" : "private";
+        bool is_public,
+        bool as_dependency,
+        bool need_access) {
+    std::string access;
+    if (need_access){
+        access = is_public ? "\tpublic " : "\tprivate ";;
+    }
+    const std::string &readonly = as_dependency ? "readonly " : "";
     const std::string &type = GetExpressionType(expression);
-    *out_ << access << " " << type_constructor_.ConstructSharpType(type);
+    *out_ << access << readonly << type_constructor_.ConstructSharpType(type);
 }
 
 // BinaryExpression

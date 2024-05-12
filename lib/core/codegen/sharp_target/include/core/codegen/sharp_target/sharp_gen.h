@@ -2,6 +2,9 @@
 
 #include "core/codegen/generation.h"
 #include "core/codegen/sharp_target/sharp_print.h"
+#include "core/interning/interned_string.h"
+#include <unordered_map>
+#include <unordered_set>
 
 namespace dbuf::gen {
 
@@ -14,13 +17,17 @@ public:
 private:
     void operator()(const ast::Message &ast_message);
 
+    void operator()(const ast::Message &ast_message, const std::vector<ast::TypedVariable> &checker_input);
+
     void operator()(const ast::Enum &ast_enum);
 
-    void operator()(const ast::TypedVariable &variable);
+    void operator()(const ast::Enum &ast_enum, const std::vector<ast::TypedVariable> &checker_input);
 
-    void operator()(const ast::Expression &expr);
+    void operator()(const ast::TypedVariable &variable, bool as_dependency = false);
 
-    void operator()(const ast::TypeExpression &expr);
+    void operator()(const ast::Expression &expr, bool as_dependency = false, bool need_access = true);
+
+    void operator()(const ast::TypeExpression &expr, bool as_dependency = false, bool need_access = true);
 
     void operator()(const ast::BinaryExpression &expr);
 
@@ -32,11 +39,30 @@ private:
 
     void operator()(const ast::VarAccess &var_access);
 
+    bool CheckForTriggers(
+        const std::unordered_set<InternedString> &trigger_names,
+        const ast::Expression &expr);
+
+    void PrintTypedVariables(
+        const std::vector<ast::TypedVariable> &variables,
+        std::string &&delimeter,
+        bool with_types,
+        bool add_last_delimeter,
+        bool as_dependency = false,
+        bool need_access = true);
+    
+    void PrintCheck(
+        const std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> &checker_members,
+        const std::vector<ast::TypedVariable> &checker_input
+    );
+
     static bool IsSimpleType(const InternedString &interned_string);
 
     const ast::AST *tree_;
 
     SharpPrinter printer_;
+
+    std::unordered_set<InternedString> created_hidden_types_;
 };
 
 } // namespace dbuf::gen
