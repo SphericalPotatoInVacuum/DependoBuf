@@ -1,3 +1,0 @@
-message TypedValue (T Type) {
-    value T;
-}
