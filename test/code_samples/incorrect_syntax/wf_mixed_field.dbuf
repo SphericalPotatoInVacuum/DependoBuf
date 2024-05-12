@@ -9,5 +9,5 @@ enum B (a A) {
   }
 }
 
-message C (b B (A {c: C (Constructor {})})) {
+message C (b B (A {c: Constructor{}})) {
 }
