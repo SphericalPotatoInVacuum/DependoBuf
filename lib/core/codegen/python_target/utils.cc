@@ -23,8 +23,8 @@ std::string camel_to_snake(const std::string &camel_str) {
 }
 
 std::string get_python_type(const std::string &type, bool inside_outer_class) {
-  if (BUILD_IN_TYPES.contains(type)) {
-    return BUILD_IN_TYPES.at(type);
+  if (kBuildInTypes.contains(type)) {
+    return kBuildInTypes.at(type);
   }
 
   if (inside_outer_class) {

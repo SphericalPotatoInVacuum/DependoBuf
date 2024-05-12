@@ -4,7 +4,7 @@
 
 namespace dbuf::gen {
 
-const std::unordered_map<std::string, std::string> BUILD_IN_TYPES = {
+const std::unordered_map<std::string, std::string> kBuildInTypes = {
     {"Int", "int"},
     {"Unsigned", "Unsigned"},
     {"Float", "float"},
