@@ -16,6 +16,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "glog/logging.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <deque>
 #include <functional>
 #include <map>
@@ -94,9 +95,13 @@ public:
   explicit Defer(const std::function<void()> &other)
       : callback_(other) {}
 
-  // TODO(gmusya): make noexcept
-  ~Defer() noexcept(false) {
-    callback_();
+  // TODO(gmusya): improve
+  ~Defer() noexcept {
+    try {
+      callback_();
+    } catch (...) {
+      std::abort();
+    }
   }
 
 private:
