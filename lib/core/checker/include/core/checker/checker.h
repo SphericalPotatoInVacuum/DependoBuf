@@ -20,7 +20,7 @@ class Checker {
 public:
   using ErrorList = std::vector<Error>;
 
-  static std::variant<ErrorList, ast::AST> ResolveGenerics(const ast::AST& ast);
+  static std::variant<ErrorList, ast::AST> ResolveGenerics(const ast::AST &ast);
   static ErrorList CheckNameResolution(const ast::AST &ast);
   static ErrorList CheckPositivity(ast::AST &ast);
   static ErrorList CheckTypeResolution(const ast::AST &ast);
