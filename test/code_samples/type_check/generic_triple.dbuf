@@ -1,0 +1,12 @@
+message Value [T] {
+    value T;
+}
+
+message Pair [U] [V] {
+    first Value [U];
+    second Value [V];
+}
+
+message Triple {
+    result Pair [Pair [Int] [Bool]] [Unsigned];
+}
