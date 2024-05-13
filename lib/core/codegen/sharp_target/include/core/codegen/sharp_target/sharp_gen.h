@@ -3,10 +3,17 @@
 #include "core/codegen/generation.h"
 #include "core/codegen/sharp_target/sharp_print.h"
 #include "core/interning/interned_string.h"
+
 #include <unordered_map>
 #include <unordered_set>
 
 namespace dbuf::gen {
+
+struct VectorHash {
+    std::size_t operator()(std::vector<std::pair<InternedString, InternedString>> &vec) const;
+
+    std::size_t operator()(const std::vector<std::pair<InternedString, InternedString>> &vec) const;
+};
 
 class SharpCodeGenerator : public ITargetCodeGenerator {
 public:

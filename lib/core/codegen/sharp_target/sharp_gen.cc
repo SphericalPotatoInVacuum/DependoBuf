@@ -1,9 +1,9 @@
-#include "core/codegen/sharp_target/sharp_gen.h"
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
+#include "core/codegen/sharp_target/sharp_gen.h"
 #include "core/codegen/sharp_target/sharp_print.h"
 #include "core/interning/interned_string.h"
-#include <any>
+
 #include <iostream>
 #include <ostream>
 #include <sstream>
@@ -16,8 +16,17 @@
 
 namespace dbuf::gen {
 
-struct VectorHash {
-    std::size_t operator()(std::vector<std::pair<InternedString, InternedString>>& vec) const {
+std::size_t VectorHash::operator()(std::vector<std::pair<InternedString, InternedString>> &vec) const {
+    std::size_t res = 0;
+    std::hash<std::string> hash{};
+    for (const auto& p : vec) {
+        res = (res << 1) ^ hash(p.first.GetString());
+        res = (res << 1) ^ hash(p.second.GetString());
+    }
+    return res;
+}
+
+std::size_t VectorHash::operator()(const std::vector<std::pair<InternedString, InternedString>> &vec) const {
         std::size_t res = 0;
         std::hash<std::string> hash{};
         for (const auto& p : vec) {
@@ -26,16 +35,6 @@ struct VectorHash {
         }
         return res;
     }
-    std::size_t operator()(const std::vector<std::pair<InternedString, InternedString>>& vec) const {
-            std::size_t res = 0;
-            std::hash<std::string> hash{};
-            for (const auto& p : vec) {
-                res = (res << 1) ^ hash(p.first.GetString());
-                res = (res << 1) ^ hash(p.second.GetString());
-            }
-            return res;
-    }
-};
 
 SharpCodeGenerator::SharpCodeGenerator(const std::string &out_file)
         : ITargetCodeGenerator(out_file) {

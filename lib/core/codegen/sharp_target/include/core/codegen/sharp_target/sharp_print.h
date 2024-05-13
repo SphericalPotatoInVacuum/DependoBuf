@@ -1,5 +1,9 @@
 #pragma once
 
+#include "core/ast/ast.h"
+#include "core/ast/expression.h"
+#include "core/interning/interned_string.h"
+
 #include <array>
 #include <fstream>
 #include <iostream>
@@ -7,10 +11,6 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
-
-#include "core/ast/ast.h"
-#include "core/ast/expression.h"
-#include "core/interning/interned_string.h"
 
 namespace dbuf::gen {
 

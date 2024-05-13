@@ -1,6 +1,5 @@
 #include "core/codegen/sharp_target/sharp_print.h"
 #include "core/ast/expression.h"
-#include <ostream>
 
 namespace dbuf::gen {
 
