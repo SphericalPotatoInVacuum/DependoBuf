@@ -2,14 +2,23 @@ add_executable(serializer_test_serialization
     test_serialization.c
 )
 
-target_include_directories(serializer_test_serialization PUBLIC
-    ${CMAKE_CURRENT_BINARY_DIR}
-    include
+add_executable(serializer_test_barray
+    test_barray.c
 )
 
-target_link_libraries(serializer_test_serialization PUBLIC
+add_executable(serializer_test_varint
+    test_varint.c
+)
+
+target_link_libraries(serializer_test_serialization PRIVATE
     serializer_serialization
     serializer_converter
 )
 
-target_compile_options(serializer_test_serialization PRIVATE -g)
+target_link_libraries(serializer_test_barray PRIVATE
+    serializer_converter
+)
+
+target_link_libraries(serializer_test_varint PRIVATE
+    serializer_converter
+)

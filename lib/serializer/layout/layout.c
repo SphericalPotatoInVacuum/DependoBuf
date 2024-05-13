@@ -111,6 +111,7 @@ void ClearLayouts() {
         free(curr_node);
         curr_node = next_node;
     }
+    custom_layouts = NULL;
 }
 
 const Layout* CreateLayout(size_t field_q, ...) {
@@ -159,95 +160,6 @@ int DeleteLayout(const Layout* layout) {
     }
     return 1;
 }
-/*
-Value ConstructValue(const Layout *layout, void **values) {
-    err_code = NOERR;
-    Value constructed_value = {NULL, 0};
-    if (layout->kind != CONSTRUCTED) {
-        if (layout->kind == INT64) {
-            constructed_value.int_value = *(int64_t *)values;
-        } else if (layout->kind == UINT64) {
-            constructed_value.uint_value = *(uint64_t *)values;
-        } else if (layout->kind == INT32) {
-            constructed_value.int_value = *(int32_t *)values;
-        } else if (layout->kind == UINT32) {
-            constructed_value.uint_value = *(uint32_t *)values;
-        } else if (layout->kind == VARINT) {
-            constructed_value.varint_value = *(char **)values;
-        } else if (layout->kind == DOUBLE) {
-            constructed_value.double_value = *(double *)values;
-        } else if (layout->kind == FLOAT) {
-            constructed_value.float_value = *(float *)values;
-        } else if (layout->kind == BOOL) {
-            constructed_value.bool_value = *(char *)values;
-        } else if (layout->kind == STRING) {
-            char *str_ptr = *(char **) values;
-            char *str_copy = calloc(strlen(str_ptr), sizeof(*str_copy));
-            strcpy(str_copy, str_ptr);
-            constructed_value.string_ptr = str_copy;
-        } else if (layout->kind == BARRAY) {
-            char *barr_ptr = *(char **) values;
-            char *barr_copy = calloc(strlen(barr_ptr), sizeof(*barr_copy));
-            strcpy(barr_copy, barr_ptr);
-            constructed_value.string_ptr = barr_copy;
-        } else {
-            err_code = UNKNKIND;
-        }
-    } else {
-        Node *initial_node = GetNode();
-        if (initial_node == NULL) {
-            err_code = ALLOCERR;
-            return constructed_value;
-        }
-        initial_node->next = NULL;
-        initial_node->prev = NULL;
-        initial_node->value_place = &constructed_value;
-        initial_node->layout = layout;
-        initial_node->data = values;
-        List nodes = {initial_node, initial_node};
-
-        while (Empty(&nodes) == 0) {
-            Node *cur_node = PopFront(&nodes);
-            if (cur_node->layout->kind != CONSTRUCTED) {
-                *cur_node->value_place = ConstructValue(cur_node->layout, cur_node->data);
-                if (err_code != NOERR) {
-                    Clear(&nodes);
-                    DestroyNode(cur_node);
-                    return constructed_value;
-                }
-            } else {
-                Value *cur_value = cur_node->value_place;
-                cur_value->children = calloc(cur_node->layout->field_q,
-                                             sizeof(*cur_value->children));
-                if (cur_value->children == NULL) {
-                    err_code = ALLOCERR;
-                    Clear(&nodes);
-                    DestroyNode(cur_node);
-                    return constructed_value;
-                }
-                for (ssize_t i = cur_node->layout->field_q - 1; i >= 0; --i) {
-                    Node *node = GetNode();
-                    void **data_ptr = cur_node->data;
-                    if (node == NULL) {
-                        err_code = ALLOCERR;
-                        Clear(&nodes);
-                        DestroyNode(cur_node);
-                        return constructed_value;
-                    }
-                    node->layout = cur_node->layout->fields[i];
-                    node->value_place = &cur_value->children[i];
-                    node->data = (void **)data_ptr[i];
-                    PushFront(&nodes, node);
-                }
-            }
-            GiveNode(cur_node);
-        }
-    }
-    Clear(&avalible_nodes);
-    return constructed_value;
-}
-
-*/
 
 Value ConstructPrimitiveValue(const Layout* layout, ...) {
     Value constructed_value = {NULL, 0};

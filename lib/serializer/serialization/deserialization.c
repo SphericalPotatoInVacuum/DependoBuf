@@ -73,52 +73,6 @@ static char* DeserializeBARRAY(char** encoded_ptr) {
     return barray;
 }
 
-/*
-//Deserializes built-in types.
-static Value DeserializePrimitive(const Layout *layout, char **cur_buf_pos) {
-    err_code = NOERR;
-    Value value = {NULL, 0};
-    if (layout->kind == INT64) {
-        int64_t val = *(int64_t *) (*cur_buf_pos);
-        *cur_buf_pos += sizeof(int64_t);
-        value.int_value = val;
-    } else if (layout->kind == UINT64) {
-        uint64_t val = *(uint64_t *) (*cur_buf_pos);
-        *cur_buf_pos += sizeof(uint64_t);
-        value.uint_value = val;
-    } else if (layout->kind == INT32) {
-        int32_t val = *(int32_t *) (*cur_buf_pos);
-        *cur_buf_pos += sizeof(int32_t);
-        value.int_value = val;
-    } else if (layout->kind == UINT32) {
-        uint32_t val = *(uint32_t *) (*cur_buf_pos);
-        *cur_buf_pos += sizeof(uint32_t);
-        value.uint_value = val;
-    } else if (layout->kind == VARINT) {
-        value.varint_value = DeserializeVARINT(cur_buf_pos);
-    } else if (layout->kind == BARRAY) {
-        value.barray_value = DeserializeBARRAY(cur_buf_pos);
-    } else if (layout->kind == DOUBLE) {
-        double val = *(double *)(*cur_buf_pos);
-        *cur_buf_pos += sizeof(double);
-        value.double_value = val;
-    } else if (layout->kind == FLOAT) {
-        float val = *(float *)(*cur_buf_pos);
-        *cur_buf_pos += sizeof(float);
-        value.float_value = val;
-    } else if (layout->kind == STRING) {
-        value.string_ptr = DeserializeSTRING(cur_buf_pos);
-    } else if (layout->kind == BOOL) {
-        value.bool_value = **cur_buf_pos;
-        *cur_buf_pos += sizeof(char);
-    } else {
-        err_code = UNKNKIND;
-    }
-
-    return value;
-}
-*/
-
 static Value DeserializeUnit(const Layout* layout, char* encoded) {
     Value value = {NULL, 0};
     if (err_code != NOERR) {
@@ -196,66 +150,6 @@ static Value DeserializeUnit(const Layout* layout, char* encoded) {
     Clear(&layer_list);
     return value;
 }
-/*
-static Value DeserializeUnit(const Layout *layout, char **cur_buf_pos) {
-    Value value = {NULL, 0};
-    if (err_code != NOERR) {
-        return value;
-    }
-
-    if (layout->kind != CONSTRUCTED) {
-        value = DeserializePrimitive(layout, cur_buf_pos);
-    } else {
-        Node *initial_node = GetNode();
-        if (initial_node == NULL) {
-            err_code = ALLOCERR;
-            return value;
-        }
-        initial_node->next = NULL;
-        initial_node->prev = NULL;
-        initial_node->value_place = &value;
-        initial_node->layout = layout;
-        List nodes = {initial_node, initial_node};
-
-        while (Empty(&nodes) == 0) {
-            Node *cur_node = PopFront(&nodes);
-            if (cur_node->layout->kind != CONSTRUCTED) {
-                *cur_node->value_place = DeserializePrimitive(cur_node->layout, cur_buf_pos);
-                if (err_code != NOERR) {
-                    Clear(&nodes);
-                    DestroyNode(cur_node);
-                    return value;
-                }
-            } else {
-                Value *cur_value = cur_node->value_place;
-                cur_value->children = calloc(cur_node->layout->field_q,
-                                                         sizeof(Value));
-                if (cur_value->children == NULL) {
-                    err_code = ALLOCERR;
-                    Clear(&nodes);
-                    DestroyNode(cur_node);
-                    return value;
-                }
-                for (ssize_t i = cur_node->layout->field_q - 1; i >= 0; --i) {
-                    Node *node = GetNode();
-                    if (node == NULL) {
-                        err_code = ALLOCERR;
-                        Clear(&nodes);
-                        DestroyNode(cur_node);
-                        return value;
-                    }
-                    node->layout = cur_node->layout->fields[i];
-                    node->value_place = &cur_value->children[i];
-                    PushFront(&nodes, node);
-                }
-            }
-            GiveNode(cur_node);
-        }
-    }
-
-    return value;
-}
-*/
 
 Value Deserialize(const Layout *layout, char *buffer) {
     if (err_code != NOERR) {

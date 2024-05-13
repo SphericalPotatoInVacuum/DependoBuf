@@ -18,7 +18,7 @@ add_library(serializer_converter_shared SHARED
     conv.c
 )
 
-set_target_properties(serializer_converter_shared PROPERTIES VERSION ${PROJECT_VERSION})
+set_target_properties( PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(serializer_converter_shared PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR})
 
 target_include_directories(serializer_converter_shared PUBLIC

@@ -4,7 +4,6 @@
 #include "serializer/layout/linked_list.h"
 #include "serializer/snappy-c/snappy-c.h"
 
-
 #include "stdlib.h"
 #include "string.h"
 #include <limits.h>
@@ -321,6 +320,7 @@ char* Serialize(const Layout* layout, Value* value) {
     }
 
     size_t data_size = SerializedDataSize(layout, value);
+
     if (err_code != NOERR) {
         return NULL;
     }

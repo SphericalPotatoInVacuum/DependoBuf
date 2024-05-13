@@ -27,5 +27,3 @@ Node *PopFront(List *list);
 int Empty(const List *list);
 void DestroyNode(Node *node);
 void Clear(List *list);
-
-void HandleNodeAllocationError(List *list);

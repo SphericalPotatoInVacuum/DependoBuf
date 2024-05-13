@@ -1,15 +1,21 @@
 #include "serializer/error_handler/error_handler.h"
-#include "serializer/layout/linked_list.h"
-#include "serializer/serialization/serialization.h"
 #include "serializer/layout/layout.h"
+#include "serializer/serialization/serialization.h"
 #include "serializer/conv/conv.h"
+#include "test_includes.h"
 
-#include "stdio.h"
-#include "limits.h"
-#include "stdint.h"
-#include "assert.h"
-#include "stdlib.h"
-#include "string.h"
+static int CompareValues(const Layout* layout, const Value* first_val, const Value* second_val);
+static int TestUINT32(uint32_t val);
+static int TestUINT64(uint64_t val);
+static int TestINT32(int32_t val);
+static int TestINT64(int64_t val);
+static int TestFLOAT(float val);
+static int TestDOUBLE(double val);
+static int TestBOOL(char bool);
+static int TestSTRING(const char* val);
+static int TestVARINT64(uint64_t val);
+static int TestVARINT32(uint32_t val);
+static int TestBARRAY(const char* bool_array, size_t bool_array_size);
 
 static int CompareValues(const Layout* layout, const Value* first_val, const Value* second_val) {
     if ((first_val->children == NULL && second_val->children != NULL) || (first_val->children != NULL && second_val->children == NULL)) {
@@ -56,105 +62,6 @@ static int CompareValues(const Layout* layout, const Value* first_val, const Val
         }
     }
     return 1;
-}
-
-static int TestUINT32VARINTConversion(uint64_t inp) {
-    uint32_t out = 0;
-    int exit_code = 0;
-
-    size_t array_size = GetVarintSizeOfUINT(inp);
-    char* varint_array = calloc(array_size, sizeof(char));
-    exit_code = ConvertUINTtoVARINT(varint_array, inp, array_size);
-    if (exit_code) {
-        free(varint_array);
-        return !exit_code;
-    }
-    exit_code = ConvertVARINTtoUINT32(varint_array,&out);
-    free(varint_array);
-    return (!exit_code && inp == out);
-}
-
-static int TestUINT64VARINTConversion(uint64_t inp) {
-    uint64_t out = 0;
-    int exit_code = 0;
-
-    size_t array_size = GetVarintSizeOfUINT(inp);
-    char* varint_array = calloc(array_size, sizeof(char));
-    exit_code = ConvertUINTtoVARINT(varint_array, inp, array_size);
-    if (exit_code) {
-        free(varint_array);
-        return !exit_code;
-    }
-    exit_code = ConvertVARINTtoUINT64(varint_array,&out);
-    free(varint_array);
-    return (!exit_code && inp == out);
-}
-
-static int TestVARINTNotEnoughSize() {
-    size_t varint_size = 1;
-    char* varint = calloc(varint_size, sizeof(char));
-    int exit_code = ConvertUINTtoVARINT(varint, UINT32_MAX, varint_size);
-    free(varint);
-    return exit_code;
-}
-
-static int TestBARRAYConversion(const char* bool_array, size_t bool_array_size) {
-    size_t barray_size = GetBarraySizeOfBoolArray(bool_array_size);
-    char* barray = calloc(barray_size, sizeof(char));
-    int exit_code = ConvertBoolArrayToBarray(barray, bool_array, bool_array_size, barray_size);
-
-    size_t out_bool_array_size = GetBoolArraySizeofBarray(barray);
-    char* out_bool_array = calloc(out_bool_array_size, sizeof(char));
-
-    if (exit_code) {
-        free(barray);
-        free(out_bool_array);
-        return !exit_code;
-    }
-    exit_code = ConvertBarrayToBoolArray(barray, out_bool_array, bool_array_size);
-    if (exit_code) {
-        free(barray);
-        free(out_bool_array);
-        return !exit_code;
-    }
-    for (size_t i = 0; i < out_bool_array_size; ++i) {
-        if ((bool_array[i] && !out_bool_array[i]) || (!bool_array[i] && out_bool_array[i])) {
-            return 0;
-        }
-    }
-    free(barray);
-    free(out_bool_array);
-    return out_bool_array_size == bool_array_size;
-}
-
-static int TestBARRAYNotEnoughSize() {
-    char bool_array[100] = {0};
-    char barray[1] = {0};
-    size_t barray_size = 1;
-
-    int exit_code = ConvertBoolArrayToBarray(barray, bool_array, 100, barray_size);
-    return exit_code;
-}
-
-static int TestBARRAYNotEnoughSizeReverse() {
-    int exit_code = 0;
-
-    char bool_array[100] = {0};
-    size_t bool_array_size = 100;
-    size_t barray_size = GetBarraySizeOfBoolArray(bool_array_size);
-    char* barray = calloc(barray_size, sizeof(char));
-
-    exit_code = ConvertBoolArrayToBarray(barray, bool_array, bool_array_size, barray_size);
-    if (exit_code) {
-        free(barray);
-        return !exit_code;
-    }
-    char out_bool_array[1] = {0};
-    size_t out_bool_array_size = 1;
-
-    exit_code = ConvertBarrayToBoolArray(barray, out_bool_array, out_bool_array_size);
-    free(barray);
-    return exit_code;
 }
 
 static int TestUINT32(uint32_t val) {
@@ -221,7 +128,7 @@ static int TestSTRING(const char* val) {
     return (!err_code && CompareValues(kStringLayout, &inp, &out));
 }
 
-static int TestVARINT(uint64_t val) {
+static int TestVARINT64(uint64_t val) {
     err_code = 0;
     int exit_code = 0;
 
@@ -325,7 +232,7 @@ typedef struct ValueLayoutPack {
     Value val;
 } ValueLayoutPack;
 
-ValueLayoutPack CreateTreeValue(size_t n, const Layout* root_layout, Value* value) {
+static ValueLayoutPack CreateTreeValue(size_t n, const Layout* root_layout, Value* value) {
     if (n== 0) {
         ValueLayoutPack pack = {.layout = root_layout, .val = *value};
         return pack;
@@ -338,65 +245,30 @@ ValueLayoutPack CreateTreeValue(size_t n, const Layout* root_layout, Value* valu
     return CreateTreeValue(n - 1, new_layout, &new_value);
 }
 
-int main() {
-    //TEST BASIC SER
-    PrintOutRes(TestUINT32(50));
-    PrintOutRes(TestUINT64(50));
-    PrintOutRes(TestINT32(-50));
-    PrintOutRes(TestINT64(-50));
-    PrintOutRes(TestINT32(50));
-    PrintOutRes(TestINT64(50));
-    PrintOutRes(TestFLOAT(0.5));
-    PrintOutRes(TestFLOAT(-0.5));
-    PrintOutRes(TestDOUBLE(0.5));
-    PrintOutRes(TestDOUBLE(-0.5));
-    PrintOutRes(TestBOOL(1));
-    PrintOutRes(TestBOOL(0));
-    PrintOutRes(TestSTRING("Hello, bebra!"));
-    //TEST BASIC SER
-
-    // TEST VARINT
-    PrintOutRes(TestUINT32VARINTConversion(50));
-    PrintOutRes(TestUINT64VARINTConversion(50));
-    PrintOutRes(TestUINT32VARINTConversion(0));
-    PrintOutRes(TestUINT64VARINTConversion(0));
-    PrintOutRes(!TestUINT32VARINTConversion(UINT64_MAX));
-    PrintOutRes(TestVARINTNotEnoughSize());
-    PrintOutRes(TestVARINT(50));
-    PrintOutRes(TestVARINT(UINT64_MAX));
-    PrintOutRes(TestVARINT32(50));
-    PrintOutRes(TestVARINT32(UINT32_MAX));
-    // TEST VARINT
-    
-    //TEST BARRAY
+static int TestSimpleCONSTRUCTED() {
+    err_code = 0;
 
     size_t bool_array_size = 50;
     char* bool_array = calloc(bool_array_size, sizeof(char));
     for (size_t i = 0; i < bool_array_size; ++i) {
         bool_array[i] = i % 2;
-    }
+    }   
 
-    PrintOutRes(TestBARRAYConversion(bool_array, bool_array_size));
-    PrintOutRes(!TestBARRAYConversion(bool_array, 0));
-    PrintOutRes(TestBARRAYNotEnoughSize());
-    PrintOutRes(TestBARRAYNotEnoughSizeReverse());
-    PrintOutRes(TestBARRAY(bool_array, bool_array_size));
-    //TEST BARRAY
-
-
-    //TEST CONSTRUCTED_ONE_LAYER
     const Layout* simple_layout = CreateLayout(6, kInt32Layout, kInt64Layout, kStringLayout, kVarintLayout, kBarrayLayout, kBoolLayout);
     size_t barray_size = GetBarraySizeOfBoolArray(bool_array_size);
     char* barray = calloc(barray_size, sizeof(char));
     int exit_code = ConvertBoolArrayToBarray(barray, bool_array, bool_array_size, barray_size);
-    assert(!exit_code);
+    if (!exit_code) {
+        return !exit_code;
+    }
 
     int64_t encoded_uint = 150;
     size_t varint_size = GetVarintSizeOfUINT(encoded_uint);
     char* varint = calloc(varint_size, sizeof(char));
     exit_code = ConvertUINTtoVARINT(varint, encoded_uint, varint_size);
-    assert(!exit_code);
-
+    if (!exit_code) {
+        return !exit_code;
+    }
     const char* string = "Hello, bebra!";
 
     Value val = ConstructConstructedValue(simple_layout, 
@@ -411,7 +283,7 @@ int main() {
     Value out_val = Deserialize(simple_layout, encoded);
     int compare_res = CompareValues(simple_layout, &val, &out_val);
 
-    PrintOutRes(err_code == NOERR && compare_res);
+    int res = err_code == NOERR && CompareValues(simple_layout, &val, &out_val);
 
     free(barray);
     free(varint);
@@ -420,21 +292,50 @@ int main() {
     free(bool_array);
     free(encoded);
     ClearLayouts();
-    //TEST CONSTRUCTED_ONE_LAYER
 
-    //TEST CONSTRUCTED_MULTI_LAYER
-    size_t n = 100;
-    char* varint_init = calloc(1, sizeof(char));
+    return res;
+}
+
+static int TestComplexCONSTRUCTED(size_t n) {
+    err_code = 0;
+
+    char* varint_init = calloc(GetVarintSizeOfUINT(0), sizeof(char));
     uintptr_t final_layout_addr = 0;
-    exit_code = ConvertUINTtoVARINT(varint_init, 0, GetVarintSizeOfUINT(0));
+    int exit_code = ConvertUINTtoVARINT(varint_init, 0, GetVarintSizeOfUINT(0));
     Value init_value = ConstructPrimitiveValueNoCopy(kVarintLayout, varint_init);
     ValueLayoutPack n_value_pack = CreateTreeValue(n, kVarintLayout, &init_value);
 
-    Value deserialized_value = Deserialize(n_value_pack.layout, Serialize(n_value_pack.layout, &n_value_pack.val));
-    PrintOutRes(CompareValues(n_value_pack.layout, &n_value_pack.val, &deserialized_value));
+    char* encoded = Serialize(n_value_pack.layout, &n_value_pack.val);
+    Value deserialized_value = Deserialize(n_value_pack.layout, encoded);
+    int res = CompareValues(n_value_pack.layout, &n_value_pack.val, &deserialized_value);
 
+    free(encoded);
     DestroyValue(n_value_pack.layout, &deserialized_value);
     DestroyValue(n_value_pack.layout, &n_value_pack.val);
     ClearLayouts();
-    //TEST CONSTRUCTED_MULTI_LAYER
+
+    return err_code == NOERR && res;
+}
+
+
+int main() {
+    assert(TestUINT32(50));
+    assert(TestUINT64(50));
+    assert(TestINT32(-50));
+    assert(TestINT64(-50));
+    assert(TestINT32(50));
+    assert(TestINT64(50));
+    assert(TestFLOAT(0.5));
+    assert(TestFLOAT(-0.5));
+    assert(TestDOUBLE(0.5));
+    assert(TestDOUBLE(-0.5));
+    assert(TestBOOL(1));
+    assert(TestBOOL(0));
+    assert(TestSTRING("Hello, bebra!"));
+
+    assert(TestSimpleCONSTRUCTED());
+    assert(TestComplexCONSTRUCTED(1));
+    assert(TestComplexCONSTRUCTED(100));
+    assert(TestComplexCONSTRUCTED(500));
+    assert(TestComplexCONSTRUCTED(1000));
 }

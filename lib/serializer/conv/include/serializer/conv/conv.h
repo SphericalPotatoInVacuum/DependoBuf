@@ -2,6 +2,11 @@
 
 #include "stdint.h"
 #include "stddef.h"
+#include "limits.h"
+
+#if CHAR_BIT <= 1
+#error "Uncompatible platform to run"
+#endif
 
 //Converts varint by its pointer to uint32_t, saves in res by its pointer, returns 0. If error has occurred, returns 1.
 int ConvertVARINTtoUINT32(const char* varint, uint32_t* res);

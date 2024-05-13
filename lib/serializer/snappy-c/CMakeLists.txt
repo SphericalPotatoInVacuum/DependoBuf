@@ -1,6 +1,6 @@
-#Library functional entirely borrowed from https://github.com/andikleen/snappy-c
+#Library functional entirely borrowed from https://github.com/andikleen/snappy-c :D
 
-project(serializer_snappy-c VERSION 1.0.0 DESCRIPTION "Snappy C port from https://github.com/andikleen/snappy-c by Andi Kleen")
+project(serializer_snappy-c VERSION 1.1.0 DESCRIPTION "Snappy C port from https://github.com/andikleen/snappy-c by Andi Kleen")
 
 add_library(serializer_snappy-c STATIC
     snappy-c.c

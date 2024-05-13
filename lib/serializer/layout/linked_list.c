@@ -81,8 +81,3 @@ void Clear(List *list) {
         DestroyNode(PopFront(list));
     }
 }
-
-void HandleNodeAllocationError(List *list) {
-    Clear(list);
-    err_code = ALLOCERR;
-}
