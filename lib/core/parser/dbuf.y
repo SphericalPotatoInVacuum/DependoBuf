@@ -172,7 +172,7 @@ enum_definition
 %nterm <ast::Enum> dependent_enum;
 dependent_enum
   : ENUM type_identifier generic_dependencies type_dependencies "{" mapping_rules "}" {
-    $$ = ast::Enum{{$2}, {std::move($4)}, {std::move($6)}};
+    $$ = ast::Enum{{$2}, {std::move($4)}, {std::move($6)}, {std::move($3)}};
   }
   ;
 
