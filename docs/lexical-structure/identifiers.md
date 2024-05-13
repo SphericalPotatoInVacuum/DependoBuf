@@ -33,7 +33,7 @@ In DependoBuf identifiers are case sensitive. This means that `foo` and `Foo`
 are different identifiers. Moreover, the case of the identifier bears a semantic
 meaning.
 
-Every lowercase identifier is a variable (like a type dependency, which
+Every lowercase identifier is a function or variable (like a type dependency, which
 can be understood as a parameter of the type; or a field of a constructed value).
 
 Every uppercase identifier is a type (which are defined using `message` or `enum`

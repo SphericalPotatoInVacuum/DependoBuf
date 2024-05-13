@@ -6,7 +6,7 @@ optional type dependencies, followed by a block of field declarations.
 
 $$
 \begin{align*}
-  type\_dependency ::=&\ \texttt{(}\ type\_variable \texttt{)}\\
+  type\_dependency ::=&\ \texttt{(}\ type\_variable \ \texttt{)}\\
   message\_definition ::=&\ \texttt{message}\ type\_identifier
   \ \lbrace type\_dependency \rbrace\
   \texttt{\{}\ \lbrace typed\_variable \rbrace\ \texttt{\}}
