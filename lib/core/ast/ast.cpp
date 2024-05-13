@@ -57,13 +57,20 @@ private:
     }
   }
 
+  void Print(const ast::Identifier &identifier) {
+    auto defer = MakeNewScope();
+    result_ << current_indent_ << identifier.name.GetString() << "\n";
+  }
+
   void Print(const Message &message) {
     auto defer = MakeNewScope();
     result_ << current_indent_ << "identifier: " << message.identifier.name << "\n";
-    result_ << current_indent_ << "Fields\n";
-    Print(message.fields);
+    result_ << current_indent_ << "Generic dependencies\n";
+    Print(message.type_identifiers);
     result_ << current_indent_ << "Type dependencies\n";
     Print(message.type_dependencies);
+    result_ << current_indent_ << "Fields\n";
+    Print(message.fields);
   }
 
   void Print(const InternedString &string) {
@@ -135,6 +142,8 @@ private:
   void Print(const Enum &value) {
     auto defer = MakeNewScope();
     result_ << current_indent_ << "name: " << value.identifier.name << "\n";
+    result_ << current_indent_ << "Generic dependencies\n";
+    Print(value.type_identifiers);
     result_ << current_indent_ << "Type dependencies\n";
     Print(value.type_dependencies);
     result_ << current_indent_ << "Pattern mapping\n";
