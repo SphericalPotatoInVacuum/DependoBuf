@@ -20,4 +20,5 @@ build
 __pycache__/
 venv/
 
+# only for dev
 only_for_dev/

@@ -53,7 +53,7 @@ void PyCodeGenerator::operator()(const ast::Message &ast_message) {
   if (!field_names.empty()) {
     printer_.print_line();
   }
-  printer_.print_def_check_message(dep_names, dep_types, field_names, field_deps, message_name);
+  printer_.print_def_check_message(dep_names, dep_types, field_names, field_deps);
 
   std::vector<std::string> inner_types = {message_name};
   printer_.print_type(message_name, inner_types);

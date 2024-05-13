@@ -79,7 +79,6 @@ void PyPrinter::print_def_check_message(
     const std::vector<std::string> &dep_types,
     const std::vector<std::string> &field_names,
     const std::vector<std::string> &field_deps,
-    const std::string &struct_name,
     int level) {
   // def check(self, x: int, y: float, z: str) -> None:
   std::string def_name = "check";
