@@ -139,13 +139,13 @@ std::variant<ErrorList, ast::TypeExpression> GenericsResolver::Resolve(const ast
       resolved_generics_.insert(name);
       ASSIGN_OR_RETURN_ERROR(ast::Enum, resolved_enum, Resolve(en));
       resolved_enum.identifier.name = name;
-      result_ast_.types.emplace(name, std::move(resolved_enum));
       for (auto &rule : resolved_enum.pattern_mapping) {
         for (auto &constructor : rule.outputs) {
           constructor.identifier.name = InternedString(constructor.identifier.name.GetString() + suffix);
           result_ast_.constructor_to_type.emplace(constructor.identifier.name, name);
         }
       }
+      result_ast_.types.emplace(name, std::move(resolved_enum));
       current_generic_params_.pop_back();
 
     } else {
