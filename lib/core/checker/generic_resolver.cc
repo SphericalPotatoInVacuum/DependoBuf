@@ -23,6 +23,13 @@ std::pair<ast::AST, ast::AST> ClassifyGenerics(const ast::AST &ast) {
       } else {
         generic.types.emplace(name, elem);
       }
+    } else if (std::holds_alternative<ast::Enum>(elem)) {
+      const auto &en = std::get<ast::Enum>(elem);
+      if (en.type_identifiers.empty()) {
+        non_generic.types.emplace(name, elem);
+      } else {
+        generic.types.emplace(name, elem);
+      }
     }
   }
   return std::make_pair(std::move(generic), std::move(non_generic));
@@ -61,14 +68,16 @@ std::variant<ErrorList, ast::TypeExpression> GenericsResolver::Resolve(const ast
     result.identifier.name = maybe_type.value();
     return result;
   }
-  // check if non
+
   std::vector<ast::TypeExpression> generic_parameters;
   for (const auto &param_ptr : type.parameters) {
     const auto &param = *param_ptr;
     ASSIGN_OR_RETURN_ERROR(ast::Expression, param_result, Resolve(param));
     if (std::holds_alternative<ast::TypeExpression>(param_result)) {
+      SCOPED_LOG(INFO) << "Type dependency";
       generic_parameters.emplace_back(std::get<ast::TypeExpression>(param_result));
     } else {
+      SCOPED_LOG(INFO) << "Value dependency";
       result.parameters.emplace_back(std::make_shared<ast::Expression>(std::move(param_result)));
     }
   }
@@ -169,6 +178,8 @@ std::variant<ErrorList, ast::AST> GenericsResolver::operator()(const ast::AST &a
 
   SCOPED_LOG(INFO) << "generic_.types.size() = " << generic_.types.size()
                    << ", non_generic_.types.size() = " << non_generic_.types.size();
+
+  result_ast_.constructor_to_type = ast.constructor_to_type;
   for (const auto &[name, elem] : non_generic_.types) {
     std::variant<ErrorList, std::variant<ast::Message, ast::Enum>> result = Resolve(elem);
     if (std::holds_alternative<ErrorList>(result)) {
