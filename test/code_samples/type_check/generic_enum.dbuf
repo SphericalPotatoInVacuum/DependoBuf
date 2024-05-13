@@ -7,8 +7,8 @@ enum TreeH [T] (height Int) {
     * => {
         TreeHNode {
             value T;
-            left TreeH (height - 1);
-            right TreeH (height - 1);
+            left TreeH [T] (height - 1);
+            right TreeH [T] (height - 1);
         }
     }
 }
