@@ -94,7 +94,7 @@ public:
   explicit Defer(const std::function<void()> &other)
       : callback_(other) {}
 
-  ~Defer() {
+  ~Defer() noexcept {
     callback_();
   }
 
