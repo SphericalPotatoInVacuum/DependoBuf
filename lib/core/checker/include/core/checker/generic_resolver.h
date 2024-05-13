@@ -6,6 +6,7 @@
 #include "core/interning/interned_string.h"
 
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
 
 namespace dbuf::checker {
@@ -30,6 +31,14 @@ private:
 
   std::variant<ErrorList, ast::Enum> Resolve(const ast::Enum &type);
 
+  std::variant<ErrorList, ast::Enum::Rule> Resolve(const ast::Enum::Rule &rule);
+
+  std::variant<ErrorList, ast::Constructor> Resolve(const ast::Constructor &constr);
+
+  std::variant<ErrorList, std::string> MapGenericWithParams(
+      const std::vector<ast::Identifier> &identifiers,
+      const std::vector<ast::TypeExpression> &generic_parameters);
+
   Defer MakeNewScope();
 
   void AddType(const InternedString &param_name, const InternedString &type_name);
@@ -42,7 +51,12 @@ private:
   std::vector<std::set<InternedString>> current_generic_params_;
   std::vector<std::unordered_map<InternedString, InternedString>> generic_param_to_type_name_;
 
-  std::unordered_map<InternedString, ast::Message> name_to_generic_;
+  std::unordered_map<InternedString, ast::Message> name_to_generic_message_;
+  std::unordered_map<InternedString, ast::Enum> name_to_generic_enum_;
+  std::unordered_map<InternedString, InternedString> constructor_name_to_generic_enum_name_;
+
+  std::unordered_set<InternedString> resolved_generics_;
+
   ast::AST generic_;
   ast::AST non_generic_;
   ast::AST result_ast_;
