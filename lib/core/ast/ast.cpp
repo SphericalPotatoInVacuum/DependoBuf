@@ -91,14 +91,14 @@ private:
     Print(value.left);
     result_ << current_indent_ << "Right\n";
     Print(value.right);
-    result_ << current_indent_ << "Operation\n" << static_cast<char>(value.type);
+    result_ << current_indent_ << "Operation\n" << current_indent_ << "  " << static_cast<char>(value.type) << "\n";
   }
 
   void Print(const UnaryExpression &value) {
     auto defer = MakeNewScope();
     result_ << current_indent_ << "Value\n";
     Print(value.expression);
-    result_ << current_indent_ << "Operation\n" << static_cast<char>(value.type);
+    result_ << current_indent_ << "Operation\n" << current_indent_ << "  " << static_cast<char>(value.type) << "\n";
   }
 
   void Print(const std::pair<Identifier, std::shared_ptr<const Expression>> &value) {
@@ -126,7 +126,7 @@ private:
 
   void Print(const VarAccess &value) {
     auto defer = MakeNewScope();
-    result_ << current_indent_ << value;
+    result_ << current_indent_ << value << "\n";
   }
 
   void Print(const std::shared_ptr<const dbuf::ast::Expression> &value) {
