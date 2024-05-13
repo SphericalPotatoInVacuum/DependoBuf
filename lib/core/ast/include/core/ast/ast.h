@@ -46,7 +46,9 @@ struct Constructor
 struct Message
     : Identifiable
     , DependentType
-    , TypeWithFields {};
+    , TypeWithFields {
+  std::vector<ast::Identifier> type_identifiers;
+};
 
 struct Enum
     : Identifiable
@@ -59,6 +61,7 @@ struct Enum
   };
 
   std::vector<Rule> pattern_mapping = {};
+  std::vector<ast::Identifier> type_identifiers;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Enum::Rule::InputPattern &pattern) {

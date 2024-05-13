@@ -156,10 +156,10 @@ definition
 %nterm <ast::Message> message_definition;
 message_definition
   : MESSAGE type_identifier generic_dependencies type_dependencies fields_block {
-    $$ = ast::Message{{$2}, {std::move($4)}, {std::move($5)}};
+    $$ = ast::Message{{$2}, {std::move($4)}, {std::move($5)}, {std::move($3)}};
   }
   | MESSAGE type_identifier generic_dependencies fields_block {
-    $$ = ast::Message{{$2}, {}, {std::move($4)}};
+    $$ = ast::Message{{$2}, {}, {std::move($4)}, {std::move($3)}};
   }
   ;
 
@@ -182,7 +182,7 @@ independent_enum
     std::vector<ast::Enum::Rule> one_rule;
     one_rule.emplace_back(ast::Enum::Rule{.outputs = std::move($4)});
 
-    $$ = ast::Enum{{$2}, {}, {std::move(one_rule)}};
+    $$ = ast::Enum{{$2}, {}, {std::move(one_rule)}, {std::move($3)}};
   }
   ;
 
