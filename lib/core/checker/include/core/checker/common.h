@@ -17,6 +17,7 @@ the Free Software Foundation, either version 3 of the License, or
 
 #include <cassert>
 #include <deque>
+#include <functional>
 #include <map>
 #include <ostream>
 #include <ranges>
@@ -86,6 +87,19 @@ public:
 private:
   std::unordered_map<InternedString, ast::TypeExpression> vars_;
   std::deque<Scope *> &ctx_;
+};
+
+class Defer {
+public:
+  explicit Defer(const std::function<void()> &other)
+      : callback_(other) {}
+
+  ~Defer() {
+    callback_();
+  }
+
+private:
+  std::function<void()> callback_;
 };
 
 // Find type of foo.bar.buzz
