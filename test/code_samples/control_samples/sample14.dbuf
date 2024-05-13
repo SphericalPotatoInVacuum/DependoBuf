@@ -1,0 +1,25 @@
+enum Xert {
+  Base {
+    val Int;
+  }
+  Default {
+
+  }
+}
+
+message Tert (n Int) {
+
+}
+
+enum Lalo (xe Xert) {
+  Base {val: v} => {
+    Leh {
+      t Tert (-1);
+    }
+  }
+  Default {} => {
+    Zero {
+
+    }
+  }
+}

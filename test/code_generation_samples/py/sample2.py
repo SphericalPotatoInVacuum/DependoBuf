@@ -23,16 +23,9 @@ class Address:
         withIntercom: bool
 
         def check(self) -> None:
-            if type(self) not in Address._possible_types():
-                raise DbufError(
-                    'Type Address.__Address does not match given dependencies.'
-                )
+            pass
 
     address_type = __Address
-
-    @classmethod
-    def _possible_types(cls) -> set[type]:
-        return {cls.__Address}
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -51,16 +44,9 @@ class Pet:
         name: str
 
         def check(self) -> None:
-            if type(self) not in Pet._possible_types():
-                raise DbufError(
-                    'Type Pet.__Pet does not match given dependencies.'
-                )
+            pass
 
     pet_type = __Pet
-
-    @classmethod
-    def _possible_types(cls) -> set[type]:
-        return {cls.__Pet}
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -81,16 +67,9 @@ class User:
         money: float
 
         def check(self) -> None:
-            if type(self) not in User._possible_types():
-                raise DbufError(
-                    'Type User.__User does not match given dependencies.'
-                )
+            pass
 
     user_type = __User
-
-    @classmethod
-    def _possible_types(cls) -> set[type]:
-        return {cls.__User}
 
     def __init__(self) -> None:
         self.dependencies = ()

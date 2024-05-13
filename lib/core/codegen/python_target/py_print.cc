@@ -74,7 +74,37 @@ void PyPrinter::print_inner_class_field(const std::string &name, const std::stri
   print_line({name, ": ", py_type}, level);
 }
 
-void PyPrinter::print_def_check(
+void PyPrinter::print_def_check_message(
+    const std::vector<std::string> &dep_names,
+    const std::vector<std::string> &dep_types,
+    const std::vector<std::string> &field_names,
+    const std::vector<std::string> &field_deps,
+    const std::string &struct_name,
+    int level) {
+  // def check(self, x: int, y: float, z: str) -> None:
+  std::string def_name = "check";
+  print_instance_method(def_name, dep_names, dep_types, level);
+  level++;
+
+  bool fields_with_deps = false;
+  for (int i = 0; i < field_names.size(); ++i) {
+    if (!tuple_is_empty(field_deps[i])) {
+      fields_with_deps = true;
+      if (i != 0) {
+        print_line();
+      }
+      print_var_deps(field_names[i], field_deps[i], level);
+      std::vector<std::string> tokens = {"self.", field_names[i], ".check(*", field_names[i], "_deps)"};
+      print_line(tokens, level);
+    }
+  }
+
+  if (!fields_with_deps) {
+    print_line({"pass"}, level);
+  }
+}
+
+void PyPrinter::print_def_check_enum(
     const std::vector<std::string> &dep_names,
     const std::vector<std::string> &dep_types,
     const std::vector<std::string> &field_names,
@@ -141,12 +171,6 @@ void PyPrinter::print_def_possible_types(
   print_line({"@classmethod"}, level);
   print_class_method(def_name, names, types, level, res_type);
   level++;
-
-  if (expected_params_matrix.empty()) {
-    std::string message_type = possible_types_matrix[0][0];
-    print_line({"return {cls.__", message_type, "}"}, level);
-    return;
-  }
 
   print_line({"actual = ", py_tuple(names)}, level);
 

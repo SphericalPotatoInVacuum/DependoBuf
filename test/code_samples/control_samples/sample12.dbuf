@@ -1,0 +1,21 @@
+message SomeMessage (n Int) (b1 Bool) (b2 Bool) {
+  x Xert (b1 & b2 | !!!(b1 | b2));
+  y Yog (n - 3 * 17);
+}
+
+enum Xert (b Bool) {
+  true => {
+    Good {
+      name String;
+    }
+  }
+  false => {
+    Bad {
+
+    }
+  }
+}
+
+message Yog (n Int) {
+
+}

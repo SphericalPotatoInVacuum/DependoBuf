@@ -14,81 +14,165 @@ class DbufError(TypeError):
     pass
 
 
-class Cat:
+class Color:
     @dataclass
-    class __Child:
-        name: str
+    class __Red:
+        r: int
 
-        def check(self, age: int) -> None:
-            if type(self) not in Cat._possible_types(age):
+        def check(self, s: str) -> None:
+            if type(self) not in Color._possible_types(s):
                 raise DbufError(
-                    'Type Cat.__Child does not match given dependencies.'
+                    'Type Color.__Red does not match given dependencies.'
                 )
 
     @dataclass
-    class __Adult:
-        name: str
+    class __Green:
+        g: int
 
-        def check(self, age: int) -> None:
-            if type(self) not in Cat._possible_types(age):
+        def check(self, s: str) -> None:
+            if type(self) not in Color._possible_types(s):
                 raise DbufError(
-                    'Type Cat.__Adult does not match given dependencies.'
+                    'Type Color.__Green does not match given dependencies.'
                 )
 
-    cat_type = __Child | __Adult
+    color_type = __Red | __Green
 
     @classmethod
-    def _possible_types(cls, age: int) -> set[type]:
-        actual = (age, )
-        expected = (0, )
+    def _possible_types(cls, s: str) -> set[type]:
+        actual = (s, )
+        expected = ('red', )
         if _is_consistent(actual, expected):
-            return {cls.__Child}
+            return {cls.__Red}
 
-        expected = (None, )
+        expected = ('green', )
         if _is_consistent(actual, expected):
-            return {cls.__Adult}
+            return {cls.__Green}
 
         return {}
 
-    def __init__(self, age: int) -> None:
-        self.dependencies = (age, )
+    def __init__(self, s: str) -> None:
+        self.dependencies = (s, )
 
-    def child(self, name: str) -> __Child:
-        obj = self.__Child(name)
+    def red(self, r: int) -> __Red:
+        obj = self.__Red(r)
         obj.check(*self.dependencies)
         return obj
 
-    def adult(self, name: str) -> __Adult:
-        obj = self.__Adult(name)
+    def green(self, g: int) -> __Green:
+        obj = self.__Green(g)
         obj.check(*self.dependencies)
         return obj
 
 
 class House:
     @dataclass
-    class __House:
-        cat: Cat.cat_type
+    class __RedHouse:
+        address: str
 
-        def check(self, n: int) -> None:
-            if type(self) not in House._possible_types(n):
+        def check(self, s: str, col: Color.color_type) -> None:
+            if type(self) not in House._possible_types(s, col):
                 raise DbufError(
-                    'Type House.__House does not match given dependencies.'
+                    'Type House.__RedHouse does not match given dependencies.'
                 )
 
-            cat_deps = ((-(n + 5)) - (-2), )
-            self.cat.check(*cat_deps)
+    @dataclass
+    class __DefaultHouse:
+        def check(self, s: str, col: Color.color_type) -> None:
+            if type(self) not in House._possible_types(s, col):
+                raise DbufError(
+                    'Type House.__DefaultHouse does not match given dependencies.'
+                )
 
-    house_type = __House
+    @dataclass
+    class __DefaultHouse2:
+        def check(self, s: str, col: Color.color_type) -> None:
+            if type(self) not in House._possible_types(s, col):
+                raise DbufError(
+                    'Type House.__DefaultHouse2 does not match given dependencies.'
+                )
+
+    house_type = __RedHouse | __DefaultHouse | __DefaultHouse2
 
     @classmethod
-    def _possible_types(cls, n: int) -> set[type]:
-        return {cls.__House}
+    def _possible_types(cls, s: str, col: Color.color_type) -> set[type]:
+        actual = (s, col, )
+        expected = ('green', Color._Color__Green(12), )
+        if _is_consistent(actual, expected):
+            return {cls.__RedHouse}
 
-    def __init__(self, n: int) -> None:
-        self.dependencies = (n, )
+        expected = (None, None, )
+        if _is_consistent(actual, expected):
+            return {cls.__DefaultHouse, cls.__DefaultHouse2}
 
-    def construct(self, cat: Cat.cat_type) -> __House:
-        obj = self.__House(cat)
+        return {}
+
+    def __init__(self, s: str, col: Color.color_type) -> None:
+        col_deps = ('green', )
+        col.check(*col_deps)
+
+        self.dependencies = (s, col, )
+
+    def red_house(self, address: str) -> __RedHouse:
+        obj = self.__RedHouse(address)
+        obj.check(*self.dependencies)
+        return obj
+
+    def default_house(self) -> __DefaultHouse:
+        obj = self.__DefaultHouse()
+        obj.check(*self.dependencies)
+        return obj
+
+    def default_house2(self) -> __DefaultHouse2:
+        obj = self.__DefaultHouse2()
+        obj.check(*self.dependencies)
+        return obj
+
+
+class Kek:
+    @dataclass
+    class __Kek:
+        def check(self) -> None:
+            pass
+
+    kek_type = __Kek
+
+    def __init__(self) -> None:
+        self.dependencies = ()
+
+    def construct(self) -> __Kek:
+        obj = self.__Kek()
+        obj.check(*self.dependencies)
+        return obj
+
+
+class Village:
+    @dataclass
+    class __DefVillage:
+        def check(self, n: int, h: House.house_type) -> None:
+            if type(self) not in Village._possible_types(n, h):
+                raise DbufError(
+                    'Type Village.__DefVillage does not match given dependencies.'
+                )
+
+    village_type = __DefVillage
+
+    @classmethod
+    def _possible_types(cls, n: int, h: House.house_type) -> set[type]:
+        actual = (n, h, )
+        expected = (None, House._House__DefaultHouse(), )
+        if _is_consistent(actual, expected):
+            return {cls.__DefVillage}
+
+        return {}
+
+    def __init__(self, n: int, h: House.house_type) -> None:
+        h_deps = ('my', Color._Color__Green(n + (2 * 4)), )
+        h.check(*h_deps)
+
+        self.dependencies = (n, h, )
+
+    def def_village(self) -> __DefVillage:
+        obj = self.__DefVillage()
         obj.check(*self.dependencies)
         return obj
 
@@ -102,3 +186,6 @@ def _is_consistent(actual: tuple, expected: tuple) -> bool:
             return False
 
     return True
+
+
+h = House()

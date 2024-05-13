@@ -50,15 +50,14 @@ void PyCodeGenerator::operator()(const ast::Message &ast_message) {
   std::vector<std::string> field_deps;
   prepare_names_types_deps(ast_message.fields, field_names, field_types, field_deps, true);
 
-  printer_.print_line();
-  printer_.print_def_check(dep_names, dep_types, field_names, field_deps, message_name, message_name);
+  if (!field_names.empty()) {
+    printer_.print_line();
+  }
+  printer_.print_def_check_message(dep_names, dep_types, field_names, field_deps, message_name);
 
   std::vector<std::string> inner_types = {message_name};
   printer_.print_type(message_name, inner_types);
 
-  std::vector<std::string> expected_params_matrix;
-  std::vector<std::vector<std::string>> possible_types = {{message_name}};
-  printer_.print_def_possible_types(dep_names, dep_types, expected_params_matrix, possible_types);
   printer_.print_def_init(dep_names, dep_types, dep_deps);
   printer_.print_method_construct(message_name, field_names, field_types);
 }
@@ -108,7 +107,7 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
       if (!field_names.empty()) {
         printer_.print_line();
       }
-      printer_.print_def_check(dep_names, dep_types, field_names, field_deps, enum_name, constructor_name);
+      printer_.print_def_check_enum(dep_names, dep_types, field_names, field_deps, enum_name, constructor_name);
 
       field_names_map[constructor_name] = std::move(field_names);
       field_types_map[constructor_name] = std::move(field_types);

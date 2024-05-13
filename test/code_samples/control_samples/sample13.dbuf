@@ -1,0 +1,15 @@
+message SomeMessage (y York) {
+  x Xerks (y.t.x + 1u);
+}
+
+message Xerks (u Unsigned) {
+
+}
+
+message York {
+  t Tver;
+}
+
+message Tver {
+  x Unsigned;
+}

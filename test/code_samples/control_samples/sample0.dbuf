@@ -1,16 +1,40 @@
-enum Cat (age Int) {
-  0 => {
-    Child {
-      name String;
+enum Color (s String) {
+  "red" => {
+    Red {
+      r Int;
     }
   }
-  * => {
-    Adult {
-      name String;
+  "green" => {
+    Green {
+      g Int;
     }
   }
 }
 
-message House (n Int) {
-  cat Cat (-(n + 5) - -2);
+enum House (s String) (col Color "green") {
+  "green", Green {g: 12} => {
+    RedHouse {
+      address String;
+    }
+  }
+  *, * => {
+    DefaultHouse {
+
+    }
+    DefaultHouse2 {
+
+    }
+  }
+}
+
+enum Village (n Int) (h House "my" Green {g: n + 2 * 4}) {
+  *, DefaultHouse {} => {
+    DefVillage {
+
+    }
+  }
+}
+
+message Kek {
+  
 }
