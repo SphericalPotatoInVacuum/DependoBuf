@@ -39,6 +39,8 @@ private:
 
     void operator()(const ast::VarAccess &var_access);
 
+    void operator()(const ast::Star &star);
+
     bool CheckForTriggers(
         const std::unordered_set<InternedString> &trigger_names,
         const ast::Expression &expr);

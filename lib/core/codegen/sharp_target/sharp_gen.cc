@@ -3,12 +3,39 @@
 #include "core/ast/expression.h"
 #include "core/codegen/sharp_target/sharp_print.h"
 #include "core/interning/interned_string.h"
+#include <any>
 #include <iostream>
+#include <ostream>
 #include <sstream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <variant>
 #include <vector>
 
 namespace dbuf::gen {
+
+struct VectorHash {
+    std::size_t operator()(std::vector<std::pair<InternedString, InternedString>>& vec) const {
+        std::size_t res = 0;
+        std::hash<std::string> hash{};
+        for (const auto& p : vec) {
+            res = (res << 1) ^ hash(p.first.GetString());
+            res = (res << 1) ^ hash(p.second.GetString());
+        }
+        return res;
+    }
+    std::size_t operator()(const std::vector<std::pair<InternedString, InternedString>>& vec) const {
+            std::size_t res = 0;
+            std::hash<std::string> hash{};
+            for (const auto& p : vec) {
+                res = (res << 1) ^ hash(p.first.GetString());
+                res = (res << 1) ^ hash(p.second.GetString());
+            }
+            return res;
+    }
+};
 
 SharpCodeGenerator::SharpCodeGenerator(const std::string &out_file)
         : ITargetCodeGenerator(out_file) {
@@ -146,13 +173,13 @@ void SharpCodeGenerator::operator()(
 
     printer_.PrintClassBegin(message_name);
 
-    // Map contains pairs {dependent_variable_name, dependent_variable_type}
-    std::unordered_map<InternedString, InternedString> dependent_variables;
+    // Vector contains pairs {dependent_variable_name, dependent_variable_type}
+    std::vector<std::pair<InternedString, InternedString>> dependent_variables;
     dependent_variables.reserve(ast_message.type_dependencies.size());
 
     for (const auto &dependency : ast_message.type_dependencies) {
         (*this)(dependency, true);
-        dependent_variables[dependency.name] = dependency.type_expression.identifier.name;
+        dependent_variables.emplace_back(dependency.name, dependency.type_expression.identifier.name);
     }
 
     PrintTypedVariables(class_fields, ";\n", true, true, false);
@@ -176,17 +203,177 @@ void SharpCodeGenerator::operator()(
 
 void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
     const std::string &enum_name = ast_enum.identifier.name.GetString();
-    std::cerr << "Cannot call enum generaton: " << enum_name << std::endl
-              << "Because it is not emplemented yet";
-    // printer_.PrintEnumBegin(message_name);
-    // printer_.PrintEnumEnd();
+
+    std::vector<std::string> depentent_classes_names;
+    std::unordered_map<std::string, std::vector<std::pair<InternedString, InternedString>>> dependent_variables;
+    
+    auto print_complex_dependencies_constructor = [&](
+        const ast::Enum::Rule &rule,
+        const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
+        for (size_t ind = 0; (ind != ast_enum.type_dependencies.size()); ++ind) {
+            *output_ << " && " << dependent_variables[ind].first << "_" << " == ";
+            const std::variant<ast::Value, ast::Star> &var = rule.inputs.at(ind);
+            if (std::holds_alternative<ast::Value>(rule.inputs[ind])) {
+                const auto &dbuf_value = std::get<ast::Value>(var);
+                (*this)(dbuf_value);
+            } else {
+                *output_ << ast_enum.type_dependencies[ind].name;
+            }
+        } 
+    };
+
+    auto print_complex_dependencies_checker = [&](
+        const ast::Enum::Rule &rule,
+        const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
+        for (size_t ind = 0; (ind != ast_enum.type_dependencies.size()); ++ind) {
+            *output_ << " && value." << dependent_variables[ind].first << " == ";
+            const std::variant<ast::Value, ast::Star> &var = rule.inputs.at(ind);
+            if (std::holds_alternative<ast::Value>(rule.inputs[ind])) {
+                const auto &dbuf_value = std::get<ast::Value>(var);
+                (*this)(dbuf_value);
+            } else {
+                *output_ << ast_enum.type_dependencies[ind].name;
+            }
+        }
+    };
+    
+    bool has_all_star_case = false;
+    for (const auto &rule : ast_enum.pattern_mapping) {
+        std::vector<ast::TypedVariable> real_dependencies;
+        std::vector<ast::Value> fixed_dependencies;
+        bool all_stars = true;
+        for (size_t ind = 0; ind < ast_enum.type_dependencies.size(); ++ind) {
+            if (std::holds_alternative<ast::Star>(rule.inputs[ind])) {
+                real_dependencies.emplace_back(ast_enum.type_dependencies[ind]);
+            } else if (std::holds_alternative<ast::Value>(rule.inputs[ind])) {
+                fixed_dependencies.emplace_back(std::get<ast::Value>(rule.inputs[ind]));
+                all_stars = false;
+            }
+        }
+        has_all_star_case |= all_stars;
+        
+        std::vector<InternedString> inner_structs_names;
+        inner_structs_names.reserve(rule.outputs.size());
+        // Code generation for inner structs
+        for (const auto & constructor : rule.outputs) {
+             ast::Message sub_struct;
+
+            sub_struct.type_dependencies = ast_enum.type_dependencies;
+            sub_struct.identifier.name   = constructor.identifier.name;
+            sub_struct.fields            = constructor.fields;
+
+            (*this)(sub_struct);
+
+            if(!ast_enum.type_dependencies.empty()) {
+                inner_structs_names.push_back(sub_struct.identifier.name);
+            }
+        }
+
+        std::string new_enum_name = enum_name;
+        for (const auto &inner_structs_name : inner_structs_names) {
+            new_enum_name += ("_" + inner_structs_name.GetString());
+        }
+
+        if (new_enum_name != enum_name) {
+            depentent_classes_names.emplace_back(new_enum_name);
+        }
+
+        // Generates name and input pattern
+        printer_.PrintClassBegin(new_enum_name);
+
+        // Vector contains pairs {dependent_variable_name, dependent_variable_type}
+        dependent_variables[new_enum_name].reserve(ast_enum.type_dependencies.size());
+
+        for (const auto &dependency : ast_enum.type_dependencies) {
+            dependent_variables[new_enum_name].emplace_back(dependency.name, dependency.type_expression.identifier.name);
+        }
+
+        if (!has_all_star_case) {
+            *output_ << "\tprivate readonly bool IsConstructable;\n";
+            *output_ << "\tpublic readonly Type[] Restrictions = {";
+            for (size_t idx = 0; idx < inner_structs_names.size(); ++idx) {
+                if (idx != 0) {
+                    *output_ << ", ";
+                }
+                *output_ << "typeof(" << inner_structs_names[idx] << ")";
+            }
+            *output_ << "};\n";
+
+            printer_.PrintConstructorBegin(new_enum_name, dependent_variables[new_enum_name], false);
+            *output_ << "\t\tIsConstructable = true";
+
+            for (const auto &constructor : rule.outputs) {
+                print_complex_dependencies_constructor(rule, dependent_variables[new_enum_name]);
+            }
+            *output_ << ";\n";
+            
+            printer_.PrintConstructorEnd();
+            *output_ << "\tpublic bool Check() {\n";
+            *output_ << "\t\treturn IsConstructable;\n";
+            *output_ << "\t}\n";
+        } else {
+            for (const auto &dependency : ast_enum.type_dependencies) {
+                (*this)(dependency, true);
+            }
+            *output_ << "\tdynamic value;\n";
+            printer_.PrintConstructorBegin(new_enum_name, dependent_variables[new_enum_name]);
+            printer_.PrintConstructorEnd();
+
+            // Generates invariant check
+            *output_ << "\tpublic bool Check() {\n";
+            *output_ << "\t\treturn false";
+
+            for (const auto &constructor : rule.outputs) {
+                *output_ << " || "
+                        << "(value is " << constructor.identifier.name << ")"
+                        << " && "
+                        << "value.Check()";
+                print_complex_dependencies_checker(rule, dependent_variables[new_enum_name]);
+            }
+            *output_ << ";\n";
+            *output_ << "\t}\n";
+        }
+
+        printer_.PrintClassEnd();
+    }
+
+    if (!has_all_star_case) {
+        printer_.PrintClassBegin(enum_name);
+        
+        if (!depentent_classes_names.empty()) {
+            *output_ << "\tprivate readonly Type[] AllowedTypes = {";
+            for (size_t idx = 0; idx < depentent_classes_names.size(); ++idx) {
+                if (idx != 0) {
+                    *output_ << ", ";
+                }
+                *output_ << "typeof(" << depentent_classes_names[idx] << ")";
+            }
+            *output_ << "};\n";
+        }
+
+        printer_.PrintBaseEnumFields();
+
+        std::unordered_set<std::vector<std::pair<InternedString, InternedString>>, VectorHash> added_constructors;
+        for (const auto &dependent_class_name : depentent_classes_names) {
+            if (added_constructors.contains(dependent_variables[dependent_class_name])) {
+                continue;
+            }
+            added_constructors.emplace(dependent_variables[dependent_class_name]);
+            printer_.PrintConstructorBegin(enum_name, dependent_variables[dependent_class_name], false);
+            printer_.PrintBaseEnumConstructor();
+            printer_.PrintConstructorEnd();
+        }
+
+        printer_.PrintBaseEnumCheck();
+
+        printer_.PrintClassEnd();
+    }
 }
 
 void SharpCodeGenerator::operator()(
-    const ast::Enum &ast_enum, [[maybe_unused]] const std::vector<ast::TypedVariable> &checker_input) {
-    const std::string &enum_name = ast_enum.identifier.name.GetString();
-    std::cerr << "Cannot call enum generaton: " << enum_name << std::endl
-              << "Because it is not emplemented yet";
+    [[maybe_unused]] const ast::Enum &ast_enum,
+    [[maybe_unused]] const std::vector<ast::TypedVariable> &checker_input) {
+    std::cerr << "Sharp code generation for enums with runtime dependencies is not emplemented yet" << std::endl;
 }
 
 void SharpCodeGenerator::operator()(const ast::TypedVariable &variable, bool as_dependency) {
@@ -255,6 +442,8 @@ void SharpCodeGenerator::operator()(const ast::Value &value) {
 void SharpCodeGenerator::operator()(const ast::VarAccess &var_access) {
     printer_.PrintVarAccess(var_access);
 }
+
+void SharpCodeGenerator::operator()(const ast::Star &star) {}
 
 // Helper function. Maybe need to be moved to other file like "utils"
 

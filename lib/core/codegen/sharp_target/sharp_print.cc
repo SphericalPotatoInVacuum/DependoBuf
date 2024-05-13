@@ -60,18 +60,10 @@ void SharpPrinter::PrintClassEnd() {
     *out_ << "}\n\n";
 }
 
-// Enum
-void SharpPrinter::PrintEnumBegin(const std::string &name) {
-    *out_ << "public enum " << name << " {\n";
-}
-
-void SharpPrinter::PrintEnumEnd() {
-    *out_ << "}\n";
-}
-
 void SharpPrinter::PrintConstructorBegin(
     const std::string &name,
-    const std::unordered_map<InternedString, InternedString> &dependent_variables) {
+    const std::vector<std::pair<InternedString, InternedString>> &dependent_variables,
+    bool print_vars) {
     *out_ << "\n\tpublic " << name << "(";
     bool first = true;
     for (const auto &dependent_var : dependent_variables) {
@@ -84,15 +76,29 @@ void SharpPrinter::PrintConstructorBegin(
     }
     *out_ << ") {\n";
 
-    for (const auto &dependent_var : dependent_variables) {
-        *out_ << "\t\t"
-              << dependent_var.first << " = "
-              << dependent_var.first << "_;\n";
+    if (print_vars) {
+        for (const auto &dependent_var : dependent_variables) {
+            *out_ << "\t\t"
+                << dependent_var.first << " = "
+                << dependent_var.first << "_;\n";
+        }
     }
 }
 
 void SharpPrinter::PrintConstructorEnd() {
     *out_ << "\t}\n";
+}
+
+void SharpPrinter::PrintBaseEnumFields() {
+    *out_ << kBaseEnumFields << "\n";
+}
+
+void SharpPrinter::PrintBaseEnumConstructor() {
+    *out_ << kBaseEnumConstructor << "\n";
+}
+
+void SharpPrinter::PrintBaseEnumCheck() {
+    *out_ << kBaseEnumCheck << "\n";
 }
 
 // TypeExpression
@@ -130,12 +136,12 @@ void SharpPrinter::PrintUnaryExpressionType(const ast::UnaryExpression &unary_ex
 
 // ConstructedValue
 void SharpPrinter::PrintConstructedValueBegin(const ast::ConstructedValue &constr_value) {
-    *out_ << constr_value.constructor_identifier.name;
-    *out_ << "{";
+    *out_ << "new " << constr_value.constructor_identifier.name;
+    *out_ << "(";
 }
 
 void SharpPrinter::PrintConstructedValueEnd() {
-    *out_ << "}\n";
+    *out_ << ")\n";
 }
 
 // Value
