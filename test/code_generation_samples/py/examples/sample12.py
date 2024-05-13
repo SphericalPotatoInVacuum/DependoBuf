@@ -112,7 +112,3 @@ def _is_consistent(actual: tuple, expected: tuple) -> bool:
             return False
 
     return True
-
-
-val = SomeMessage(10, True, False).construct(Xert(True).good('Eleazar'), Yog(12).construct())
-print(val)

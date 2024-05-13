@@ -19,3 +19,5 @@ build
 # vs code python
 __pycache__/
 venv/
+
+only_for_dev/
