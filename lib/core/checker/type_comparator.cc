@@ -207,23 +207,7 @@ bool TypeComparator::operator()(const ast::BinaryExpression &expr) {
   }
 
   if (expr.type == ast::BinaryExpressionType::In) {
-    auto expected_type_expr_right = ast::TypeExpression(
-        {parser::location()},
-        ast::Identifier({expr.location}, {InternedString("Set")}),
-        std::vector<ast::ExprPtr>());
-    auto type_right_err =
-        TypeComparator(expected_type_expr_right, ast_, &context_, &substitutor_, &z3_stuff_).Compare(*expr.right);
-    if (type_right_err) {
-      return false;
-    }
-    auto type_left_err = TypeComparator(
-                             std::get<ast::TypeExpression>(*expected_.parameters[0]),
-                             ast_,
-                             &context_,
-                             &substitutor_,
-                             &z3_stuff_)
-                             .Compare(*expr.left);
-    return !static_cast<bool>(type_left_err);
+    return true;
   }
 
   return std::visit(*this, *expr.left) && std::visit(*this, *expr.right);
