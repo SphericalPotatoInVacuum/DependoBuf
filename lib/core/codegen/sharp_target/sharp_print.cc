@@ -8,7 +8,7 @@ constexpr unsigned int SharpTypes::HashString(const std::string &str) {
   int c;
 
   auto str_iter = str.begin();
-  while ((c = (int)*str_iter++) != 0) {
+  while ((c = static_cast<int>(*str_iter++)) != 0) {
     hash = ((hash << 5) + hash) + c;
   }
 
@@ -17,21 +17,21 @@ constexpr unsigned int SharpTypes::HashString(const std::string &str) {
 
 constexpr std::string SharpTypes::ConstructSharpType(const std::string &dbuf_type) {
   switch (HashString(dbuf_type)) {
-    case HashString("Bool"):
-      return kTypes[0];
-      break;
-    case HashString("Float"):
-      return kTypes[1];
-      break;
-    case HashString("Int"):
-      return kTypes[2];
-      break;
-    case HashString("String"):
-      return kTypes[3];
-      break;
-    case HashString("Unsigned"):
-      return kTypes[4];
-      break;
+  case HashString("Bool"):
+    return kTypes[0];
+    break;
+  case HashString("Float"):
+    return kTypes[1];
+    break;
+  case HashString("Int"):
+    return kTypes[2];
+    break;
+  case HashString("String"):
+    return kTypes[3];
+    break;
+  case HashString("Unsigned"):
+    return kTypes[4];
+    break;
   }
   return dbuf_type;
 }
@@ -69,17 +69,14 @@ void SharpPrinter::PrintConstructorBegin(
     if (!first) {
       *out_ << ", ";
     }
-    *out_ << type_constructor_.ConstructSharpType(dependent_var.second.GetString()) << " "
-          << dependent_var.first << "_";
+    *out_ << type_constructor_.ConstructSharpType(dependent_var.second.GetString()) << " " << dependent_var.first << "_";
     first = false;
   }
   *out_ << ") {\n";
 
   if (print_vars) {
     for (const auto &dependent_var : dependent_variables) {
-      *out_ << "\t\t"
-      << dependent_var.first << " = "
-      << dependent_var.first << "_;\n";
+      *out_ << "\t\t" << dependent_var.first << " = " << dependent_var.first << "_;\n";
     }
   }
 }

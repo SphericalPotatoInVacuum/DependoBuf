@@ -9,7 +9,6 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -22,7 +21,7 @@ public:
 private:
   static constexpr unsigned int HashString(const std::string &str);
 
-  static constexpr const char* kTypes[] = {"bool", "float", "int", "string", "unsigned"};
+  static constexpr const char *kTypes[] = {"bool", "float", "int", "string", "unsigned"};
 };
 
 class SharpPrinter {
@@ -56,7 +55,7 @@ public:
       const ast::TypeExpression &expression,
       bool is_public,
       bool as_dependency = false,
-      bool need_access = true);
+      bool need_access   = true);
   
   void PrintBinaryExpressionBegin();
 

@@ -1,8 +1,6 @@
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
 #include "core/codegen/sharp_target/sharp_gen.h"
-#include "core/codegen/sharp_target/sharp_print.h"
-#include "core/interning/interned_string.h"
 
 #include <iostream>
 #include <ostream>
@@ -49,7 +47,7 @@ void SharpCodeGenerator::Generate(const ast::AST *tree) {
 
     tree_ = tree;
 
-    for (const auto &type: tree->visit_order) {
+    for (const auto &type : tree->visit_order) {
       const std::variant<ast::Message, ast::Enum> &var = tree->types.at(type);
       if (std::holds_alternative<ast::Message>(var)) {
         const auto &dbuf_message = std::get<ast::Message>(var);
@@ -254,7 +252,7 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
     inner_structs_names.reserve(rule.outputs.size());
     // Code generation for inner structs
     for (const auto &constructor : rule.outputs) {
-       ast::Message sub_struct;
+      ast::Message sub_struct;
 
       sub_struct.type_dependencies = ast_enum.type_dependencies;
       sub_struct.identifier.name   = constructor.identifier.name;

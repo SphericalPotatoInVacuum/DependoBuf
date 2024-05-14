@@ -48,9 +48,7 @@ private:
 
   void operator()(const ast::Star &star);
 
-  bool CheckForTriggers(
-    const std::unordered_set<InternedString> &trigger_names,
-    const ast::Expression &expr);
+  bool CheckForTriggers(const std::unordered_set<InternedString> &trigger_names, const ast::Expression &expr);
 
   void PrintTypedVariables(
       const std::vector<ast::TypedVariable> &variables,
@@ -58,12 +56,11 @@ private:
       bool with_types,
       bool add_last_delimeter,
       bool as_dependency = false,
-      bool need_access = true);
+      bool need_access   = true);
   
   void PrintCheck(
       const std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> &checker_members,
-      const std::vector<ast::TypedVariable> &checker_input
-  );
+      const std::vector<ast::TypedVariable> &checker_input);
 
   static bool IsSimpleType(const InternedString &interned_string);
 
