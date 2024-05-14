@@ -40,9 +40,9 @@ public:
   void PrintClassEnd();
 
   void PrintConstructorBegin(
-    const std::string &name,
-    const std::vector<std::pair<InternedString, InternedString>> &dependent_variables,
-    bool print_vars = true);
+      const std::string &name,
+      const std::vector<std::pair<InternedString, InternedString>> &dependent_variables,
+      bool print_vars = true);
   
   void PrintConstructorEnd();
 
@@ -53,10 +53,10 @@ public:
   void PrintBaseEnumCheck();
   
   void PrintTypeExpression(
-    const ast::TypeExpression &expression,
-    bool is_public,
-    bool as_dependency = false,
-    bool need_access = true);
+      const ast::TypeExpression &expression,
+      bool is_public,
+      bool as_dependency = false,
+      bool need_access = true);
   
   void PrintBinaryExpressionBegin();
 

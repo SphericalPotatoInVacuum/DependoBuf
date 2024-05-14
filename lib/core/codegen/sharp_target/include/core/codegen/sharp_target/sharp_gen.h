@@ -53,16 +53,16 @@ private:
     const ast::Expression &expr);
 
   void PrintTypedVariables(
-    const std::vector<ast::TypedVariable> &variables,
-    std::string &&delimeter,
-    bool with_types,
-    bool add_last_delimeter,
-    bool as_dependency = false,
-    bool need_access = true);
+      const std::vector<ast::TypedVariable> &variables,
+      std::string &&delimeter,
+      bool with_types,
+      bool add_last_delimeter,
+      bool as_dependency = false,
+      bool need_access = true);
   
   void PrintCheck(
-    const std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> &checker_members,
-    const std::vector<ast::TypedVariable> &checker_input
+      const std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> &checker_members,
+      const std::vector<ast::TypedVariable> &checker_input
   );
 
   static bool IsSimpleType(const InternedString &interned_string);

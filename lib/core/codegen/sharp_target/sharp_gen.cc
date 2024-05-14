@@ -18,8 +18,8 @@ namespace dbuf::gen {
 
 std::size_t VectorHash::operator()(std::vector<std::pair<InternedString, InternedString>> &vec) const {
   std::size_t res = 0;
-  std::hash<std::string> hash{};
-  for (const auto& p : vec) {
+  std::hash<std::string> hash {};
+  for (const auto &p : vec) {
     res = (res << 1) ^ hash(p.first.GetString());
     res = (res << 1) ^ hash(p.second.GetString());
   }
@@ -27,14 +27,14 @@ std::size_t VectorHash::operator()(std::vector<std::pair<InternedString, Interne
 }
 
 std::size_t VectorHash::operator()(const std::vector<std::pair<InternedString, InternedString>> &vec) const {
-    std::size_t res = 0;
-    std::hash<std::string> hash{};
-    for (const auto& p : vec) {
-      res = (res << 1) ^ hash(p.first.GetString());
-      res = (res << 1) ^ hash(p.second.GetString());
-    }
-    return res;
+  std::size_t res = 0;
+  std::hash<std::string> hash {};
+  for (const auto &p : vec) {
+    res = (res << 1) ^ hash(p.first.GetString());
+    res = (res << 1) ^ hash(p.second.GetString());
   }
+  return res;
+}
 
 SharpCodeGenerator::SharpCodeGenerator(const std::string &out_file)
     : ITargetCodeGenerator(out_file) {
@@ -70,8 +70,8 @@ void SharpCodeGenerator::operator()(const ast::Message &ast_message) {
 }
 
 void SharpCodeGenerator::operator()(
-  const ast::Message &ast_message,
-  const std::vector<ast::TypedVariable> &checker_input) {
+    const ast::Message &ast_message,
+    const std::vector<ast::TypedVariable> &checker_input) {
   const std::string &message_name = ast_message.identifier.name.GetString();
 
   // Vector with final sharp class fields for this message
@@ -159,7 +159,7 @@ void SharpCodeGenerator::operator()(
         created_hidden_types_.insert(InternedString(new_type_name.str()));
       }
 
-      checker_members[field.name] = std::move(variable_dependencies_expressions);
+      checker_members[field.name]               = std::move(variable_dependencies_expressions);
       new_field.type_expression.identifier.name = InternedString(new_type_name.str());
       class_fields.emplace_back(new_field);
     } else {
@@ -205,9 +205,9 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
   std::vector<std::string> depentent_classes_names;
   std::unordered_map<std::string, std::vector<std::pair<InternedString, InternedString>>> dependent_variables;
   
-  auto print_complex_dependencies_constructor = [&](
-    const ast::Enum::Rule &rule,
-    const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
+  auto print_complex_dependencies_constructor =
+    [&](const ast::Enum::Rule &rule,
+        const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
     for (size_t ind = 0; (ind != ast_enum.type_dependencies.size()); ++ind) {
       *output_ << " && " << dependent_variables[ind].first << "_" << " == ";
       const std::variant<ast::Value, ast::Star> &var = rule.inputs.at(ind);
@@ -220,9 +220,9 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
     } 
   };
 
-  auto print_complex_dependencies_checker = [&](
-    const ast::Enum::Rule &rule,
-    const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
+  auto print_complex_dependencies_checker =
+    [&](const ast::Enum::Rule &rule,
+        const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
     for (size_t ind = 0; (ind != ast_enum.type_dependencies.size()); ++ind) {
       *output_ << " && value." << dependent_variables[ind].first << " == ";
       const std::variant<ast::Value, ast::Star> &var = rule.inputs.at(ind);
@@ -253,7 +253,7 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
     std::vector<InternedString> inner_structs_names;
     inner_structs_names.reserve(rule.outputs.size());
     // Code generation for inner structs
-    for (const auto & constructor : rule.outputs) {
+    for (const auto &constructor : rule.outputs) {
        ast::Message sub_struct;
 
       sub_struct.type_dependencies = ast_enum.type_dependencies;
@@ -262,7 +262,7 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
 
       (*this)(sub_struct);
 
-      if(!ast_enum.type_dependencies.empty()) {
+      if (!ast_enum.type_dependencies.empty()) {
         inner_structs_names.push_back(sub_struct.identifier.name);
       }
     }
@@ -369,8 +369,8 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
 }
 
 void SharpCodeGenerator::operator()(
-  [[maybe_unused]] const ast::Enum &ast_enum,
-  [[maybe_unused]] const std::vector<ast::TypedVariable> &checker_input) {
+    [[maybe_unused]] const ast::Enum &ast_enum,
+    [[maybe_unused]] const std::vector<ast::TypedVariable> &checker_input) {
   std::cerr << "Sharp code generation for enums with runtime dependencies is not emplemented yet" << std::endl;
 }
 
@@ -471,8 +471,8 @@ void SharpCodeGenerator::PrintTypedVariables(
 }
 
 void SharpCodeGenerator::PrintCheck(
-  const std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> &checker_members,
-  const std::vector<ast::TypedVariable> &checker_input) {
+    const std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> &checker_members,
+    const std::vector<ast::TypedVariable> &checker_input) {
   *output_ << "\n\tpublic bool Check(";
   PrintTypedVariables(checker_input, ", ", true, false, false, false);
   *output_ << ") {\n";
@@ -494,8 +494,8 @@ void SharpCodeGenerator::PrintCheck(
 }
 
 bool SharpCodeGenerator::CheckForTriggers(
-  const std::unordered_set<InternedString> &trigger_names,
-  const ast::Expression &expr) {
+    const std::unordered_set<InternedString> &trigger_names,
+    const ast::Expression &expr) {
   bool result = false;
   if (std::holds_alternative<ast::BinaryExpression>(expr)) {
     result |= CheckForTriggers(trigger_names, *(std::get<ast::BinaryExpression>(expr).left)) ||
@@ -505,10 +505,9 @@ bool SharpCodeGenerator::CheckForTriggers(
   } else if (std::holds_alternative<ast::Value>(expr)) {
     const auto &value = std::get<ast::Value>(expr);
     if (std::holds_alternative<ast::ConstructedValue>(value)) {
-      const auto &constructed_value = std::get<ast::ConstructedValue>(value);
+      const auto &constructed_value      = std::get<ast::ConstructedValue>(value);
       const auto &constructed_value_name = constructed_value.constructor_identifier.name;
-      if (std::holds_alternative<ast::Enum>(
-          tree_->types.at(tree_->constructor_to_type.at(constructed_value_name)))) {
+      if (std::holds_alternative<ast::Enum>(tree_->types.at(tree_->constructor_to_type.at(constructed_value_name)))) {
         return true;
       }
       for (const auto &[_, field] : constructed_value.fields) {
@@ -522,10 +521,8 @@ bool SharpCodeGenerator::CheckForTriggers(
 }
 
 bool SharpCodeGenerator::IsSimpleType(const InternedString &interned_string) {
-  return interned_string == InternedString("Int") ||
-         interned_string == InternedString("Unsigned") ||
-         interned_string == InternedString("String") ||
-         interned_string == InternedString("Float") ||
+  return interned_string == InternedString("Int") || interned_string == InternedString("Unsigned") ||
+         interned_string == InternedString("String") || interned_string == InternedString("Float") ||
          interned_string == InternedString("Bool");
 }
 

@@ -60,9 +60,9 @@ void SharpPrinter::PrintClassEnd() {
 }
 
 void SharpPrinter::PrintConstructorBegin(
-  const std::string &name,
-  const std::vector<std::pair<InternedString, InternedString>> &dependent_variables,
-  bool print_vars) {
+    const std::string &name,
+    const std::vector<std::pair<InternedString, InternedString>> &dependent_variables,
+    bool print_vars) {
   *out_ << "\n\tpublic " << name << "(";
   bool first = true;
   for (const auto &dependent_var : dependent_variables) {
@@ -70,7 +70,7 @@ void SharpPrinter::PrintConstructorBegin(
       *out_ << ", ";
     }
     *out_ << type_constructor_.ConstructSharpType(dependent_var.second.GetString()) << " "
-      << dependent_var.first << "_";
+          << dependent_var.first << "_";
     first = false;
   }
   *out_ << ") {\n";
@@ -107,8 +107,8 @@ void SharpPrinter::PrintTypeExpression(
     bool as_dependency,
     bool need_access) {
   std::string access;
-  if (need_access){
-    access = is_public ? "\tpublic " : "\tprivate ";;
+  if (need_access) {
+    access = is_public ? "\tpublic " : "\tprivate ";
   }
   const std::string &readonly = as_dependency ? "readonly " : "";
   const std::string &type = GetExpressionType(expression);
@@ -165,7 +165,7 @@ std::string SharpPrinter::GetVariableType(const ast::TypedVariable &var) {
 }
 
 std::string SharpPrinter::GetExpressionType(const ast::TypeExpression &expr) {
-  return expr.identifier.name.GetString();;
+  return expr.identifier.name.GetString();
 }
 
 } // namespace dbuf::gen
