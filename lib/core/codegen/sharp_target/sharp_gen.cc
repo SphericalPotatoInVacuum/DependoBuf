@@ -202,12 +202,13 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
 
   std::vector<std::string> depentent_classes_names;
   std::unordered_map<std::string, std::vector<std::pair<InternedString, InternedString>>> dependent_variables;
-  
+
   auto print_complex_dependencies_constructor =
       [&](const ast::Enum::Rule &rule,
           const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
         for (size_t ind = 0; (ind != ast_enum.type_dependencies.size()); ++ind) {
-          *output_ << " && " << dependent_variables[ind].first << "_" << " == ";
+          *output_ << " && " << dependent_variables[ind].first << "_"
+                   << " == ";
           const std::variant<ast::Value, ast::Star> &var = rule.inputs.at(ind);
           if (std::holds_alternative<ast::Value>(rule.inputs[ind])) {
             const auto &dbuf_value = std::get<ast::Value>(var);
@@ -215,7 +216,7 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
           } else {
             *output_ << ast_enum.type_dependencies[ind].name;
           }
-        } 
+        }
       };
 
   auto print_complex_dependencies_checker =
@@ -232,7 +233,7 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
           }
         }
       };
-  
+
   bool has_all_star_case = false;
   for (const auto &rule : ast_enum.pattern_mapping) {
     std::vector<ast::TypedVariable> real_dependencies;

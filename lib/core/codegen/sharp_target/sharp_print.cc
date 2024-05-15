@@ -8,7 +8,7 @@ constexpr unsigned int SharpTypes::HashString(const std::string &str) {
   int c;
 
   auto str_iter = str.begin();
-  while ((c = static_cast<int>(*str_iter++)) != 0) {
+  while ((c = static_cast<int>(static_cast<unsigned char>(*str_iter)++)) != 0) {
     hash = ((hash << 5) + hash) + c;
   }
 
