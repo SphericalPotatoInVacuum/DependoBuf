@@ -1,6 +1,7 @@
+#include "core/codegen/sharp_target/sharp_gen.h"
+
 #include "core/ast/ast.h"
 #include "core/ast/expression.h"
-#include "core/codegen/sharp_target/sharp_gen.h"
 
 #include <iostream>
 #include <ostream>
