@@ -57,7 +57,7 @@ private:
       bool add_last_delimeter,
       bool as_dependency = false,
       bool need_access   = true);
-  
+
   void PrintCheck(
       const std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> &checker_members,
       const std::vector<ast::TypedVariable> &checker_input);

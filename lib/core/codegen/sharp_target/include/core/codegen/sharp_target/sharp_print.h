@@ -42,7 +42,7 @@ public:
       const std::string &name,
       const std::vector<std::pair<InternedString, InternedString>> &dependent_variables,
       bool print_vars = true);
-  
+
   void PrintConstructorEnd();
 
   void PrintBaseEnumFields();
@@ -50,13 +50,13 @@ public:
   void PrintBaseEnumConstructor();
 
   void PrintBaseEnumCheck();
-  
+
   void PrintTypeExpression(
       const ast::TypeExpression &expression,
       bool is_public,
       bool as_dependency = false,
       bool need_access   = true);
-  
+
   void PrintBinaryExpressionBegin();
 
   void PrintBinaryExpressionType(const ast::BinaryExpression &binary_expr);
@@ -68,7 +68,7 @@ public:
   void PrintConstructedValueBegin(const ast::ConstructedValue &constr_value);
 
   void PrintConstructedValueEnd();
-  
+
   void PrintValue(const ast::Value &value);
 
   void PrintVarAccess(const ast::VarAccess &var_access);

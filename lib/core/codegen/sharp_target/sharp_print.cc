@@ -69,7 +69,8 @@ void SharpPrinter::PrintConstructorBegin(
     if (!first) {
       *out_ << ", ";
     }
-    *out_ << type_constructor_.ConstructSharpType(dependent_var.second.GetString()) << " " << dependent_var.first << "_";
+    *out_ << type_constructor_.ConstructSharpType(dependent_var.second.GetString()) << " " << dependent_var.first
+          << "_";
     first = false;
   }
   *out_ << ") {\n";
@@ -108,7 +109,7 @@ void SharpPrinter::PrintTypeExpression(
     access = is_public ? "\tpublic " : "\tprivate ";
   }
   const std::string &readonly = as_dependency ? "readonly " : "";
-  const std::string &type = GetExpressionType(expression);
+  const std::string &type     = GetExpressionType(expression);
   *out_ << access << readonly << type_constructor_.ConstructSharpType(type);
 }
 

@@ -101,7 +101,7 @@ void SharpCodeGenerator::operator()(
       const auto &previous_type = tree_->types.at(field.type_expression.identifier.name);
       std::vector<ast::TypedVariable> previous_type_dependencies;
       std::stringstream new_type_name;
-      
+
       // New field that ast doen not contain
       ast::TypedVariable new_field;
       new_field.name = field.name;
@@ -193,7 +193,7 @@ void SharpCodeGenerator::operator()(
   printer_.PrintConstructorEnd();
 
   PrintCheck(checker_members, checker_input);
-  
+
   printer_.PrintClassEnd();
 }
 
@@ -204,34 +204,34 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
   std::unordered_map<std::string, std::vector<std::pair<InternedString, InternedString>>> dependent_variables;
   
   auto print_complex_dependencies_constructor =
-    [&](const ast::Enum::Rule &rule,
-        const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
-    for (size_t ind = 0; (ind != ast_enum.type_dependencies.size()); ++ind) {
-      *output_ << " && " << dependent_variables[ind].first << "_" << " == ";
-      const std::variant<ast::Value, ast::Star> &var = rule.inputs.at(ind);
-      if (std::holds_alternative<ast::Value>(rule.inputs[ind])) {
-        const auto &dbuf_value = std::get<ast::Value>(var);
-        (*this)(dbuf_value);
-      } else {
-        *output_ << ast_enum.type_dependencies[ind].name;
-      }
-    } 
-  };
+      [&](const ast::Enum::Rule &rule,
+          const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
+        for (size_t ind = 0; (ind != ast_enum.type_dependencies.size()); ++ind) {
+          *output_ << " && " << dependent_variables[ind].first << "_" << " == ";
+          const std::variant<ast::Value, ast::Star> &var = rule.inputs.at(ind);
+          if (std::holds_alternative<ast::Value>(rule.inputs[ind])) {
+            const auto &dbuf_value = std::get<ast::Value>(var);
+            (*this)(dbuf_value);
+          } else {
+            *output_ << ast_enum.type_dependencies[ind].name;
+          }
+        } 
+      };
 
   auto print_complex_dependencies_checker =
-    [&](const ast::Enum::Rule &rule,
-        const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
-    for (size_t ind = 0; (ind != ast_enum.type_dependencies.size()); ++ind) {
-      *output_ << " && value." << dependent_variables[ind].first << " == ";
-      const std::variant<ast::Value, ast::Star> &var = rule.inputs.at(ind);
-      if (std::holds_alternative<ast::Value>(rule.inputs[ind])) {
-        const auto &dbuf_value = std::get<ast::Value>(var);
-        (*this)(dbuf_value);
-      } else {
-        *output_ << ast_enum.type_dependencies[ind].name;
-      }
-    }
-  };
+      [&](const ast::Enum::Rule &rule,
+          const std::vector<std::pair<InternedString, InternedString>> &dependent_variables) {
+        for (size_t ind = 0; (ind != ast_enum.type_dependencies.size()); ++ind) {
+          *output_ << " && value." << dependent_variables[ind].first << " == ";
+          const std::variant<ast::Value, ast::Star> &var = rule.inputs.at(ind);
+          if (std::holds_alternative<ast::Value>(rule.inputs[ind])) {
+            const auto &dbuf_value = std::get<ast::Value>(var);
+            (*this)(dbuf_value);
+          } else {
+            *output_ << ast_enum.type_dependencies[ind].name;
+          }
+        }
+      };
   
   bool has_all_star_case = false;
   for (const auto &rule : ast_enum.pattern_mapping) {
