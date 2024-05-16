@@ -37,12 +37,12 @@ dbuf::Driver *SharpCodeGenCorrectnessTest::driver_ = nullptr;
 TEST_P(SharpCodeGenCorrectnessTest, MessagesTest) {
   std::string filename             = GetParam();
   std::string dbuf_filename        = filename + ".dbuf";
-  std::string cpp_filename         = filename + ".cs";
+  std::string sharp_filename       = filename + ".cs";
   std::vector<std::string> formats = {"cs"};
 
   ASSERT_EQ(driver_->Run(kSamplesPath + dbuf_filename, kGenerationPath, formats), EXIT_SUCCESS);
 
-  std::ifstream generated(kGenerationPath + cpp_filename);
+  std::ifstream generated(kGenerationPath + sharp_filename);
   std::ifstream required(kCorrectSamplesPath + filename);
   char actual;
   char expexted;
