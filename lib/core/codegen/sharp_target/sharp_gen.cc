@@ -550,7 +550,7 @@ void SharpCodeGenerator::PrintCheck(
     first = true;
     for (const auto &constructor : pattern_mapping[ind].outputs) {
       std::stringstream constructor_name;
-      if (added_name != "") {
+      if (!added_name.empty()) {
         constructor_name << constructor.identifier.name << "_" << ind + 1 << added_name;
       } else {
         constructor_name << constructor.identifier.name;
