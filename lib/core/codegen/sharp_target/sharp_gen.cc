@@ -511,8 +511,8 @@ void SharpCodeGenerator::PrintCheck(
 void SharpCodeGenerator::PrintCheck(
     const std::vector<ast::TypedVariable> &checker_input,
     const std::vector<ast::Enum::Rule> &pattern_mapping,
-    const std::vector<ast::TypedVariable>& original_dependencies,
-    const std::string& added_name) {
+    const std::vector<ast::TypedVariable> &original_dependencies,
+    const std::string &added_name) {
   *output_ << "\n\tpublic bool Check(";
   PrintTypedVariables(checker_input, ", ", true, false, false, false);
   *output_ << ") {\n"
@@ -560,7 +560,7 @@ void SharpCodeGenerator::PrintCheck(
       } else {
         *output_ << " || ";
       }
-      *output_ << "((_value is " << constructor_name.str() <<  ") && ";
+      *output_ << "((_value is " << constructor_name.str() << ") && ";
       *output_ << "_value.Check(";
       bool first_input = true;
       for (const auto &var : checker_input) {
