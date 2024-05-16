@@ -4,35 +4,21 @@
 
 namespace dbuf::gen {
 
-constexpr unsigned int SharpTypes::HashString(const std::string &str) {
-  unsigned int hash = 5381;
-  int c;
-
-  auto str_iter = str.begin();
-  while ((c = static_cast<int>(static_cast<unsigned char>(*str_iter)++)) != 0) {
-    hash = ((hash << 5) + hash) + c;
-  }
-
-  return hash;
-}
-
 constexpr std::string SharpTypes::ConstructSharpType(const std::string &dbuf_type) {
-  switch (HashString(dbuf_type)) {
-  case HashString("Bool"):
+  if (dbuf_type == "Bool") {
     return kTypes[0];
-    break;
-  case HashString("Float"):
+  }
+  if (dbuf_type == "Float") {
     return kTypes[1];
-    break;
-  case HashString("Int"):
+  }
+  if (dbuf_type == "Int") {
     return kTypes[2];
-    break;
-  case HashString("String"):
+  }
+  if (dbuf_type == "String") {
     return kTypes[3];
-    break;
-  case HashString("Unsigned"):
+  }
+  if (dbuf_type == "Unsigned") {
     return kTypes[4];
-    break;
   }
   return dbuf_type;
 }
@@ -89,10 +75,6 @@ void SharpPrinter::PrintConstructorEnd() {
 
 void SharpPrinter::PrintBaseEnumFields() {
   *out_ << kBaseEnumFields << "\n";
-}
-
-void SharpPrinter::PrintBaseEnumConstructor() {
-  *out_ << kBaseEnumConstructor << "\n";
 }
 
 void SharpPrinter::PrintBaseEnumCheck() {

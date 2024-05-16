@@ -15,30 +15,11 @@ static const std::string kOpenNamespace = "class dbuf {\n";
 
 static const std::string kCloseNamespace = "}\n";
 
-static const std::string kBaseEnumFields = "\tprivate readonly List<Type> Restrictions;\n"
-                                           "\tprivate dynamic _value;\n\n"
+static const std::string kBaseEnumFields = "\tprivate dynamic _value;\n\n"
                                            "\tpublic dynamic Value {\n"
                                            "\t\tget { return _value; }\n"
-                                           "\t\tset {\n"
-                                           "\t\t\tforeach (var type in Restrictions) {\n"
-                                           "\t\t\t\tif (type.IsInstanceOfType(value)) {\n"
-                                           "\t\t\t\t\t_value = value;\n"
-                                           "\t\t\t\t\treturn;\n"
-                                           "\t\t\t\t}\n"
-                                           "\t\t\t}\n"
-                                           "\t\t\tthrow new ArgumentException(\"Incorrect argument type\");\n"
-                                           "\t\t}\n"
+                                           "\t\tset { _value = value; }\n"
                                            "\t}\n";
-
-static const std::string kBaseEnumConstructor = "\t\tRestrictions = new List<Type>();\n"
-                                                "\t\tforeach (var type in AllowedTypes) {\n"
-                                                "\t\t\tvar val = (dynamic)Activator.CreateInstance(type, a_);\n"
-                                                "\t\t\tif (val.Check()) {\n"
-                                                "\t\t\t\tforeach (var restr in val.restrictions) {\n"
-                                                "\t\t\t\t\tRestrictions.Add(restr);\n"
-                                                "\t\t\t\t}\n"
-                                                "\t\t\t}\n"
-                                                "\t\t}\n";
 
 static const std::string kBaseEnumCheck = "\tpublic bool Check() {\n"
                                           "\t\tforeach (var type in Restrictions) {\n"

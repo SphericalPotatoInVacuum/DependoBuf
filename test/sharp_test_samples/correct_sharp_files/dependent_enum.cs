@@ -22,18 +22,6 @@ public class First {
 	}
 }
 
-public class Dependent_First {
-	private readonly bool IsConstructable;
-	public readonly Type[] Restrictions = {typeof(First)};
-
-	public Dependent_First(int a_, int b_) {
-		IsConstructable = true && a_ == 5 && b_ == b;
-	}
-	public bool Check() {
-		return IsConstructable;
-	}
-}
-
 public class Second {
 	public readonly int a;
 	public readonly int b;
@@ -47,18 +35,6 @@ public class Second {
 
 	public bool Check() {
 		return true;
-	}
-}
-
-public class Dependent_Second {
-	private readonly bool IsConstructable;
-	public readonly Type[] Restrictions = {typeof(Second)};
-
-	public Dependent_Second(int a_, int b_) {
-		IsConstructable = true && a_ == a && b_ == 1;
-	}
-	public bool Check() {
-		return IsConstructable;
 	}
 }
 
@@ -81,7 +57,7 @@ public class Third {
 public class Dependent_Third {
 	public readonly int a;
 	public readonly int b;
-	dynamic value;
+	public dynamic value;
 
 	public Dependent_Third(int a_, int b_) {
 		a = a_;
@@ -89,6 +65,138 @@ public class Dependent_Third {
 	}
 	public bool Check() {
 		return false || (value is Third) && value.Check() && value.a == a && value.b == b;
+	}
+}
+
+public class First_1_b {
+	public readonly int a;
+	public int a1;
+	public bool b1;
+
+	public First_1_b(int a_) {
+		a = a_;
+	}
+
+	public bool Check(int b) {
+		return true;
+	}
+}
+
+public class Second_2_b {
+	public readonly int a;
+	public bool a2;
+	public int b2;
+
+	public Second_2_b(int a_) {
+		a = a_;
+	}
+
+	public bool Check(int b) {
+		return true;
+	}
+}
+
+public class Third_3_b {
+	public readonly int a;
+	public string a3;
+	public string b3;
+
+	public Third_3_b(int a_) {
+		a = a_;
+	}
+
+	public bool Check(int b) {
+		return true;
+	}
+}
+
+public class Dependent_b {
+	public readonly int a;
+	private dynamic _value;
+
+	public dynamic Value {
+		get { return _value; }
+		set { _value = value; }
+	}
+
+
+	public Dependent_b(int a_) {
+		a = a_;
+	}
+
+	public bool Check(int b) {
+		if (_value is null) {
+			return false;
+		}
+		if (a == 5)
+			return ((_value is First_1_b) && _value.Check(b));
+		else if (b == 1)
+			return ((_value is Second_2_b) && _value.Check(b));
+		else 
+			return ((_value is Third_3_b) && _value.Check(b));
+		return false;
+	}
+}
+
+public class First_1_a_b {
+	public int a1;
+	public bool b1;
+
+	public First_1_a_b() {
+	}
+
+	public bool Check(int a, int b) {
+		return true;
+	}
+}
+
+public class Second_2_a_b {
+	public bool a2;
+	public int b2;
+
+	public Second_2_a_b() {
+	}
+
+	public bool Check(int a, int b) {
+		return true;
+	}
+}
+
+public class Third_3_a_b {
+	public string a3;
+	public string b3;
+
+	public Third_3_a_b() {
+	}
+
+	public bool Check(int a, int b) {
+		return true;
+	}
+}
+
+public class Dependent_a_b {
+	private dynamic _value;
+
+	public dynamic Value {
+		get { return _value; }
+		set { _value = value; }
+	}
+
+
+	public Dependent_a_b() {
+	}
+
+	public bool Check(int a, int b) {
+		if (_value is null) {
+			return false;
+		}
+		if (a == 5)
+			return ((_value is First_1_a_b) && _value.Check(a, b));
+		else if (b == 1)
+			return ((_value is Second_2_a_b) && _value.Check(a, b));
+		else 
+			return ((_value is Third_3_a_b) && _value.Check(a, b));
+		return false;
 	}
 }
 

@@ -31,7 +31,7 @@ public class Second {
 }
 
 public class Independent {
-	dynamic value;
+	public dynamic value;
 
 	public Independent() {
 	}
@@ -78,18 +78,6 @@ public class B {
 	}
 }
 
-public class Dependent_A_B {
-	private readonly bool IsConstructable;
-	public readonly Type[] Restrictions = {typeof(A), typeof(B)};
-
-	public Dependent_A_B(int a_) {
-		IsConstructable = true && a_ == 5 && a_ == 5;
-	}
-	public bool Check() {
-		return IsConstructable;
-	}
-}
-
 public class C {
 	public readonly int a;
 	public string a3;
@@ -103,62 +91,30 @@ public class C {
 	}
 }
 
-public class Dependent_C {
-	private readonly bool IsConstructable;
-	public readonly Type[] Restrictions = {typeof(C)};
-
-	public Dependent_C(int a_) {
-		IsConstructable = true && a_ == 3;
-	}
-	public bool Check() {
-		return IsConstructable;
-	}
-}
-
 public class Dependent {
-	private readonly Type[] AllowedTypes = {typeof(Dependent_A_B), typeof(Dependent_C)};
-	private readonly List<Type> Restrictions;
+	public readonly int a;
 	private dynamic _value;
 
 	public dynamic Value {
 		get { return _value; }
-		set {
-			foreach (var type in Restrictions) {
-				if (type.IsInstanceOfType(value)) {
-					_value = value;
-					return;
-				}
-			}
-			throw new ArgumentException("Incorrect argument type");
-		}
+		set { _value = value; }
 	}
 
 
 	public Dependent(int a_) {
-		Restrictions = new List<Type>();
-		foreach (var type in AllowedTypes) {
-			var val = (dynamic)Activator.CreateInstance(type, a_);
-			if (val.Check()) {
-				foreach (var restr in val.restrictions) {
-					Restrictions.Add(restr);
-				}
-			}
-		}
-
+		a = a_;
 	}
+
 	public bool Check() {
-		foreach (var type in Restrictions) {
-			if (type.IsInstanceOfType(_value)) {
-				if (type.GetMethod("Check") != null) {
-					return _value.Check();
-				} else {
-					return true;
-				}
-			}
+		if (_value is null) {
+			return false;
 		}
+		if (a == 5)
+			return ((_value is A) && _value.Check()) || ((_value is B) && _value.Check());
+		else if (a == 3)
+			return ((_value is C) && _value.Check());
 		return false;
 	}
-
 }
 
 public class Fields {

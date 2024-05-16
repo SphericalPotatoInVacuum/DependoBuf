@@ -18,8 +18,6 @@ public:
   static constexpr std::string ConstructSharpType(const std::string &dbuf_type);
 
 private:
-  static constexpr unsigned int HashString(const std::string &str);
-
   static constexpr const char *kTypes[] = {"bool", "float", "int", "string", "unsigned"};
 };
 
@@ -45,8 +43,6 @@ public:
   void PrintConstructorEnd();
 
   void PrintBaseEnumFields();
-
-  void PrintBaseEnumConstructor();
 
   void PrintBaseEnumCheck();
 

@@ -276,44 +276,18 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
       depentent_classes_names.emplace_back(new_enum_name);
     }
 
-    // Generates name and input pattern
-    printer_.PrintClassBegin(new_enum_name);
-
     // Vector contains pairs {dependent_variable_name, dependent_variable_type}
     dependent_variables[new_enum_name].reserve(ast_enum.type_dependencies.size());
 
     for (const auto &dependency : ast_enum.type_dependencies) {
       dependent_variables[new_enum_name].emplace_back(dependency.name, dependency.type_expression.identifier.name);
     }
-
-    if (!has_all_star_case) {
-      *output_ << "\tprivate readonly bool IsConstructable;\n"
-               << "\tpublic readonly Type[] Restrictions = {";
-      for (size_t idx = 0; idx < inner_structs_names.size(); ++idx) {
-        if (idx != 0) {
-          *output_ << ", ";
-        }
-        *output_ << "typeof(" << inner_structs_names[idx] << ")";
-      }
-      *output_ << "};\n";
-
-      printer_.PrintConstructorBegin(new_enum_name, dependent_variables[new_enum_name], false);
-      *output_ << "\t\tIsConstructable = true";
-
-      for (const auto &constructor : rule.outputs) {
-        print_complex_dependencies_constructor(rule, dependent_variables[new_enum_name]);
-      }
-      *output_ << ";\n";
-
-      printer_.PrintConstructorEnd();
-      *output_ << "\tpublic bool Check() {\n"
-               << "\t\treturn IsConstructable;\n"
-               << "\t}\n";
-    } else {
+    if (has_all_star_case) {
+      printer_.PrintClassBegin(new_enum_name);
       for (const auto &dependency : ast_enum.type_dependencies) {
         (*this)(dependency, true);
       }
-      *output_ << "\tdynamic value;\n";
+      *output_ << "\tpublic dynamic value;\n";
       printer_.PrintConstructorBegin(new_enum_name, dependent_variables[new_enum_name]);
       printer_.PrintConstructorEnd();
 
@@ -330,23 +304,14 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
       }
       *output_ << ";\n";
       *output_ << "\t}\n";
+      printer_.PrintClassEnd();
     }
-
-    printer_.PrintClassEnd();
   }
 
   if (!has_all_star_case) {
     printer_.PrintClassBegin(enum_name);
-
-    if (!depentent_classes_names.empty()) {
-      *output_ << "\tprivate readonly Type[] AllowedTypes = {";
-      for (size_t idx = 0; idx < depentent_classes_names.size(); ++idx) {
-        if (idx != 0) {
-          *output_ << ", ";
-        }
-        *output_ << "typeof(" << depentent_classes_names[idx] << ")";
-      }
-      *output_ << "};\n";
+    for (const auto &dependency : ast_enum.type_dependencies) {
+      (*this)(dependency, true);
     }
 
     printer_.PrintBaseEnumFields();
@@ -357,12 +322,15 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
         continue;
       }
       added_constructors.emplace(dependent_variables[dependent_class_name]);
-      printer_.PrintConstructorBegin(enum_name, dependent_variables[dependent_class_name], false);
-      printer_.PrintBaseEnumConstructor();
+      printer_.PrintConstructorBegin(enum_name, dependent_variables[dependent_class_name]);
       printer_.PrintConstructorEnd();
     }
 
-    printer_.PrintBaseEnumCheck();
+    std::vector<ast::TypedVariable> checker_input;
+    std::string added_name;
+    const auto &original_dependencies =
+        std::get<ast::Enum>(tree_->types.at(InternedString(enum_name))).type_dependencies;
+    PrintCheck(checker_input, ast_enum.pattern_mapping, original_dependencies, added_name);
 
     printer_.PrintClassEnd();
   }
@@ -371,7 +339,54 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
 void SharpCodeGenerator::operator()(
     [[maybe_unused]] const ast::Enum &ast_enum,
     [[maybe_unused]] const std::vector<ast::TypedVariable> &checker_input) {
-  std::cerr << "Sharp code generation for enums with runtime dependencies is not emplemented yet" << std::endl;
+  const std::string &enum_name = ast_enum.identifier.name.GetString();
+
+  std::string original_name = ast_enum.identifier.name.GetString();
+  std::string added_name    = original_name.substr(original_name.find_first_of('_'));
+  original_name             = original_name.substr(0, original_name.find_first_of('_'));
+
+  std::vector<std::string> depentent_classes_names;
+  std::unordered_map<std::string, std::vector<std::pair<InternedString, InternedString>>> dependent_variables;
+
+  for (size_t ind = 0; ind < ast_enum.pattern_mapping.size(); ++ind) {
+    for (const auto &constructor : ast_enum.pattern_mapping[ind].outputs) {
+      ast::Message sub_struct;
+
+      std::stringstream struct_name;
+      struct_name << constructor.identifier.name << "_" << ind + 1 << added_name;
+
+      depentent_classes_names.emplace_back(struct_name.str());
+
+      sub_struct.type_dependencies = ast_enum.type_dependencies;
+      sub_struct.identifier.name   = InternedString(struct_name.str());
+      sub_struct.fields            = constructor.fields;
+
+      (*this)(sub_struct, checker_input);
+    }
+  }
+
+  // Generates name and input pattern
+
+  printer_.PrintClassBegin(enum_name);
+  // Vector contains pairs {dependent_variable_name, dependent_variable_type}
+  dependent_variables[enum_name].reserve(ast_enum.type_dependencies.size());
+
+  for (const auto &dependency : ast_enum.type_dependencies) {
+    dependent_variables[enum_name].emplace_back(dependency.name, dependency.type_expression.identifier.name);
+    (*this)(dependency, true);
+  }
+
+  printer_.PrintBaseEnumFields();
+
+  printer_.PrintConstructorBegin(enum_name, dependent_variables[enum_name]);
+  printer_.PrintConstructorEnd();
+
+  const auto &original_dependencies =
+      std::get<ast::Enum>(tree_->types.at(InternedString(original_name))).type_dependencies;
+
+  PrintCheck(checker_input, ast_enum.pattern_mapping, original_dependencies, added_name);
+
+  printer_.PrintClassEnd();
 }
 
 void SharpCodeGenerator::operator()(const ast::TypedVariable &variable, bool as_dependency) {
@@ -491,6 +506,82 @@ void SharpCodeGenerator::PrintCheck(
     *output_ << ")";
   }
   *output_ << ";\n\t}\n";
+}
+
+void SharpCodeGenerator::PrintCheck(
+    const std::vector<ast::TypedVariable> &checker_input,
+    const std::vector<ast::Enum::Rule> &pattern_mapping,
+    const std::vector<ast::TypedVariable>& original_dependencies,
+    const std::string& added_name) {
+  *output_ << "\n\tpublic bool Check(";
+  PrintTypedVariables(checker_input, ", ", true, false, false, false);
+  *output_ << ") {\n"
+           << "\t\tif (_value is null) {\n"
+           << "\t\t\treturn false;\n"
+           << "\t\t}\n";
+
+  bool first = true;
+  for (size_t ind = 0; ind < pattern_mapping.size(); ++ind) {
+    if (first) {
+      first = false;
+      *output_ << "\t\t";
+    } else {
+      *output_ << "\t\telse ";
+    }
+    first = true;
+    for (size_t input_ind = 0; input_ind < pattern_mapping[ind].inputs.size(); ++input_ind) {
+      if (std::holds_alternative<ast::Star>(pattern_mapping[ind].inputs[input_ind])) {
+        continue;
+      }
+      if (first) {
+        first = false;
+        *output_ << "if (";
+      } else {
+        *output_ << " && ";
+      }
+      *output_ << original_dependencies[input_ind].name << " == ";
+
+      (*this)(std::get<ast::Value>(pattern_mapping[ind].inputs[input_ind]));
+    }
+    bool last_condition = first;
+    *output_ << ((last_condition) ? "\n" : ")\n");
+    *output_ << "\t\t\treturn ";
+
+    first = true;
+    for (const auto &constructor : pattern_mapping[ind].outputs) {
+      std::stringstream constructor_name;
+      if (added_name != "") {
+        constructor_name << constructor.identifier.name << "_" << ind + 1 << added_name;
+      } else {
+        constructor_name << constructor.identifier.name;
+      }
+      if (first) {
+        first = false;
+      } else {
+        *output_ << " || ";
+      }
+      *output_ << "((_value is " << constructor_name.str() <<  ") && ";
+      *output_ << "_value.Check(";
+      bool first_input = true;
+      for (const auto &var : checker_input) {
+        if (first_input) {
+          first_input = false;
+        } else {
+          *output_ << ", ";
+        }
+        *output_ << var.name;
+      }
+      *output_ << "))";
+    }
+    *output_ << ";\n";
+
+    if (last_condition) {
+      break;
+    }
+  }
+
+  *output_ << "\t\treturn false;\n";
+  *output_ << "\t}\n";
 }
 
 bool SharpCodeGenerator::CheckForTriggers(

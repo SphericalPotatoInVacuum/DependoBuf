@@ -62,6 +62,12 @@ private:
       const std::unordered_map<InternedString, std::vector<std::shared_ptr<const ast::Expression>>> &checker_members,
       const std::vector<ast::TypedVariable> &checker_input);
 
+  void PrintCheck(
+    const std::vector<ast::TypedVariable> &checker_input,
+    const std::vector<ast::Enum::Rule> &pattern_mapping,
+    const std::vector<ast::TypedVariable>& original_dependencies,
+    const std::string& added_name);
+
   static bool IsSimpleType(const InternedString &interned_string);
 
   const ast::AST *tree_;
