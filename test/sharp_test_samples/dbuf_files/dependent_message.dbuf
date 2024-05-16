@@ -1,0 +1,12 @@
+message Sum (a Int) {}
+
+message Foo (a Int) (b Int) {
+    sum Sum (-a + b);
+}
+
+message Bar (c Int) (s String) {
+    e Int;
+    d Int;
+    f Foo e d;
+    g Foo c (e + d);
+}
