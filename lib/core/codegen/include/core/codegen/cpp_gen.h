@@ -12,6 +12,6 @@ public:
 
   void operator()(const ast::Enum &ast_enum);
 
-  void Generate(ast::AST *tree) override;
+  void Generate(const ast::AST *tree) override;
 };
 } // namespace dbuf::gen

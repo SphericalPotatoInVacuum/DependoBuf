@@ -1,0 +1,34 @@
+enum Independent {
+    First {
+        a1 Int;
+        b1 Bool;
+    }
+    Second {
+        a2 Bool;
+        b2 Int;
+    }
+}
+
+enum Dependent (a Int) {
+    5 => {
+        A {
+            a1 Int;
+        }
+        B {
+            a2 Bool;
+        }
+    }
+    3 => {
+        C {
+            a3 String;
+        }
+    }
+}
+
+message Fields (a Int) {
+    i Independent;
+    d Dependent a;
+}
+
+message Dependencies (i Independent) {
+}
