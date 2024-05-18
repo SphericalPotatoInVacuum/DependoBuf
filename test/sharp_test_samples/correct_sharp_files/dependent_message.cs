@@ -87,5 +87,23 @@ public class Bar {
 	}
 }
 
+public class Kek {
+	public readonly int a;
+	public readonly int b;
+	public readonly Foo f;
+	public Bar bar;
+
+	public Kek(int a_, int b_, Foo f_) {
+		a = a_;
+		b = b_;
+		f = f_;
+		bar = new Bar(a, "qwe");
+	}
+
+	public bool Check() {
+		return true;
+	}
+}
+
 }
 

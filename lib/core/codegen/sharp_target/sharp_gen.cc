@@ -184,11 +184,19 @@ void SharpCodeGenerator::operator()(
   printer_.PrintConstructorBegin(message_name, dependent_variables);
 
   for (auto &field : class_fields) {
-    for (auto &expr : field.type_expression.parameters) {
-      *output_ << "\t\t" << field.name << " = new " << field.type_expression.identifier.name << "(";
-      (*this)(*expr);
-      *output_ << ");\n";
+    if (field.type_expression.parameters.empty()) {
+      continue;
     }
+    *output_ << "\t\t" << field.name << " = new " << field.type_expression.identifier.name << "(";
+    bool first = true;
+    for (auto &expr : field.type_expression.parameters) {
+      if (!first) {
+        *output_ << ", ";
+      }
+      (*this)(*expr);
+      first = false;
+    }
+    *output_ << ");\n";
   }
 
   printer_.PrintConstructorEnd();
@@ -340,8 +348,8 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
 }
 
 void SharpCodeGenerator::operator()(
-    [[maybe_unused]] const ast::Enum &ast_enum,
-    [[maybe_unused]] const std::vector<ast::TypedVariable> &checker_input) {
+    const ast::Enum &ast_enum,
+    const std::vector<ast::TypedVariable> &checker_input) {
   const std::string &enum_name = ast_enum.identifier.name.GetString();
 
   std::string original_name = ast_enum.identifier.name.GetString();

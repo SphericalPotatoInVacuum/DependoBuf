@@ -10,3 +10,7 @@ message Bar (c Int) (s String) {
     f Foo e d;
     g Foo c (e + d);
 }
+
+message Kek (a Int) (b Int) (f Foo a b) {
+    bar Bar a "qwe";
+}
