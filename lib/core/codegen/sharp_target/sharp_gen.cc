@@ -347,9 +347,7 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
   }
 }
 
-void SharpCodeGenerator::operator()(
-    const ast::Enum &ast_enum,
-    const std::vector<ast::TypedVariable> &checker_input) {
+void SharpCodeGenerator::operator()(const ast::Enum &ast_enum, const std::vector<ast::TypedVariable> &checker_input) {
   const std::string &enum_name = ast_enum.identifier.name.GetString();
 
   std::string original_name = ast_enum.identifier.name.GetString();
