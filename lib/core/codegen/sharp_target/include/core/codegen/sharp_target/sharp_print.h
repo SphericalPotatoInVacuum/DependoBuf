@@ -18,7 +18,7 @@ public:
   static constexpr std::string ConstructSharpType(const std::string &dbuf_type);
 
 private:
-  static constexpr const char *kTypes[] = {"bool", "float", "int", "string", "unsigned"};
+  static constexpr const char *kTypes[] = {"bool", "float", "int", "string", "uint"};
 };
 
 class SharpPrinter {
@@ -43,8 +43,6 @@ public:
   void PrintConstructorEnd();
 
   void PrintBaseEnumFields();
-
-  void PrintBaseEnumCheck();
 
   void PrintTypeExpression(
       const ast::TypeExpression &expression,

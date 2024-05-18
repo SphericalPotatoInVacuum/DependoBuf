@@ -36,6 +36,9 @@ public class Independent {
 	public Independent() {
 	}
 	public bool Check() {
+		if (value is null) {
+			return false;
+		}
 		return false || (value is First) && value.Check() || (value is Second) && value.Check();
 	}
 }
@@ -93,12 +96,8 @@ public class C {
 
 public class Dependent {
 	public readonly int a;
-	private dynamic _value;
+	public dynamic value;
 
-	public dynamic Value {
-		get { return _value; }
-		set { _value = value; }
-	}
 
 
 	public Dependent(int a_) {
@@ -106,13 +105,13 @@ public class Dependent {
 	}
 
 	public bool Check() {
-		if (_value is null) {
+		if (value is null) {
 			return false;
 		}
 		if (a == 5)
-			return ((_value is A) && _value.Check()) || ((_value is B) && _value.Check());
+			return ((value is A) && value.Check()) || ((value is B) && value.Check());
 		else if (a == 3)
-			return ((_value is C) && _value.Check());
+			return ((value is C) && value.Check());
 		return false;
 	}
 }

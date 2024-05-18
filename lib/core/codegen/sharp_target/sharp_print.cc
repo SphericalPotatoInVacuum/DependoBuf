@@ -77,10 +77,6 @@ void SharpPrinter::PrintBaseEnumFields() {
   *out_ << kBaseEnumFields << "\n";
 }
 
-void SharpPrinter::PrintBaseEnumCheck() {
-  *out_ << kBaseEnumCheck << "\n";
-}
-
 // TypeExpression
 void SharpPrinter::PrintTypeExpression(
     const ast::TypeExpression &expression,
@@ -117,11 +113,11 @@ void SharpPrinter::PrintUnaryExpressionType(const ast::UnaryExpression &unary_ex
 // ConstructedValue
 void SharpPrinter::PrintConstructedValueBegin(const ast::ConstructedValue &constr_value) {
   *out_ << "new " << constr_value.constructor_identifier.name;
-  *out_ << "(";
+  *out_ << "{";
 }
 
 void SharpPrinter::PrintConstructedValueEnd() {
-  *out_ << ")\n";
+  *out_ << "}";
 }
 
 // Value

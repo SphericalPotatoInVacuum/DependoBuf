@@ -293,6 +293,9 @@ void SharpCodeGenerator::operator()(const ast::Enum &ast_enum) {
 
       // Generates invariant check
       *output_ << "\tpublic bool Check() {\n"
+               << "\t\tif (value is null) {\n"
+               << "\t\t\treturn false;\n"
+               << "\t\t}\n"
                << "\t\treturn false";
 
       for (const auto &constructor : rule.outputs) {
@@ -435,6 +438,7 @@ void SharpCodeGenerator::operator()(const ast::UnaryExpression &expr) {
 void SharpCodeGenerator::operator()(const ast::ConstructedValue &value) {
   printer_.PrintConstructedValueBegin(value);
   for (size_t ind = 0; ind < value.fields.size(); ++ind) {
+    *output_ << value.fields[ind].first.name << " = ";
     (*this)(*value.fields[ind].second);
     if (ind != value.fields.size() - 1) {
       *output_ << ", ";
@@ -516,7 +520,7 @@ void SharpCodeGenerator::PrintCheck(
   *output_ << "\n\tpublic bool Check(";
   PrintTypedVariables(checker_input, ", ", true, false, false, false);
   *output_ << ") {\n"
-           << "\t\tif (_value is null) {\n"
+           << "\t\tif (value is null) {\n"
            << "\t\t\treturn false;\n"
            << "\t\t}\n";
 
@@ -560,8 +564,8 @@ void SharpCodeGenerator::PrintCheck(
       } else {
         *output_ << " || ";
       }
-      *output_ << "((_value is " << constructor_name.str() << ") && ";
-      *output_ << "_value.Check(";
+      *output_ << "((value is " << constructor_name.str() << ") && ";
+      *output_ << "value.Check(";
       bool first_input = true;
       for (const auto &var : checker_input) {
         if (first_input) {

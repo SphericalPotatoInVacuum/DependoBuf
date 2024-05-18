@@ -33,7 +33,7 @@ public class SimpleMessageFields {
 public class SimpleMessageDepFields {
 	public readonly SimpleMessageFields simpleMessageFields;
 	public int i;
-	public unsigned u;
+	public uint u;
 	public string s;
 	public float f;
 	public bool b;
@@ -53,8 +53,7 @@ public class TestingSimpleMessage {
 
 	public TestingSimpleMessage() {
 		simpleMessageDep = new SimpleMessageDep(((1 + 3) + (5 - 4)));
-		simpleMessageDepFields = new SimpleMessageDepFields(new SimpleMessageFields(5, 6)
-);
+		simpleMessageDepFields = new SimpleMessageDepFields(new SimpleMessageFields{a = 5, b = 6});
 	}
 
 	public bool Check() {

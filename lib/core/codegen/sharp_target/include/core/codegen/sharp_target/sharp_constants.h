@@ -15,23 +15,6 @@ static const std::string kOpenNamespace = "class dbuf {\n";
 
 static const std::string kCloseNamespace = "}\n";
 
-static const std::string kBaseEnumFields = "\tprivate dynamic _value;\n\n"
-                                           "\tpublic dynamic Value {\n"
-                                           "\t\tget { return _value; }\n"
-                                           "\t\tset { _value = value; }\n"
-                                           "\t}\n";
-
-static const std::string kBaseEnumCheck = "\tpublic bool Check() {\n"
-                                          "\t\tforeach (var type in Restrictions) {\n"
-                                          "\t\t\tif (type.IsInstanceOfType(_value)) {\n"
-                                          "\t\t\t\tif (type.GetMethod(\"Check\") != null) {\n"
-                                          "\t\t\t\t\treturn _value.Check();\n"
-                                          "\t\t\t\t} else {\n"
-                                          "\t\t\t\t\treturn true;\n"
-                                          "\t\t\t\t}\n"
-                                          "\t\t\t}\n"
-                                          "\t\t}\n"
-                                          "\t\treturn false;\n"
-                                          "\t}\n";
+static const std::string kBaseEnumFields = "\tpublic dynamic value;\n\n";
 
 } // namespace dbuf::gen

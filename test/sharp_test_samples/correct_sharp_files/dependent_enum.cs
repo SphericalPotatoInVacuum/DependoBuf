@@ -64,6 +64,9 @@ public class Dependent_Third {
 		b = b_;
 	}
 	public bool Check() {
+		if (value is null) {
+			return false;
+		}
 		return false || (value is Third) && value.Check() && value.a == a && value.b == b;
 	}
 }
@@ -112,12 +115,8 @@ public class Third_3_b {
 
 public class Dependent_b {
 	public readonly int a;
-	private dynamic _value;
+	public dynamic value;
 
-	public dynamic Value {
-		get { return _value; }
-		set { _value = value; }
-	}
 
 
 	public Dependent_b(int a_) {
@@ -125,15 +124,15 @@ public class Dependent_b {
 	}
 
 	public bool Check(int b) {
-		if (_value is null) {
+		if (value is null) {
 			return false;
 		}
 		if (a == 5)
-			return ((_value is First_1_b) && _value.Check(b));
+			return ((value is First_1_b) && value.Check(b));
 		else if (b == 1)
-			return ((_value is Second_2_b) && _value.Check(b));
+			return ((value is Second_2_b) && value.Check(b));
 		else 
-			return ((_value is Third_3_b) && _value.Check(b));
+			return ((value is Third_3_b) && value.Check(b));
 		return false;
 	}
 }
@@ -175,27 +174,23 @@ public class Third_3_a_b {
 }
 
 public class Dependent_a_b {
-	private dynamic _value;
+	public dynamic value;
 
-	public dynamic Value {
-		get { return _value; }
-		set { _value = value; }
-	}
 
 
 	public Dependent_a_b() {
 	}
 
 	public bool Check(int a, int b) {
-		if (_value is null) {
+		if (value is null) {
 			return false;
 		}
 		if (a == 5)
-			return ((_value is First_1_a_b) && _value.Check(a, b));
+			return ((value is First_1_a_b) && value.Check(a, b));
 		else if (b == 1)
-			return ((_value is Second_2_a_b) && _value.Check(a, b));
+			return ((value is Second_2_a_b) && value.Check(a, b));
 		else 
-			return ((_value is Third_3_a_b) && _value.Check(a, b));
+			return ((value is Third_3_a_b) && value.Check(a, b));
 		return false;
 	}
 }
