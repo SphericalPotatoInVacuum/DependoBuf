@@ -28,7 +28,7 @@ void DartCodeGenerator::operator()(const ast::Message& ast_message) {
         *output_ << "}\n\n";
         return;
     }
-    std::string con_args_str = ""; //аргументы конструктора
+    std::string con_args_str; //аргументы конструктора
     std::string con_tab(ast_message.identifier.name.GetString().size() + 3, ' ');
     std::string con_assign_str = con_tab + ": "; //присвоения аргументов
 
@@ -56,12 +56,33 @@ void DartCodeGenerator::operator()(const ast::Message& ast_message) {
     *output_ << "    " << ast_message.identifier.name << '(' << con_args_str <<
     '\n' << con_assign_str << '\n';
 
-    *output_ << "}\n\n";
+    *output_ << "    bool check(";
+
+    if (!ast_message.type_dependencies.empty()) {
+        std::string check_args;
+        for (auto& dependency : ast_message.type_dependencies) {
+            std::string type_name = dependency.type_expression.identifier.name.GetString();
+            if (simple_types.contains(type_name)) {
+                check_args += (std::string)simple_types.at(type_name);
+            } else {
+                check_args += type_name;
+            }
+            check_args += ' ' + dependency.name.GetString() + ", ";
+        }
+        check_args[check_args.length() - 1] = ' ';
+        check_args[check_args.length() - 2] = ')';
+        *output_ << check_args << "{return true;}";
+
+    } else {
+        *output_ << ") {return true;}";
+    }
+
+    *output_ << "\n}\n\n";
 }
 
 void DartCodeGenerator::operator()(const ast::Enum& ast_enum) {
     *output_ << "class " << ast_enum.identifier.name << "{\n";
-    std::string constructors_str = "";
+    std::string constructors_str;
     std::unordered_set<std::string> field_set;
     for (const auto& pattern : ast_enum.pattern_mapping) {
         for (const auto& construct : pattern.outputs) {
@@ -70,7 +91,7 @@ void DartCodeGenerator::operator()(const ast::Enum& ast_enum) {
                 '.' + construct.identifier.name.GetString() + "();\n";
                 continue;
             }
-            std::string con_args_str = ""; //аргументы конструктора
+            std::string con_args_str; //аргументы конструктора
             std::string con_tab(ast_enum.identifier.name.GetString().size() +
             construct.identifier.name.GetString().size() + 3, ' ');
             std::string con_assign_str = con_tab + ": "; //присвоения аргументов
@@ -107,6 +128,50 @@ void DartCodeGenerator::operator()(const ast::Enum& ast_enum) {
     }
     *output_ << '\n';
     *output_ << constructors_str;
-    *output_ << "}\n\n";
+    *output_ << "    bool check(";
+    if (!ast_enum.type_dependencies.empty()) {
+        std::vector<std::string> depends;
+        std::string check_args;
+        for (auto& dependency : ast_enum.type_dependencies) {
+            std::string type_name = dependency.type_expression.identifier.name.GetString();
+            if (simple_types.contains(type_name)) {
+                check_args += (std::string)simple_types.at(type_name);
+            } else {
+                check_args += type_name;
+            }
+            check_args += ' ' + dependency.name.GetString() + ", ";
+            depends.push_back(dependency.name.GetString());
+        }
+        check_args[check_args.length() - 1] = ' ';
+        check_args[check_args.length() - 2] = ')';
+        *output_ << check_args << '{';
+        if (ast_enum.pattern_mapping.size() > 1) {
+            *output_ << "\n        if (";
+            const auto& pattern = ast_enum.pattern_mapping[0];
+            for (size_t j = 0; j < depends.size(); ++j) {
+                if (pattern.inputs[j].index() == 0) {
+                    *output_ << depends[j] << " == " << pattern.inputs[j] << " && ";
+                }
+            }
+            *output_ << "true) {\n            return true;\n        } else ";
+            for (size_t i = 1; i < ast_enum.pattern_mapping.size() - 1; ++i) {
+                *output_ << "if (";
+                const auto& pattern = ast_enum.pattern_mapping[i];
+                for (size_t j = 0; j < depends.size(); ++j) {
+                    if (pattern.inputs[j].index() == 0) {
+                        *output_ << depends[j] << " == " << pattern.inputs[j] << " && ";
+                    }
+                }
+                *output_ << "true) {\n            return true;\n        } else ";
+            }
+            *output_ << "{\n            return true;\n        }";
+            *output_ << "\n    }";
+        } else {
+            *output_ << "return true;}" ;
+        }
+    } else {
+        *output_ << ") {return true;}";
+    }
+    *output_ << "\n}\n\n";
 }
 }
