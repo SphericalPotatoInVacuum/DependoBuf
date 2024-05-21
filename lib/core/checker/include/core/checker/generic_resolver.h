@@ -35,27 +35,36 @@ private:
 
   std::variant<ErrorList, ast::Constructor> Resolve(const ast::Constructor &constr);
 
-  std::variant<ErrorList, std::string> MapGenericWithParams(
+  std::variant<ErrorList, std::pair<std::string, std::vector<ast::TypedVariable>>> MapGenericWithParams(
       const std::vector<ast::Identifier> &identifiers,
       const std::vector<ast::TypeExpression> &generic_parameters);
 
   Defer MakeNewScope();
 
-  void AddType(const InternedString &param_name, const InternedString &type_name);
+  void AddType(
+      const InternedString &param_name,
+      const InternedString &type_name,
+      const std::vector<ast::TypedVariable> &deps);
 
-  std::optional<InternedString> GetType(const InternedString &param_name);
+  std::optional<std::pair<InternedString, std::vector<ast::TypedVariable>>> GetType(const InternedString &param_name);
 
   static constexpr std::string_view kOneIndent = "  ";
   std::string current_indent_;
 
   std::vector<std::set<InternedString>> current_generic_params_;
-  std::vector<std::unordered_map<InternedString, InternedString>> generic_param_to_type_name_;
+  std::vector<std::unordered_map<InternedString, std::pair<InternedString, std::vector<ast::TypedVariable>>>>
+      generic_param_to_type_name_;
 
   std::unordered_map<InternedString, ast::Message> name_to_generic_message_;
   std::unordered_map<InternedString, ast::Enum> name_to_generic_enum_;
+
+  std::unordered_map<InternedString, std::vector<ast::TypedVariable>> name_to_deps_;
+
   std::unordered_map<InternedString, InternedString> constructor_name_to_generic_enum_name_;
 
   std::unordered_set<InternedString> resolved_generics_;
+
+  int new_deps_counter_ = 0;
 
   ast::AST generic_;
   ast::AST non_generic_;

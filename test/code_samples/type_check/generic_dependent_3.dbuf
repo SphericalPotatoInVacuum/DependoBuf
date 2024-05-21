@@ -1,0 +1,21 @@
+message Dep (qwe Int) {
+
+}
+
+message Value [T] (x Int) {
+    value T;
+    value2 Dep x;
+}
+
+message Pair [U] [V] (y Int) {
+    first Value [U] y;
+    second Value [V] y;
+}
+
+message SamePair [T] (a Int) (b Int) {
+    pair Pair [T] [T] b;
+}
+
+message IntPair {
+    result SamePair [Int] 3 4;
+}
