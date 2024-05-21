@@ -1,0 +1,11 @@
+message Value [T] {
+    value T;
+}
+
+message DependentType (x Int) {
+}
+
+message SomeType {
+    t Int;
+    v Value [DependentType t];
+}

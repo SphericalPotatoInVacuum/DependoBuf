@@ -60,10 +60,11 @@ std::variant<ErrorList, ast::Expression> GenericsResolver::Resolve(const ast::Ex
   return type;
 }
 
-std::variant<ErrorList, std::string> GenericsResolver::MapGenericWithParams(
+std::variant<ErrorList, std::pair<std::string, std::vector<ast::TypedVariable>>> GenericsResolver::MapGenericWithParams(
     const std::vector<ast::Identifier> &identifiers,
     const std::vector<ast::TypeExpression> &generic_parameters) {
   std::string result_suffix = "<";
+  std::vector<ast::TypedVariable> new_deps_all;
   for (size_t i = 0; i < identifiers.size(); ++i) {
     if (i >= generic_parameters.size()) {
       return ErrorList {Error {"GenericsResolver TypeExpression error: i >= type.parameters.size()"}};
@@ -74,14 +75,22 @@ std::variant<ErrorList, std::string> GenericsResolver::MapGenericWithParams(
     }
     result_suffix += param.identifier.name.GetString();
     SCOPED_LOG(INFO) << identifiers[i].name << ": " << param.identifier.name;
-    AddType(identifiers[i].name, param.identifier.name);
+    std::vector<ast::TypedVariable> new_deps;
+    if (auto it = name_to_deps_.find(param.identifier.name); it != name_to_deps_.end()) {
+      new_deps = it->second;
+    }
+    for (auto &new_dep : new_deps) {
+      new_dep.name = InternedString(std::string("#dep") + std::to_string(new_deps_counter_++));
+    }
+    new_deps_all.insert(new_deps_all.end(), new_deps.begin(), new_deps.end());
+    AddType(identifiers[i].name, param.identifier.name, new_deps);
   }
   result_suffix += ">";
   current_generic_params_.emplace_back();
   for (const auto &iden : identifiers) {
     current_generic_params_.back().insert(iden.name);
   }
-  return result_suffix;
+  return std::make_pair(std::move(result_suffix), std::move(new_deps_all));
 }
 
 std::variant<ErrorList, ast::TypeExpression> GenericsResolver::Resolve(const ast::TypeExpression &type) {
@@ -94,7 +103,12 @@ std::variant<ErrorList, ast::TypeExpression> GenericsResolver::Resolve(const ast
     if (!maybe_type.has_value()) {
       return ErrorList {Error {"!maybe_type.has_value()"}};
     }
-    result.identifier.name = maybe_type.value();
+    result.identifier.name = maybe_type.value().first;
+    for (const auto &dep : maybe_type.value().second) {
+      ast::VarAccess acc;
+      acc.var_identifier.name = dep.name;
+      result.parameters.emplace_back(std::make_shared<ast::Expression>(std::move(acc)));
+    }
     return result;
   }
 
@@ -112,9 +126,15 @@ std::variant<ErrorList, ast::TypeExpression> GenericsResolver::Resolve(const ast
   }
   if (auto it = name_to_generic_message_.find(type.identifier.name); it != name_to_generic_message_.end()) {
     SCOPED_LOG(INFO) << "GenericsResolver TypeExpression " << type.identifier.name << " is generic message\n";
-    auto msg = it->second;
-    ASSIGN_OR_RETURN_ERROR(std::string, suffix, MapGenericWithParams(msg.type_identifiers, generic_parameters));
-
+    auto msg         = it->second;
+    using ResultType = std::pair<std::string, std::vector<ast::TypedVariable>>;
+    ASSIGN_OR_RETURN_ERROR(ResultType, suffix_and_deps, MapGenericWithParams(msg.type_identifiers, generic_parameters));
+    auto [suffix, new_deps] = suffix_and_deps;
+    for (const auto &generic_param : generic_parameters) {
+      for (const auto &dep : generic_param.parameters) {
+        result.parameters.emplace_back(dep);
+      }
+    }
     InternedString name(result.identifier.name.GetString() + suffix);
     result.identifier.name = name;
     if (resolved_generics_.contains(name)) {
@@ -123,14 +143,26 @@ std::variant<ErrorList, ast::TypeExpression> GenericsResolver::Resolve(const ast
     resolved_generics_.insert(name);
     ASSIGN_OR_RETURN_ERROR(ast::Message, resolved_msg, Resolve(msg));
     resolved_msg.identifier.name = name;
-    result.identifier.name       = resolved_msg.identifier.name;
+    resolved_msg.type_dependencies.insert(resolved_msg.type_dependencies.end(), new_deps.begin(), new_deps.end());
+    name_to_deps_[name]    = resolved_msg.type_dependencies;
+    result.identifier.name = resolved_msg.identifier.name;
     result_ast_.types.emplace(name, std::move(resolved_msg));
     current_generic_params_.pop_back();
   } else {
     if (auto jt = name_to_generic_enum_.find(type.identifier.name); jt != name_to_generic_enum_.end()) {
       SCOPED_LOG(INFO) << "GenericsResolver TypeExpression " << type.identifier.name << " is generic enum\n";
-      auto en = jt->second;
-      ASSIGN_OR_RETURN_ERROR(std::string, suffix, MapGenericWithParams(en.type_identifiers, generic_parameters));
+      auto en          = jt->second;
+      using ResultType = std::pair<std::string, std::vector<ast::TypedVariable>>;
+      ASSIGN_OR_RETURN_ERROR(
+          ResultType,
+          suffix_and_deps,
+          MapGenericWithParams(en.type_identifiers, generic_parameters));
+      auto [suffix, new_deps] = suffix_and_deps;
+      for (const auto &generic_param : generic_parameters) {
+        for (const auto &dep : generic_param.parameters) {
+          result.parameters.emplace_back(dep);
+        }
+      }
       InternedString name(result.identifier.name.GetString() + suffix);
       result.identifier.name = name;
       if (resolved_generics_.contains(name)) {
@@ -139,7 +171,12 @@ std::variant<ErrorList, ast::TypeExpression> GenericsResolver::Resolve(const ast
       resolved_generics_.insert(name);
       ASSIGN_OR_RETURN_ERROR(ast::Enum, resolved_enum, Resolve(en));
       resolved_enum.identifier.name = name;
+      resolved_enum.type_dependencies.insert(resolved_enum.type_dependencies.end(), new_deps.begin(), new_deps.end());
+      name_to_deps_[name] = resolved_enum.type_dependencies;
       for (auto &rule : resolved_enum.pattern_mapping) {
+        for (size_t i = 0; i < new_deps.size(); ++i) {
+          rule.inputs.emplace_back(ast::Star());
+        }
         for (auto &constructor : rule.outputs) {
           constructor.identifier.name = InternedString(constructor.identifier.name.GetString() + suffix);
           result_ast_.constructor_to_type.emplace(constructor.identifier.name, name);
@@ -258,6 +295,18 @@ std::variant<ErrorList, ast::AST> GenericsResolver::operator()(const ast::AST &a
     }
   }
 
+  for (const auto &non_generic : non_generic_.types) {
+    if (std::holds_alternative<ast::Message>(non_generic.second)) {
+      const auto &value       = std::get<ast::Message>(non_generic.second);
+      const auto &str         = value.identifier;
+      name_to_deps_[str.name] = value.type_dependencies;
+    } else if (std::holds_alternative<ast::Enum>(non_generic.second)) {
+      const auto &en          = std::get<ast::Enum>(non_generic.second);
+      const auto &str         = en.identifier;
+      name_to_deps_[str.name] = en.type_dependencies;
+    }
+  }
+
   SCOPED_LOG(INFO) << "generic_.types.size() = " << generic_.types.size()
                    << ", non_generic_.types.size() = " << non_generic_.types.size();
 
@@ -277,12 +326,16 @@ GenericsResolver::GenericsResolver() {
   current_generic_params_.resize(1);
 }
 
-void GenericsResolver::AddType(const InternedString &param_name, const InternedString &type_name) {
+void GenericsResolver::AddType(
+    const InternedString &param_name,
+    const InternedString &type_name,
+    const std::vector<ast::TypedVariable> &deps) {
   assert(!generic_param_to_type_name_.empty());
-  generic_param_to_type_name_.back()[param_name] = type_name;
+  generic_param_to_type_name_.back()[param_name] = std::make_pair(type_name, deps);
 }
 
-std::optional<InternedString> GenericsResolver::GetType(const InternedString &param_name) {
+std::optional<std::pair<InternedString, std::vector<ast::TypedVariable>>>
+GenericsResolver::GetType(const InternedString &param_name) {
   assert(!generic_param_to_type_name_.empty());
   if (auto it = generic_param_to_type_name_.back().find(param_name); it != generic_param_to_type_name_.back().end()) {
     return it->second;
