@@ -1,5 +1,0 @@
-message User {
-    id Int;
-    name String;
-    f Float;
-}
