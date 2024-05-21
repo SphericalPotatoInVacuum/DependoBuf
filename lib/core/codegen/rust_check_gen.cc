@@ -10,9 +10,10 @@
 
 namespace dbuf::gen {
 
-RustCheckGenerator::RustCheckGenerator(std::ostream &output, const ast::AST &tree)
+RustCheckGenerator::RustCheckGenerator(std::ostream &output, const ast::AST &tree, bool is_testing)
     : output_(output)
-    , tree_(tree) {}
+    , tree_(tree)
+    , is_testing_(is_testing) {}
 
 void RustCheckGenerator::Generate() {
   for (const auto &name : tree_.visit_order) {
@@ -86,20 +87,22 @@ void RustCheckGenerator::CheckFields(const std::vector<ast::TypedVariable> &fiel
       continue;
     }
     output_ << indent << "if !" << field.name << ".check(";
-    const auto &type      = field.type_expression;
-    const auto &type_info = tree_.types.at(type.identifier.name);
-    const auto &deps      = std::visit([](const auto &type) { return type.type_dependencies; }, type_info);
-    // ^^^ That is absolutely insane
-    for (size_t i = 0; i < type.parameters.size(); ++i) {
-      if (i != 0) {
-        output_ << ", ";
+    const auto &type = field.type_expression;
+    if (!is_testing_ || tree_.types.contains(type.identifier.name)) {
+      const auto &type_info = tree_.types.at(type.identifier.name);
+      const auto &deps      = std::visit([](const auto &type) { return type.type_dependencies; }, type_info);
+      // ^^^ That is absolutely insane
+      for (size_t i = 0; i < type.parameters.size(); ++i) {
+        if (i != 0) {
+          output_ << ", ";
+        }
+        const auto &expr = *type.parameters[i];
+        // vvv I beg this works
+        if (!IsCopyableType(deps[i].type_expression.identifier.name)) {
+          output_ << '&';
+        }
+        PrintExpression(expr);
       }
-      const auto &expr = *type.parameters[i];
-      // vvv I beg this works
-      if (!IsCopyableType(deps[i].type_expression.identifier.name)) {
-        output_ << '&';
-      }
-      PrintExpression(expr);
     }
     output_ << ") { return false; }\n";
   }

@@ -38,7 +38,7 @@ void RustStructGenerator::DeclareFields(
     } else {
       output_ << "std::rc::Rc<" << dbuf_name << ">";
     }
-    output_ << ",\n";
+    output_ << "," << std::endl;
   }
 }
 
@@ -69,7 +69,7 @@ void RustStructGenerator::operator()(const ast::Enum &ast_enum) {
     }
   }
   output_ << "}" << std::endl;
-  output_ << "use " << ast_enum.identifier.name << "::*;\n\n";
+  output_ << "use " << ast_enum.identifier.name << "::*;" << std::endl << std::endl;
 }
 
 } // namespace dbuf::gen

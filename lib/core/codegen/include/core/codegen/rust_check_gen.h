@@ -8,7 +8,7 @@
 namespace dbuf::gen {
 class RustCheckGenerator {
 public:
-  explicit RustCheckGenerator(std::ostream &output, const ast::AST &tree);
+  explicit RustCheckGenerator(std::ostream &output, const ast::AST &tree, bool is_testing);
 
   void operator()(const ast::Message &ast_message);
   void operator()(const ast::Enum &ast_enum);
@@ -18,6 +18,7 @@ public:
 private:
   std::ostream &output_;
   const ast::AST &tree_;
+  const bool is_testing_ = false;
 
   void DeclareCheckStart(const InternedString &name, const std::vector<ast::TypedVariable> &deps);
   void DeclareCheckEnd();
