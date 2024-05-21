@@ -153,7 +153,13 @@ void DartCodeGenerator::operator()(const ast::Enum& ast_enum) {
                     *output_ << depends[j] << " == " << pattern.inputs[j] << " && ";
                 }
             }
-            *output_ << "true) {\n            return true;\n        } else ";
+            *output_ << "true) {\n            return ";
+            for (const auto& construct : pattern.outputs) {
+                for (const auto& field : construct.fields) {
+                    *output_ << "(this." << field.name << " != null) && ";
+                }
+            }
+            *output_ << "true;\n        } else ";
             for (size_t i = 1; i < ast_enum.pattern_mapping.size() - 1; ++i) {
                 *output_ << "if (";
                 const auto& pattern = ast_enum.pattern_mapping[i];
@@ -162,12 +168,36 @@ void DartCodeGenerator::operator()(const ast::Enum& ast_enum) {
                         *output_ << depends[j] << " == " << pattern.inputs[j] << " && ";
                     }
                 }
-                *output_ << "true) {\n            return true;\n        } else ";
+                *output_ << "true) {\n            return ";
+                for (const auto& construct : pattern.outputs) {
+                    for (const auto& field : construct.fields) {
+                        *output_ << "(this." << field.name << " != null) && ";
+                    }
+                }
+                *output_ << "true;\n        } else ";
             }
-            *output_ << "{\n            return true;\n        }";
+            const auto& pattern_ = ast_enum.pattern_mapping[ast_enum.pattern_mapping.size() - 1];
+            *output_ << "{\n            return ";
+            for (const auto& construct : pattern_.outputs) {
+                for (const auto& field : construct.fields) {
+                    *output_ << "(this." << field.name << " != null) && ";
+                }
+            }
+            
+            *output_ << "true;\n        }";
             *output_ << "\n    }";
         } else {
-            *output_ << "return true;}" ;
+            *output_ << "return ";
+            const auto& pattern_ = ast_enum.pattern_mapping[0];
+            for (const auto& construct : pattern_.outputs) {
+                for (const auto& field : construct.fields) {
+                    *output_ << "(this." << field.name << " != null) && ";
+                }
+            }
+            
+            *output_ << "true;\n    }";
+            
+            
         }
     } else {
         *output_ << ") {return true;}";
