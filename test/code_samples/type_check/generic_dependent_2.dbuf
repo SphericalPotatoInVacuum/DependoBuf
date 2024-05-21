@@ -1,0 +1,22 @@
+message Value [T] {
+    value T;
+}
+
+enum TreeH (height Int) {
+    0 => {
+        TreeHLeaf {
+            value Int;
+        }
+    }
+    * => {
+        TreeHNode {
+            value Int;
+            left TreeH (height - 1);
+            right TreeH (height - 1);
+        }
+    }
+}
+message SomeType {
+    t Int;
+    v Value [TreeH 4];
+}

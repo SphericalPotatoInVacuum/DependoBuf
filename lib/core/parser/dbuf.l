@@ -84,6 +84,8 @@ string_literal \"(\\.|[^\\"])*\"
     /* Single-character tokens */
 "("  return token::TOK_LEFT_PAREN;
 ")"  return token::TOK_RIGHT_PAREN;
+"["  return token::TOK_LEFT_SQ_PAREN;
+"]"  return token::TOK_RIGHT_SQ_PAREN;
 "{"  return token::TOK_LEFT_BRACE;
 "}"  return token::TOK_RIGHT_BRACE;
 ","  return token::TOK_COMMA;
