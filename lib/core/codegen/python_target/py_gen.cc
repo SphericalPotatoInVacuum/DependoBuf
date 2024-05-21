@@ -22,13 +22,7 @@ void PyCodeGenerator::Generate(ast::AST *tree) {
 
   for (const auto &struct_name : tree->visit_order) {
     std::variant<ast::Message, ast::Enum> &var = tree->types[struct_name];
-    if (std::holds_alternative<ast::Message>(var)) {
-      auto &mes = std::get<ast::Message>(var);
-      (*this)(mes);
-    } else {
-      auto &enu = std::get<ast::Enum>(var);
-      (*this)(enu);
-    }
+    std::visit(*this, var);
   }
 
   printer_.print_def_is_consistent();

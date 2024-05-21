@@ -14,26 +14,26 @@ class DbufError(TypeError):
     pass
 
 
-class Xert:
+class Discriminated:
     @dataclass
     class __Good:
-        name: str
+        prize: str
 
         def check(self, b: bool) -> None:
-            if type(self) not in Xert._possible_types(b):
+            if type(self) not in Discriminated._possible_types(b):
                 raise DbufError(
-                    'Type Xert.__Good does not match given dependencies.'
+                    'Type Discriminated.__Good does not match given dependencies.'
                 )
 
     @dataclass
     class __Bad:
         def check(self, b: bool) -> None:
-            if type(self) not in Xert._possible_types(b):
+            if type(self) not in Discriminated._possible_types(b):
                 raise DbufError(
-                    'Type Xert.__Bad does not match given dependencies.'
+                    'Type Discriminated.__Bad does not match given dependencies.'
                 )
 
-    xert_type = __Good | __Bad
+    discriminated_type = __Good | __Bad
 
     @classmethod
     def _possible_types(cls, b: bool) -> set[type]:
@@ -51,8 +51,8 @@ class Xert:
     def __init__(self, b: bool) -> None:
         self.dependencies = (b, )
 
-    def good(self, name: str) -> __Good:
-        obj = self.__Good(name)
+    def good(self, prize: str) -> __Good:
+        obj = self.__Good(prize)
         obj.check(*self.dependencies)
         return obj
 
@@ -62,43 +62,43 @@ class Xert:
         return obj
 
 
-class Yog:
+class Status:
     @dataclass
-    class __Yog:
+    class __Status:
         def check(self, n: int) -> None:
             pass
 
-    yog_type = __Yog
+    status_type = __Status
 
     def __init__(self, n: int) -> None:
         self.dependencies = (n, )
 
-    def construct(self) -> __Yog:
-        obj = self.__Yog()
+    def construct(self) -> __Status:
+        obj = self.__Status()
         obj.check(*self.dependencies)
         return obj
 
 
-class SomeMessage:
+class Person:
     @dataclass
-    class __SomeMessage:
-        x: Xert.xert_type
-        y: Yog.yog_type
+    class __Person:
+        dis: Discriminated.discriminated_type
+        status: Status.status_type
 
-        def check(self, n: int, b1: bool, b2: bool) -> None:
-            x_deps = ((b1 and b2) or (not (not (not (b1 or b2)))), )
-            self.x.check(*x_deps)
+        def check(self, age: int, male: bool, white: bool) -> None:
+            dis_deps = ((male and white) or (not (not (not (male or white)))), )
+            self.dis.check(*dis_deps)
 
-            y_deps = (n - (3 * 17), )
-            self.y.check(*y_deps)
+            status_deps = (age - (3 * 17), )
+            self.status.check(*status_deps)
 
-    some_message_type = __SomeMessage
+    person_type = __Person
 
-    def __init__(self, n: int, b1: bool, b2: bool) -> None:
-        self.dependencies = (n, b1, b2, )
+    def __init__(self, age: int, male: bool, white: bool) -> None:
+        self.dependencies = (age, male, white, )
 
-    def construct(self, x: Xert.xert_type, y: Yog.yog_type) -> __SomeMessage:
-        obj = self.__SomeMessage(x, y)
+    def construct(self, dis: Discriminated.discriminated_type, status: Status.status_type) -> __Person:
+        obj = self.__Person(dis, status)
         obj.check(*self.dependencies)
         return obj
 

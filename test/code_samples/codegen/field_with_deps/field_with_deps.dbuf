@@ -1,0 +1,15 @@
+enum Nat {
+  Zero {}
+  Succ {
+    prev Nat;
+  }
+}
+
+message SomeMessage (nat Nat) {
+  x Int;
+  y Int;
+}
+
+message AnotherMessage {
+  sm SomeMessage Zero {};
+}

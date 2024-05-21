@@ -1,0 +1,30 @@
+enum Color (s String) {
+  "red" => {
+    Red {
+      r Int;
+    }
+  }
+  "green" => {
+    Green {
+      g Int;
+    }
+  }
+}
+
+enum House (s String) (col Color "green") {
+  "green", Green {g: 12} => {
+    RedHouse {
+      address String;
+    }
+  }
+  *, * => {
+    DefaultHouse {}
+    DefaultHouse2 {}
+  }
+}
+
+enum Village (n Int) (h House "my" Green {g: n + 2 * 4}) {
+  *, DefaultHouse {} => {
+    DefVillage {}
+  }
+}
