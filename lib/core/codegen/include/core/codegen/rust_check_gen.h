@@ -22,13 +22,17 @@ private:
 
   void DeclareCheckStart(const InternedString &name, const std::vector<ast::TypedVariable> &deps);
   void DeclareCheckEnd();
-  void CheckFields(const std::vector<ast::TypedVariable> &fields, const std::string_view &indent);
 
-  bool IsCopyableType(const InternedString &type);
-  bool IsPrimitiveType(const InternedString &type);
+  void DeclareMatchCheckStart(const InternedString &name, size_t index, const std::vector<ast::TypedVariable> &deps);
+  void DeclareMatchCheckEnd();
+
+  void CheckFields(const std::vector<ast::TypedVariable> &fields, const std::string_view &indent);
 
   void PrintExpression(const ast::Expression &expr);
   void PrintConstructedValue(const ast::ConstructedValue &expr);
+
+  bool IsCopyableType(const InternedString &type);
+  bool IsPrimitiveType(const InternedString &type);
 
   const std::unordered_map<InternedString, std::string> kBuiltinToArgumentType_ = {
       {InternedString("Int"), "i64"},

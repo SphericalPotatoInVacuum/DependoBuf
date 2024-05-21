@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <string_view>
+#include <utility>
 #include <variant>
 
 namespace dbuf::gen {
@@ -53,6 +54,33 @@ void RustCheckGenerator::DeclareCheckEnd() {
   output_ << "}\n\n";
 }
 
+void RustCheckGenerator::DeclareMatchCheckStart(
+    const InternedString &name,
+    size_t index,
+    const std::vector<ast::TypedVariable> &deps) {
+  output_ << "impl " << name << " {\n";
+  output_ << "    pub fn matches_pattern_" << index << "(";
+  for (size_t i = 0; i < deps.size(); ++i) {
+    if (i != 0) {
+      output_ << ", ";
+    }
+    const auto &dep = deps[i];
+    output_ << dep.name << ": ";
+    const auto &type = dep.type_expression.identifier.name;
+    if (IsCopyableType(type)) {
+      output_ << kBuiltinToArgumentType_.at(type);
+    } else {
+      output_ << "&std::rc::Rc<" << type << '>';
+    }
+  }
+  output_ << ") -> bool {\n";
+}
+
+void RustCheckGenerator::DeclareMatchCheckEnd() {
+  output_ << "    }\n";
+  output_ << "}\n\n";
+}
+
 void RustCheckGenerator::PrintExpression(const ast::Expression &expr) {
   if (!std::holds_alternative<ast::Value>(expr)) {
     std::visit([this](const auto &expr) { output_ << expr; }, expr);
@@ -87,16 +115,16 @@ void RustCheckGenerator::CheckFields(const std::vector<ast::TypedVariable> &fiel
       continue;
     }
     output_ << indent << "if !" << field.name << ".check(";
-    const auto &type = field.type_expression;
-    if (!is_testing_ || tree_.types.contains(type.identifier.name)) {
-      const auto &type_info = tree_.types.at(type.identifier.name);
+    const auto &constructor = field.type_expression;
+    if (!is_testing_) {
+      const auto &type_info = tree_.types.at(constructor.identifier.name);
       const auto &deps      = std::visit([](const auto &type) { return type.type_dependencies; }, type_info);
       // ^^^ That is absolutely insane
-      for (size_t i = 0; i < type.parameters.size(); ++i) {
+      for (size_t i = 0; i < constructor.parameters.size(); ++i) {
         if (i != 0) {
           output_ << ", ";
         }
-        const auto &expr = *type.parameters[i];
+        const auto &expr = *constructor.parameters[i];
         // vvv I beg this works
         if (!IsCopyableType(deps[i].type_expression.identifier.name)) {
           output_ << '&';
@@ -122,27 +150,60 @@ void RustCheckGenerator::operator()(const ast::Message &ast_message) {
 }
 
 void RustCheckGenerator::operator()(const ast::Enum &ast_enum) {
-  DeclareCheckStart(ast_enum.identifier.name, ast_enum.type_dependencies);
+  const auto &rules = ast_enum.pattern_mapping;
+  const auto &deps  = ast_enum.type_dependencies;
+  for (size_t i = 0; i < rules.size(); ++i) {
+    const auto &rule = rules[i];
+    DeclareMatchCheckStart(ast_enum.identifier.name, i + 1, deps);
+    output_ << "        return matches!((";
+    for (size_t j = 0; j < deps.size(); ++j) {
+      if (j != 0) {
+        output_ << ", ";
+      }
+      const auto &name = deps[j].name;
+      output_ << name;
+    }
+    output_ << "), (";
+    for (size_t j = 0; j < rule.inputs.size(); ++j) {
+      if (j != 0) {
+        output_ << ", ";
+      }
+      const auto &input = rule.inputs[j];
+      if (std::holds_alternative<ast::Star>(input)) {
+        output_ << "_";
+        continue;
+      }
+      const auto &value = std::get<ast::Value>(input);
+      PrintExpression(value);
+    }
+    output_ << "));\n";
+    DeclareMatchCheckEnd();
+  }
+
+  DeclareCheckStart(ast_enum.identifier.name, deps);
 
   output_ << "        match self {\n";
-  for (const auto &rule : ast_enum.pattern_mapping) {
+  for (size_t i = 0; i < rules.size(); ++i) {
+    const auto &rule = rules[i];
     for (const auto &constructor : rule.outputs) {
       output_ << "            " << constructor.identifier.name << " { ";
-      for (size_t i = 0; i < constructor.fields.size(); ++i) {
-        if (i != 0) {
+      for (size_t j = 0; j < constructor.fields.size(); ++j) {
+        if (j != 0) {
           output_ << ", ";
         }
-        const auto &field = constructor.fields[i];
+        const auto &field = constructor.fields[j];
         output_ << field.name;
       }
       output_ << " } => {\n";
-      // for (size_t j = 0; j < rule.inputs.size(); ++j) {
-      //   const auto &input = rule.inputs[j];
-      //   if (std::holds_alternative<ast::Star>(input)) {
-      //     continue;
-      //   }
-      //   const auto &value = std::get<ast::Value>(input);
-      // }
+      output_ << "                if !Self::matches_pattern_" << i + 1 << "(";
+      for (size_t j = 0; j < deps.size(); ++j) {
+        if (j != 0) {
+          output_ << ", ";
+        }
+        const auto &name = deps[j].name;
+        output_ << name;
+      }
+      output_ << ") { return false; }\n";
       CheckFields(constructor.fields, "                ");
       output_ << "            }\n";
     }
