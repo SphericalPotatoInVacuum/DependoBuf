@@ -238,13 +238,18 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
     for (const auto &dependency : value.type_dependencies) {
       const auto &dependency_name = dependency.name.GetString();
       std::string dependency_type = dependency.type_expression.identifier.name.GetString();
-      std::string type_pointer    = "";
+      bool is_pointer             = false;
       if (kPrimitiveTypesMapping.contains(dependency_type)) {
         dependency_type = kPrimitiveTypesMapping.at(dependency_type);
       } else {
-        type_pointer = "*";
+        is_pointer = true;
       }
-      Write(GetIndent(1)).Write(dependency_name).Write(' ').Write(type_pointer).Write(dependency_type).Write('\n');
+      Write(GetIndent(1))
+          .Write(dependency_name)
+          .Write(' ')
+          .Write(is_pointer ? "*" : "")
+          .Write(dependency_type)
+          .Write('\n');
     }
     if (!value.fields.empty()) {
       Write('\n');
@@ -253,13 +258,13 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
   for (const auto &field : value.fields) {
     const std::string field_name = GetExportName(field.name.GetString());
     std::string field_type       = field.type_expression.identifier.name.GetString();
-    std::string type_pointer     = "";
+    bool is_pointer              = false;
     if (kPrimitiveTypesMapping.contains(field_type)) {
       field_type = kPrimitiveTypesMapping.at(field_type);
     } else {
-      type_pointer = "*";
+      is_pointer = true;
     }
-    Write(GetIndent(1)).Write(field_name).Write(' ').Write(type_pointer).Write(field_type).Write('\n');
+    Write(GetIndent(1)).Write(field_name).Write(' ').Write(is_pointer ? "*" : "").Write(field_type).Write('\n');
   }
   Write('}').Write('\n');
   Write('\n');
@@ -270,17 +275,17 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
     for (const auto &dependency : value.type_dependencies) {
       const auto &dependency_name = dependency.name.GetString();
       std::string dependency_type = dependency.type_expression.identifier.name.GetString();
-      std::string type_pointer    = "";
+      bool is_pointer             = false;
       if (kPrimitiveTypesMapping.contains(dependency_type)) {
         dependency_type = kPrimitiveTypesMapping.at(dependency_type);
       } else {
-        type_pointer = "*";
+        is_pointer = true;
       }
       if (is_first_argument) {
         is_first_argument = false;
-        Write(dependency_name).Write(' ').Write(type_pointer).Write(dependency_type);
+        Write(dependency_name).Write(' ').Write(is_pointer ? "*" : "").Write(dependency_type);
       } else {
-        Write(", ").Write(dependency_name).Write(' ').Write(type_pointer).Write(dependency_type);
+        Write(", ").Write(dependency_name).Write(' ').Write(is_pointer ? "*" : "").Write(dependency_type);
       }
     }
   }
@@ -440,13 +445,18 @@ GoWriter &GoWriter::Write(const ast::Enum &value) {
   for (const auto &dependency : value.type_dependencies) {
     const std::string dependency_name = dependency.name.GetString();
     std::string dependency_type       = dependency.type_expression.identifier.name.GetString();
-    std::string type_pointer          = "";
+    bool is_pointer                   = false;
     if (kPrimitiveTypesMapping.contains(dependency_type)) {
       dependency_type = kPrimitiveTypesMapping.at(dependency_type);
     } else {
-      type_pointer = "*";
+      is_pointer = true;
     }
-    Write(GetIndent(1)).Write(dependency_name).Write(' ').Write(type_pointer).Write(dependency_type).Write('\n');
+    Write(GetIndent(1))
+        .Write(dependency_name)
+        .Write(' ')
+        .Write(is_pointer ? "*" : "")
+        .Write(dependency_type)
+        .Write('\n');
   }
   Write('\n');
   Write(GetIndent(1)).Write("InternalValue interface{}").Write('\n');
@@ -462,13 +472,13 @@ GoWriter &GoWriter::Write(const ast::Enum &value) {
       for (const auto &field : constructor.fields) {
         const std::string field_name = GetExportName(field.name.GetString());
         std::string field_type       = field.type_expression.identifier.name.GetString();
-        std::string type_pointer     = "";
+        bool is_pointer              = false;
         if (kPrimitiveTypesMapping.contains(field_type)) {
           field_type = kPrimitiveTypesMapping.at(field_type);
         } else {
-          type_pointer = "*";
+          is_pointer = true;
         }
-        Write(GetIndent(1)).Write(field_name).Write(' ').Write(type_pointer).Write(field_type).Write('\n');
+        Write(GetIndent(1)).Write(field_name).Write(' ').Write(is_pointer ? "*" : "").Write(field_type).Write('\n');
       }
       Write('}').Write('\n');
       Write('\n');
@@ -500,17 +510,17 @@ GoWriter &GoWriter::Write(const ast::Enum &value) {
     for (const auto &dependency : value.type_dependencies) {
       const auto &dependency_name = dependency.name.GetString();
       std::string dependency_type = dependency.type_expression.identifier.name.GetString();
-      std::string type_pointer    = "";
+      bool is_pointer             = false;
       if (kPrimitiveTypesMapping.contains(dependency_type)) {
         dependency_type = kPrimitiveTypesMapping.at(dependency_type);
       } else {
-        type_pointer = "*";
+        is_pointer = true;
       }
       if (is_first_argument) {
         is_first_argument = false;
-        Write(dependency_name).Write(' ').Write(type_pointer).Write(dependency_type);
+        Write(dependency_name).Write(' ').Write(is_pointer ? "*" : "").Write(dependency_type);
       } else {
-        Write(", ").Write(dependency_name).Write(' ').Write(type_pointer).Write(dependency_type);
+        Write(", ").Write(dependency_name).Write(' ').Write(is_pointer ? "*" : "").Write(dependency_type);
       }
     }
   }
