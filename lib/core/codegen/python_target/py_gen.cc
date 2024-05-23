@@ -169,7 +169,7 @@ void PyCodeGenerator::prepare_names_types_deps_for_fields(
     names[i] = name;
     types[i] = type;
   }
-  
+
   py_exression_.set_field_names_kit(names);
   for (size_t i = 0; i < dep_size; ++i) {
     std::string var_deps = py_exression_.get_instances(typed_vars[i].type_expression.parameters);

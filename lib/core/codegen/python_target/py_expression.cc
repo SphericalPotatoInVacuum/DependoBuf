@@ -104,7 +104,7 @@ void PyExpression::operator()(const ast::VarAccess &var_acc) {
   if (field_names_kit_.contains(var_name)) {
     buf_ << "self.";
   }
-  
+
   buf_ << var_acc;
 }
 

@@ -56,8 +56,8 @@ INSTANTIATE_TEST_SUITE_P(
     PythonCharacterByCharacterCheck,
     PyGenerationTest,
     testing::Values(
-        "/message_all_basic_types",
-        "/enum_binary_tree",
-        "/field_with_deps",
-        "/expressions_as_deps",
+        "/messages_all_basic_types",
+        "/enums",
+        "/fields_with_dependencies",
+        "/expressions_as_dependencies",
         "/complex_enums"));
