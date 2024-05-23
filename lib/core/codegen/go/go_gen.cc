@@ -68,8 +68,8 @@ std::string GetIndent(std::size_t count) {
 
 class GoWriter {
 public:
-  GoWriter(std::shared_ptr<std::ofstream> output)
-      : output_(output) {}
+  explicit GoWriter(std::shared_ptr<std::ofstream> output)
+      : output_(std::move(output)) {}
 
   void SaveConstructorMappings(const ast::Message &value);
   void SaveConstructorMappings(const ast::Enum &value);
