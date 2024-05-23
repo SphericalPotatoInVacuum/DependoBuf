@@ -235,6 +235,10 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
   Write('\n');
   Write("type ").Write(message_name).Write(" struct {").Write('\n');
   if (!value.type_dependencies.empty()) {
+    std::size_t max_name_size = 0;
+    for (const auto &dependency : value.type_dependencies) {
+      max_name_size = std::max(max_name_size, dependency.name.GetString().size());
+    }
     for (const auto &dependency : value.type_dependencies) {
       const auto &dependency_name = dependency.name.GetString();
       std::string dependency_type = dependency.type_expression.identifier.name.GetString();
@@ -244,9 +248,10 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
       } else {
         is_pointer = true;
       }
+      const std::string type_shift = std::string(max_name_size - dependency_name.size() + 1, ' ');
       Write(GetIndent(1))
           .Write(dependency_name)
-          .Write(' ')
+          .Write(type_shift)
           .Write(is_pointer ? "*" : "")
           .Write(dependency_type)
           .Write('\n');
@@ -254,6 +259,10 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
     if (!value.fields.empty()) {
       Write('\n');
     }
+  }
+  std::size_t max_name_size = 0;
+  for (const auto &field : value.fields) {
+    max_name_size = std::max(max_name_size, field.name.GetString().size());
   }
   for (const auto &field : value.fields) {
     const std::string field_name = GetExportName(field.name.GetString());
@@ -264,7 +273,8 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
     } else {
       is_pointer = true;
     }
-    Write(GetIndent(1)).Write(field_name).Write(' ').Write(is_pointer ? "*" : "").Write(field_type).Write('\n');
+    const std::string type_shift = std::string(max_name_size - field_name.size() + 1, ' ');
+    Write(GetIndent(1)).Write(field_name).Write(type_shift).Write(is_pointer ? "*" : "").Write(field_type).Write('\n');
   }
   Write('}').Write('\n');
   Write('\n');
@@ -306,12 +316,12 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
   Write('}').Write('\n');
   Write('\n');
   // generate Validate
-  Write("func(obj *").Write(message_name).Write(") Validate() bool {").Write('\n');
+  Write("func (obj *").Write(message_name).Write(") Validate() bool {").Write('\n');
   for (const auto &dependency : value.type_dependencies) {
     if (dependency.type_expression.parameters.empty()) {
       continue;
     }
-    Write(GetIndent(1)).Write("if (");
+    Write(GetIndent(1)).Write("if ");
     bool is_first_condition = true;
     for (std::size_t i = 0; i < dependency.type_expression.parameters.size(); ++i) {
       const auto &type_parameter = *dependency.type_expression.parameters[i];
@@ -322,10 +332,12 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
       }
       const auto &dependency_type = dependency.type_expression.identifier.name;
       bool is_enum_constructor    = false;
+      bool needs_braces           = false;
       if (std::holds_alternative<ast::Value>(type_parameter)) {
         const auto &temp_value = std::get<ast::Value>(type_parameter);
         if (std::holds_alternative<ast::ConstructedValue>(temp_value)) {
           const auto &constructed_value = std::get<ast::ConstructedValue>(temp_value);
+          needs_braces                  = true;
           if (constructor_mapping_.contains(constructed_value.constructor_identifier.name)) {
             const auto &enum_type = constructor_mapping_.at(constructed_value.constructor_identifier.name);
             is_enum_constructor   = true;
@@ -340,33 +352,36 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
                 .Write(dependency_names_.at(dependency_type)[i])
                 .Write(')');
             Write(" || ")
-                .Write("obj.")
+                .Write("(obj.")
                 .Write(go_variable_names_.at(dependency.name))
                 .Write('.')
                 .Write(dependency_names_.at(dependency_type)[i])
                 .Write(".InternalValue.(*")
                 .Write(constructed_value.constructor_identifier.name)
                 .Write(") != ")
-                .Write(constructed_value);
+                .Write(constructed_value)
+                .Write(")");
           }
         }
       }
       if (!is_enum_constructor) {
-        Write("obj.")
+        Write(needs_braces ? "(" : "")
+            .Write("obj.")
             .Write(go_variable_names_.at(dependency.name))
             .Write('.')
             .Write(dependency_names_.at(dependency_type)[i])
             .Write(" != ");
         std::visit([this](const auto &parameter) { Write(parameter); }, type_parameter);
+        Write(needs_braces ? ")" : "");
       }
     }
-    Write(") {").Write('\n');
+    Write(" {").Write('\n');
     Write(GetIndent(2)).Write("return false").Write('\n');
     Write(GetIndent(1)).Write('}').Write('\n');
     Write(GetIndent(1))
-        .Write("if (!obj.")
+        .Write("if !obj.")
         .Write(go_variable_names_.at(dependency.name))
-        .Write(".Validate()) {")
+        .Write(".Validate() {")
         .Write('\n');
     Write(GetIndent(2)).Write("return false").Write('\n');
     Write(GetIndent(1)).Write('}').Write('\n');
@@ -375,7 +390,7 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
     if (field.type_expression.parameters.empty()) {
       continue;
     }
-    Write(GetIndent(1)).Write("if (");
+    Write(GetIndent(1)).Write("if ");
     bool is_first_condition = true;
     for (std::size_t i = 0; i < field.type_expression.parameters.size(); ++i) {
       const auto &type_parameter = *field.type_expression.parameters[i];
@@ -386,10 +401,12 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
       }
       const auto &field_type   = field.type_expression.identifier.name;
       bool is_enum_constructor = false;
+      bool needs_braces        = false;
       if (std::holds_alternative<ast::Value>(type_parameter)) {
         const auto &temp_value = std::get<ast::Value>(type_parameter);
         if (std::holds_alternative<ast::ConstructedValue>(temp_value)) {
           const auto &constructed_value = std::get<ast::ConstructedValue>(temp_value);
+          needs_braces                  = true;
           if (constructor_mapping_.contains(constructed_value.constructor_identifier.name)) {
             const auto &enum_type = constructor_mapping_.at(constructed_value.constructor_identifier.name);
             is_enum_constructor   = true;
@@ -404,30 +421,33 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
                 .Write(dependency_names_.at(field_type)[i])
                 .Write(')');
             Write(" || ")
-                .Write("obj.")
+                .Write("(obj.")
                 .Write(go_variable_names_.at(field.name))
                 .Write('.')
                 .Write(dependency_names_.at(field_type)[i])
                 .Write(".InternalValue.(*")
                 .Write(constructed_value.constructor_identifier.name)
                 .Write(") != ")
-                .Write(constructed_value);
+                .Write(constructed_value)
+                .Write(")");
           }
         }
       }
       if (!is_enum_constructor) {
-        Write("obj.")
+        Write(needs_braces ? "(" : "")
+            .Write("obj.")
             .Write(go_variable_names_.at(field.name))
             .Write('.')
             .Write(dependency_names_.at(field_type)[i])
             .Write(" != ");
         std::visit([this](const auto &parameter) { Write(parameter); }, type_parameter);
+        Write(needs_braces ? ")" : "");
       }
     }
-    Write(") {").Write('\n');
+    Write(" {").Write('\n');
     Write(GetIndent(2)).Write("return false").Write('\n');
     Write(GetIndent(1)).Write('}').Write('\n');
-    Write(GetIndent(1)).Write("if (!obj.").Write(go_variable_names_.at(field.name)).Write(".Validate()) {").Write('\n');
+    Write(GetIndent(1)).Write("if !obj.").Write(go_variable_names_.at(field.name)).Write(".Validate() {").Write('\n');
     Write(GetIndent(2)).Write("return false").Write('\n');
     Write(GetIndent(1)).Write('}').Write('\n');
   }
@@ -567,7 +587,7 @@ GoWriter &GoWriter::Write(const ast::Enum &value) {
   Write('}').Write('\n');
   Write('\n');
   // generate Validate
-  Write("func(obj *").Write(enum_name).Write(") Validate() bool {").Write('\n');
+  Write("func (obj *").Write(enum_name).Write(") Validate() bool {").Write('\n');
   Write(GetIndent(1)).Write("return true").Write('\n');
   Write('}').Write('\n');
   return *this;
