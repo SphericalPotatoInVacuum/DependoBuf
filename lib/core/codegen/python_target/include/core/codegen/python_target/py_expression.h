@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
 namespace dbuf::gen {
 
@@ -10,6 +11,10 @@ public:
   PyExpression() = default;
 
   void set_constructor_type_map(const std::unordered_map<InternedString, InternedString> &constructor_to_type);
+
+  void set_field_names_kit(const std::vector<std::string> &field_names);
+
+  void clear_field_names_kit();
 
   std::string get_instances(const std::vector<std::shared_ptr<const ast::Expression>> &expressions);
 
@@ -47,13 +52,15 @@ private:
 
   bool need_brackets_ = false;
 
+  std::shared_ptr<const std::unordered_map<InternedString, InternedString>> constructor_to_type_ = nullptr;
+
+  std::unordered_set<std::string> field_names_kit_;
+
   static const std::unordered_map<char, std::string> kBinaryOperations;
 
   static const std::unordered_map<char, std::string> kUnaryOperations;
 
   static const std::unordered_map<bool, std::string> kBoolValues;
-
-  std::shared_ptr<const std::unordered_map<InternedString, InternedString>> constructor_to_type_ = nullptr;
 };
 
 } // namespace dbuf::gen

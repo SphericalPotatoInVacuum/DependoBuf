@@ -2,11 +2,9 @@
 
 #include "core/codegen/python_target/utils.h"
 
-#include <iostream>
 #include <memory>
 #include <sstream>
 #include <unordered_map>
-#include <vector>
 
 namespace dbuf::gen {
 
@@ -88,10 +86,11 @@ void PyPrinter::print_def_check_message(
   bool fields_with_deps = false;
   for (int i = 0; i < field_names.size(); ++i) {
     if (!tuple_is_empty(field_deps[i])) {
-      fields_with_deps = true;
-      if (i != 0) {
+      if (fields_with_deps) {
         print_line();
       }
+
+      fields_with_deps = true;
       print_var_deps(field_names[i], field_deps[i], level);
       std::vector<std::string> tokens = {"self.", field_names[i], ".check(*", field_names[i], "_deps)"};
       print_line(tokens, level);

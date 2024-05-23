@@ -66,13 +66,13 @@ class Color:
 
 class House:
     @dataclass
-    class __RedHouse:
+    class __GreenHouse:
         address: str
 
         def check(self, s: str, col: Color.color_type) -> None:
             if type(self) not in House._possible_types(s, col):
                 raise DbufError(
-                    'Type House.__RedHouse does not match given dependencies.'
+                    'Type House.__GreenHouse does not match given dependencies.'
                 )
 
     @dataclass
@@ -91,14 +91,14 @@ class House:
                     'Type House.__DefaultHouse2 does not match given dependencies.'
                 )
 
-    house_type = __RedHouse | __DefaultHouse | __DefaultHouse2
+    house_type = __GreenHouse | __DefaultHouse | __DefaultHouse2
 
     @classmethod
     def _possible_types(cls, s: str, col: Color.color_type) -> set[type]:
         actual = (s, col, )
         expected = ('green', Color._Color__Green(12), )
         if _is_consistent(actual, expected):
-            return {cls.__RedHouse}
+            return {cls.__GreenHouse}
 
         expected = (None, None, )
         if _is_consistent(actual, expected):
@@ -112,8 +112,8 @@ class House:
 
         self.dependencies = (s, col, )
 
-    def red_house(self, address: str) -> __RedHouse:
-        obj = self.__RedHouse(address)
+    def green_house(self, address: str) -> __GreenHouse:
+        obj = self.__GreenHouse(address)
         obj.check(*self.dependencies)
         return obj
 

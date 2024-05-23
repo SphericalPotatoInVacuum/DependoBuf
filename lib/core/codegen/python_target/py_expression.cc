@@ -3,14 +3,20 @@
 #include "core/ast/ast.h"
 #include "core/codegen/python_target/utils.h"
 
-#include <string>
-
 namespace dbuf::gen {
 
 void PyExpression::set_constructor_type_map(
     const std::unordered_map<InternedString, InternedString> &constructor_to_type) {
   constructor_to_type_ =
       std::make_shared<const std::unordered_map<InternedString, InternedString>>(constructor_to_type);
+}
+
+void PyExpression::set_field_names_kit(const std::vector<std::string> &field_names) {
+  field_names_kit_ = std::unordered_set<std::string>(field_names.begin(), field_names.end());
+}
+
+void PyExpression::clear_field_names_kit() {
+  field_names_kit_.clear();
 }
 
 std::string PyExpression::get_instances(const std::vector<std::shared_ptr<const ast::Expression>> &expressions) {
@@ -94,6 +100,11 @@ void PyExpression::operator()(const ast::Value &val) {
 }
 
 void PyExpression::operator()(const ast::VarAccess &var_acc) {
+  const std::string &var_name = var_acc.var_identifier.name.GetString();
+  if (field_names_kit_.contains(var_name)) {
+    buf_ << "self.";
+  }
+  
   buf_ << var_acc;
 }
 

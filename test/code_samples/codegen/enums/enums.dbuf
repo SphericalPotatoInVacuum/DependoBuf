@@ -1,10 +1,16 @@
+enum Nat {
+  Zero {}
+  Succ {
+    prev Nat;
+  }
+}
+
 enum TreeH (h Int) {
   0 => {
     Leaf {
       val Int;
     }
   }
-
   * => {
     TreeNode {
       val Int;

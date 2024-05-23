@@ -58,42 +58,60 @@ class Nat:
         return obj
 
 
-class SomeMessage:
+class TreeH:
     @dataclass
-    class __SomeMessage:
-        x: int
-        y: int
+    class __Leaf:
+        val: int
 
-        def check(self, nat: Nat.nat_type) -> None:
-            pass
+        def check(self, h: int) -> None:
+            if type(self) not in TreeH._possible_types(h):
+                raise DbufError(
+                    'Type TreeH.__Leaf does not match given dependencies.'
+                )
 
-    some_message_type = __SomeMessage
+    @dataclass
+    class __TreeNode:
+        val: int
+        left: TreeH.tree_h_type
+        right: TreeH.tree_h_type
 
-    def __init__(self, nat: Nat.nat_type) -> None:
-        self.dependencies = (nat, )
+        def check(self, h: int) -> None:
+            if type(self) not in TreeH._possible_types(h):
+                raise DbufError(
+                    'Type TreeH.__TreeNode does not match given dependencies.'
+                )
 
-    def construct(self, x: int, y: int) -> __SomeMessage:
-        obj = self.__SomeMessage(x, y)
+            left_deps = (h - 1, )
+            self.left.check(*left_deps)
+
+            right_deps = (h - 1, )
+            self.right.check(*right_deps)
+
+    tree_h_type = __Leaf | __TreeNode
+
+    @classmethod
+    def _possible_types(cls, h: int) -> set[type]:
+        actual = (h, )
+        expected = (0, )
+        if _is_consistent(actual, expected):
+            return {cls.__Leaf}
+
+        expected = (None, )
+        if _is_consistent(actual, expected):
+            return {cls.__TreeNode}
+
+        return {}
+
+    def __init__(self, h: int) -> None:
+        self.dependencies = (h, )
+
+    def leaf(self, val: int) -> __Leaf:
+        obj = self.__Leaf(val)
         obj.check(*self.dependencies)
         return obj
 
-
-class AnotherMessage:
-    @dataclass
-    class __AnotherMessage:
-        sm: SomeMessage.some_message_type
-
-        def check(self) -> None:
-            sm_deps = (Nat._Nat__Zero(), )
-            self.sm.check(*sm_deps)
-
-    another_message_type = __AnotherMessage
-
-    def __init__(self) -> None:
-        self.dependencies = ()
-
-    def construct(self, sm: SomeMessage.some_message_type) -> __AnotherMessage:
-        obj = self.__AnotherMessage(sm)
+    def tree_node(self, val: int, left: TreeH.tree_h_type, right: TreeH.tree_h_type) -> __TreeNode:
+        obj = self.__TreeNode(val, left, right)
         obj.check(*self.dependencies)
         return obj
 

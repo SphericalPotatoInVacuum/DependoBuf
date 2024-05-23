@@ -13,7 +13,7 @@ enum Color (s String) {
 
 enum House (s String) (col Color "green") {
   "green", Green {g: 12} => {
-    RedHouse {
+    GreenHouse {
       address String;
     }
   }
