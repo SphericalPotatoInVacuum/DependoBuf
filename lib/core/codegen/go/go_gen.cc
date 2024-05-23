@@ -316,7 +316,7 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
   Write('}').Write('\n');
   Write('\n');
   // generate Validate
-  Write("func (obj *").Write(message_name).Write(") Validate() bool {").Write('\n');
+  Write("func (obj *").Write(message_name).Write(") Validate() error {").Write('\n');
   for (const auto &dependency : value.type_dependencies) {
     if (dependency.type_expression.parameters.empty()) {
       continue;
@@ -376,14 +376,20 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
       }
     }
     Write(" {").Write('\n');
-    Write(GetIndent(2)).Write("return false").Write('\n');
+    Write(GetIndent(2))
+        .Write("return errors.New(\"message ")
+        .Write(message_name)
+        .Write(" does not contain valid dependency type for ")
+        .Write(go_variable_names_.at(dependency.name))
+        .Write("\")")
+        .Write('\n');
     Write(GetIndent(1)).Write('}').Write('\n');
     Write(GetIndent(1))
-        .Write("if !obj.")
+        .Write("if err := obj.")
         .Write(go_variable_names_.at(dependency.name))
-        .Write(".Validate() {")
+        .Write(".Validate(); err != nil {")
         .Write('\n');
-    Write(GetIndent(2)).Write("return false").Write('\n');
+    Write(GetIndent(2)).Write("return err").Write('\n');
     Write(GetIndent(1)).Write('}').Write('\n');
   }
   for (const auto &field : value.fields) {
@@ -445,13 +451,23 @@ GoWriter &GoWriter::Write(const ast::Message &value) {
       }
     }
     Write(" {").Write('\n');
-    Write(GetIndent(2)).Write("return false").Write('\n');
+    Write(GetIndent(2))
+        .Write("return errors.New(\"message ")
+        .Write(message_name)
+        .Write(" does not contain valid dependency type for ")
+        .Write(go_variable_names_.at(field.name))
+        .Write("\")")
+        .Write('\n');
     Write(GetIndent(1)).Write('}').Write('\n');
-    Write(GetIndent(1)).Write("if !obj.").Write(go_variable_names_.at(field.name)).Write(".Validate() {").Write('\n');
-    Write(GetIndent(2)).Write("return false").Write('\n');
+    Write(GetIndent(1))
+        .Write("if err := obj.")
+        .Write(go_variable_names_.at(field.name))
+        .Write(".Validate(); err != nil {")
+        .Write('\n');
+    Write(GetIndent(2)).Write("return err").Write('\n');
     Write(GetIndent(1)).Write('}').Write('\n');
   }
-  Write(GetIndent(1)).Write("return true").Write('\n');
+  Write(GetIndent(1)).Write("return nil").Write('\n');
   Write('}').Write('\n');
   return *this;
 }
@@ -538,10 +554,10 @@ GoWriter &GoWriter::Write(const ast::Enum &value) {
       }
       if (is_first_argument) {
         is_first_argument = false;
-        Write(dependency_name).Write(' ').Write(is_pointer ? "*" : "").Write(dependency_type);
       } else {
-        Write(", ").Write(dependency_name).Write(' ').Write(is_pointer ? "*" : "").Write(dependency_type);
+        Write(", ");
       }
+      Write(dependency_name).Write(' ').Write(is_pointer ? "*" : "").Write(dependency_type);
     }
   }
   Write(") *").Write(enum_name).Write(" {").Write('\n');
@@ -587,8 +603,8 @@ GoWriter &GoWriter::Write(const ast::Enum &value) {
   Write('}').Write('\n');
   Write('\n');
   // generate Validate
-  Write("func (obj *").Write(enum_name).Write(") Validate() bool {").Write('\n');
-  Write(GetIndent(1)).Write("return true").Write('\n');
+  Write("func (obj *").Write(enum_name).Write(") Validate() error {").Write('\n');
+  Write(GetIndent(1)).Write("return nil").Write('\n');
   Write('}').Write('\n');
   return *this;
 }
@@ -601,14 +617,23 @@ void GoCodeGenerator::Generate(ast::AST *tree) {
   writer.Write("package ").Write(kDefaultPackageName).Write('\n').Write('\n');
   writer.Write("// ").Write(kDoNotEdit).Write('\n');
 
+  bool require_errors = false;
+
   for (const auto &item : tree->visit_order) {
     const auto &variant = tree->types.at(item);
     std::visit(
-        [&writer, &item](const auto &entity) {
+        [&writer, &item, &require_errors](const auto &entity) {
           writer.SaveConstructorMappings(entity);
           writer.SaveDependencyNames(item, entity);
+          if (!entity.type_dependencies.empty()) {
+            require_errors = true;
+          }
         },
         variant);
+  }
+
+  if (require_errors) {
+    writer.Write('\n').Write("import ").Write(std::quoted("errors")).Write('\n');
   }
 
   for (const auto &item : tree->visit_order) {
