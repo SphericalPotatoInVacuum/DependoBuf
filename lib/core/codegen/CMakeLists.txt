@@ -1,6 +1,8 @@
+add_subdirectory(go)
 add_library(codegen STATIC
   generation.cc
   cpp_gen.cc
+  go/go_gen.cc
 )
 target_include_directories(codegen PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}

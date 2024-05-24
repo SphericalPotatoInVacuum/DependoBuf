@@ -1,0 +1,11 @@
+message A (n Int) {
+    value Int;
+}
+
+message B (a A 5) {
+    i Int;
+    dependent A i;
+}
+
+message C (a A 5) (b B a) {
+}
