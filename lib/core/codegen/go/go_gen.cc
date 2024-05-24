@@ -662,7 +662,6 @@ GoWriter &GoWriter::Write(const ast::Enum &value) {
       Write("true");
     }
     Write(" {").Write('\n');
-    // Write(GetIndent(2)).Write("return errors.New(")
     Write(GetIndent(2)).Write("if ");
     is_first_condition = true;
     for (const auto &constructor : pattern.outputs) {

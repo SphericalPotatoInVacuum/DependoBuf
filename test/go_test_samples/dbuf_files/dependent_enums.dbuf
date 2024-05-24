@@ -1,0 +1,23 @@
+enum SimpleEnum {
+    Constructor1 {
+        value1 Bool;
+    }
+    Constructor2 {
+        value2 Int;
+    }
+}
+
+enum DependentEnum (n Int) {
+    5 => {
+        Constructor3 {
+            value3 String;
+        }
+    }
+    * => {
+        Nil
+    }
+}
+
+message M (d DependentEnum 5) {
+    s SimpleEnum;
+}

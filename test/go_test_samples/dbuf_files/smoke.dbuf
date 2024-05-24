@@ -1,0 +1,4 @@
+message A {
+    n Int;
+    s String;
+}
