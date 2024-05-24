@@ -604,6 +604,85 @@ GoWriter &GoWriter::Write(const ast::Enum &value) {
   Write('\n');
   // generate Validate
   Write("func (obj *").Write(enum_name).Write(") Validate() error {").Write('\n');
+  for (const auto &pattern : value.pattern_mapping) {
+    Write(GetIndent(1)).Write("if ");
+    bool all_stars          = true;
+    bool is_first_condition = true;
+    for (std::size_t i = 0; i < pattern.inputs.size(); ++i) {
+      if (std::holds_alternative<ast::Star>(pattern.inputs[i])) {
+        continue;
+      }
+      if (is_first_condition) {
+        is_first_condition = false;
+      } else {
+        Write(" && ");
+      }
+      all_stars = false;
+
+      const auto &input_value = std::get<ast::Value>(pattern.inputs[i]);
+
+      const auto &dependency      = value.type_dependencies[i];
+      const auto &dependency_type = dependency.type_expression.identifier.name;
+      bool is_enum_constructor    = false;
+      bool needs_braces           = false;
+      if (std::holds_alternative<ast::ConstructedValue>(input_value)) {
+        const auto &constructed_value = std::get<ast::ConstructedValue>(input_value);
+        needs_braces                  = true;
+        if (constructor_mapping_.contains(constructed_value.constructor_identifier.name)) {
+          const auto &enum_type = constructor_mapping_.at(constructed_value.constructor_identifier.name);
+          is_enum_constructor   = true;
+          Write("HasValue")
+              .Write(enum_type)
+              .Write('[')
+              .Write(constructed_value.constructor_identifier.name)
+              .Write("](")
+              .Write("obj.")
+              .Write(go_variable_names_.at(dependency.name))
+              .Write(')');
+          Write(" && ")
+              .Write("(obj.")
+              .Write(go_variable_names_.at(dependency.name))
+              .Write(".InternalValue.(")
+              .Write(constructed_value.constructor_identifier.name)
+              .Write(") == ")
+              .Write(constructed_value)
+              .Write(")");
+        }
+      }
+      if (!is_enum_constructor) {
+        Write(needs_braces ? "(" : "")
+            .Write("obj.")
+            .Write(go_variable_names_.at(dependency.name))
+            .Write(" == ")
+            .Write(input_value)
+            .Write(needs_braces ? ")" : "");
+      }
+    }
+    if (all_stars) {
+      Write("true");
+    }
+    Write(" {").Write('\n');
+    // Write(GetIndent(2)).Write("return errors.New(")
+    Write(GetIndent(2)).Write("if ");
+    is_first_condition = true;
+    for (const auto &constructor : pattern.outputs) {
+      if (is_first_condition) {
+        is_first_condition = false;
+      } else {
+        Write(" || ");
+      }
+      Write("HasValue").Write(enum_name).Write('[').Write(constructor.identifier.name).Write("](obj)");
+    }
+    Write(" {").Write('\n');
+    Write(GetIndent(3)).Write("return nil").Write('\n');
+    Write(GetIndent(2)).Write("}").Write('\n');
+    Write(GetIndent(2))
+        .Write("return errors.New(\"enum ")
+        .Write(enum_name)
+        .Write(" does not contain any valid constructor\")")
+        .Write('\n');
+    Write(GetIndent(1)).Write("}").Write('\n');
+  }
   Write(GetIndent(1)).Write("return nil").Write('\n');
   Write('}').Write('\n');
   return *this;
