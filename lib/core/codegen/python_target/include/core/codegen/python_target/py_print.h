@@ -29,6 +29,7 @@ public:
       const std::vector<std::string> &dep_types,
       const std::vector<std::string> &field_names,
       const std::vector<std::string> &field_deps,
+      const std::vector<bool> &field_need_ignores,
       int level = 2);
 
   void print_def_check_enum(
@@ -36,6 +37,7 @@ public:
       const std::vector<std::string> &dep_types,
       const std::vector<std::string> &field_names,
       const std::vector<std::string> &field_deps,
+      const std::vector<bool> &field_need_ignores,
       const std::string &struct_name,
       const std::string &constructor_name,
       int level = 2);
@@ -46,6 +48,7 @@ public:
       const std::vector<std::string> &names,
       const std::vector<std::string> &types,
       const std::vector<std::string> &expected_params_matrix,
+      const std::vector<bool> &expected_need_ignores,
       const std::vector<std::vector<std::string>> &possible_types_matrix,
       int level = 1);
 
@@ -53,6 +56,7 @@ public:
       const std::vector<std::string> &names,
       const std::vector<std::string> &types,
       const std::vector<std::string> &deps,
+      const std::vector<bool> &dep_need_ignores,
       int level = 1);
 
   void print_method_construct(
@@ -109,9 +113,9 @@ private:
       const std::vector<std::string> &types,
       int level);
 
-  void print_var_deps(const std::string &dep_name, const std::string &deps, int level);
+  void print_var_deps(const std::string &dep_name, const std::string &deps, bool need_ignores, int level);
 
-  void print_consistency_check(const std::string &expected, const std::vector<std::string> &types, int level);
+  void print_consistency_check(const std::string &expected, const std::vector<std::string> &types, bool need_ignores, int level);
 
   void print_dbuf_error();
 

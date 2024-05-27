@@ -16,6 +16,8 @@ public:
 
   void clear_field_names_kit();
 
+  bool does_need_ignores();
+
   std::string get_instances(const std::vector<std::shared_ptr<const ast::Expression>> &expressions);
 
   std::string get_instances(const std::vector<std::variant<ast::Value, ast::Star>> &expressions);
@@ -51,6 +53,8 @@ private:
   std::stringstream buf_;
 
   bool need_brackets_ = false;
+
+  bool need_ignores_;
 
   std::shared_ptr<const std::unordered_map<InternedString, InternedString>> constructor_to_type_ = nullptr;
 

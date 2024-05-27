@@ -77,6 +77,7 @@ void PyPrinter::print_def_check_message(
     const std::vector<std::string> &dep_types,
     const std::vector<std::string> &field_names,
     const std::vector<std::string> &field_deps,
+    const std::vector<bool> &field_need_ignores,
     int level) {
   // def check(self, x: int, y: float, z: str) -> None:
   std::string def_name = "check";
@@ -91,7 +92,7 @@ void PyPrinter::print_def_check_message(
       }
 
       fields_with_deps = true;
-      print_var_deps(field_names[i], field_deps[i], level);
+      print_var_deps(field_names[i], field_deps[i], field_need_ignores[i], level);
       std::vector<std::string> tokens = {"self.", field_names[i], ".check(*", field_names[i], "_deps)"};
       print_line(tokens, level);
     }
@@ -107,6 +108,7 @@ void PyPrinter::print_def_check_enum(
     const std::vector<std::string> &dep_types,
     const std::vector<std::string> &field_names,
     const std::vector<std::string> &field_deps,
+    const std::vector<bool> &field_need_ignores,
     const std::string &struct_name,
     const std::string &constructor_name,
     int level) {
@@ -121,7 +123,7 @@ void PyPrinter::print_def_check_enum(
   print_line(tokens, level);
   level++;
 
-  print_line({"raise DbufError("}, level++);
+  print_line({"raise _DbufError("}, level++);
   std::string type_name                  = struct_name + ".__" + constructor_name;
   std::vector<std::string> error_message = {"'Type ", type_name, " does not match given dependencies.'"};
   print_line(error_message, level--);
@@ -130,7 +132,7 @@ void PyPrinter::print_def_check_enum(
   for (int i = 0; i < field_names.size(); ++i) {
     if (!tuple_is_empty(field_deps[i])) {
       print_line();
-      print_var_deps(field_names[i], field_deps[i], level);
+      print_var_deps(field_names[i], field_deps[i], field_need_ignores[i], level);
       std::vector<std::string> tokens = {"self.", field_names[i], ".check(*", field_names[i], "_deps)"};
       print_line(tokens, level);
     }
@@ -138,26 +140,25 @@ void PyPrinter::print_def_check_enum(
 }
 
 void PyPrinter::print_type(const std::string &struct_name, const std::vector<std::string> &inner_types, int level) {
-  // some_enam_type = __Nil | __Succ
+  // some_enam_type: TypeAlias = __Nil | __Succ
   print_line();
 
-  std::stringstream left;
-  left << camel_to_snake(struct_name) << "_type";
-
-  std::stringstream right;
-  right << "__" << inner_types[0];
+  std::stringstream buf;
+  buf << camel_to_snake(struct_name) << "_type: TypeAlias" << " = ";
+  buf << "__" << inner_types[0];
 
   std::string sep = " | ";
   for (int i = 1; i < inner_types.size(); ++i) {
-    right << sep << "__" << inner_types[i];
+    buf << sep << "__" << inner_types[i];
   }
-  print_line({left.str(), " = ", right.str()}, level);
+  print_line({buf.str()}, level);
 }
 
 void PyPrinter::print_def_possible_types(
     const std::vector<std::string> &names,
     const std::vector<std::string> &types,
     const std::vector<std::string> &expected_params_matrix,
+    const std::vector<bool> &expected_need_ignores,
     const std::vector<std::vector<std::string>> &possible_types_matrix,
     int level) {
   std::string res_type = "set[type]";
@@ -173,16 +174,17 @@ void PyPrinter::print_def_possible_types(
   print_line({"actual = ", py_tuple(names)}, level);
 
   for (int i = 0; i < expected_params_matrix.size(); ++i) {
-    print_consistency_check(expected_params_matrix[i], possible_types_matrix[i], level);
+    print_consistency_check(expected_params_matrix[i], possible_types_matrix[i], expected_need_ignores[i], level);
   }
 
-  print_line({"return {}"}, level);
+  print_line({"return set()"}, level);
 }
 
 void PyPrinter::print_def_init(
     const std::vector<std::string> &names,
     const std::vector<std::string> &types,
     const std::vector<std::string> &deps,
+    const std::vector<bool> &dep_need_ignores,
     int level) {
   std::string def_name = "__init__";
 
@@ -195,7 +197,7 @@ void PyPrinter::print_def_init(
   // x.check(*x_deps)
   for (int i = 0; i < names.size(); ++i) {
     if (!tuple_is_empty(deps[i])) {
-      print_var_deps(names[i], deps[i], level);
+      print_var_deps(names[i], deps[i], dep_need_ignores[i], level);
       std::vector<std::string> tokens = {names[i], ".check(*", names[i], "_deps)"};
       print_line(tokens, level);
       print_line();
@@ -301,13 +303,17 @@ void PyPrinter::print_constructor(
   print_line({"return obj"}, level);
 }
 
-void PyPrinter::print_var_deps(const std::string &dep_name, const std::string &deps, int level) {
+void PyPrinter::print_var_deps(const std::string &dep_name, const std::string &deps, bool need_ignores, int level) {
   // __k_deps = ()
   std::vector<std::string> tokens = {dep_name, "_deps = ", deps};
+  if (need_ignores) {
+    tokens.emplace_back("  # type: ignore[attr-defined]");
+  }
+
   print_line(tokens, level);
 }
 
-void PyPrinter::print_consistency_check(const std::string &expected, const std::vector<std::string> &types, int level) {
+void PyPrinter::print_consistency_check(const std::string &expected, const std::vector<std::string> &types, bool need_ignores, int level) {
   std::vector<std::string> return_set = {"return {"};
   std::string sep                     = ", ";
   for (int i = 0; i < types.size(); ++i) {
@@ -319,7 +325,12 @@ void PyPrinter::print_consistency_check(const std::string &expected, const std::
   }
   return_set.emplace_back("}");
 
-  print_line({"expected = ", expected}, level);
+  if (need_ignores) {
+    print_line({"expected = ", expected, "  # type: ignore[attr-defined, assignment]"}, level);
+  } else {
+    print_line({"expected = ", expected}, level);
+  }
+  
   print_line({"if _is_consistent(actual, expected):"}, level++);
   print_line(return_set, level);
   print_line();
@@ -328,7 +339,7 @@ void PyPrinter::print_consistency_check(const std::string &expected, const std::
 void PyPrinter::print_dbuf_error() {
   print_line();
   print_line();
-  print_line({"class DbufError(TypeError):"});
+  print_line({"class _DbufError(TypeError):"});
   print_line({"pass"}, 1);
 }
 
@@ -340,7 +351,7 @@ const std::string PyPrinter::kImports = "\n"
                                         "\n"
                                         "from annotated_types import Ge\n"
                                         "from dataclasses import dataclass\n"
-                                        "from typing import Annotated\n";
+                                        "from typing import Annotated, TypeAlias\n";
 
 const std::string PyPrinter::kCreateUnsigned = "\n"
                                                "Unsigned = Annotated[int, Ge(0)]\n";

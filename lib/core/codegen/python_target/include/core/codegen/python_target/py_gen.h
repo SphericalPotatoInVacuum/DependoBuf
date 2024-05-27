@@ -23,13 +23,15 @@ private:
       const std::vector<ast::TypedVariable> &typed_vars,
       std::vector<std::string> &names,
       std::vector<std::string> &types,
-      std::vector<std::string> &deps);
+      std::vector<std::string> &deps,
+      std::vector<bool> &need_ignores);
 
   void prepare_names_types_deps_for_fields(
       const std::vector<ast::TypedVariable> &typed_vars,
       std::vector<std::string> &names,
       std::vector<std::string> &types,
-      std::vector<std::string> &deps);
+      std::vector<std::string> &deps,
+      std::vector<bool> &need_ignores);
 
   PyPrinter printer_;
 

@@ -38,11 +38,11 @@ class Discriminated:
     @classmethod
     def _possible_types(cls, b: bool) -> set[type]:
         actual = (b, )
-        expected = (True, )
+        expected = (True, )  # type: ignore[attr-defined, assignment]
         if _is_consistent(actual, expected):
             return {cls.__Good}
 
-        expected = (False, )
+        expected = (False, )  # type: ignore[attr-defined, assignment]
         if _is_consistent(actual, expected):
             return {cls.__Bad}
 

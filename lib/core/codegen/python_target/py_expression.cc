@@ -19,7 +19,13 @@ void PyExpression::clear_field_names_kit() {
   field_names_kit_.clear();
 }
 
+bool PyExpression::does_need_ignores() {
+  return need_ignores_;
+}
+
 std::string PyExpression::get_instances(const std::vector<std::shared_ptr<const ast::Expression>> &expressions) {
+  need_ignores_ = false;
+
   (*this)(expressions);
   std::string res = buf_.str();
   buf_.str("");
@@ -27,6 +33,8 @@ std::string PyExpression::get_instances(const std::vector<std::shared_ptr<const 
 }
 
 std::string PyExpression::get_instances(const std::vector<std::variant<ast::Value, ast::Star>> &expressions) {
+  need_ignores_ = false;
+
   (*this)(expressions);
   std::string res = buf_.str();
   buf_.str("");
@@ -131,6 +139,8 @@ void PyExpression::operator()(const ast::ScalarValue<T> &scalar) {
 }
 
 void PyExpression::operator()(const ast::ConstructedValue &constructed) {
+  need_ignores_ = true;
+
   const InternedString &interned_constructor_name = constructed.constructor_identifier.name;
   const std::string &struct_name                  = constructor_to_type_->at(interned_constructor_name).GetString();
   const std::string &constructor_name             = interned_constructor_name.GetString();
@@ -148,6 +158,7 @@ void PyExpression::operator()(const ast::ConstructedValue &constructed) {
 }
 
 void PyExpression::operator()(const ast::Star &) {
+  need_ignores_ = true;
   buf_ << "None";
 }
 
