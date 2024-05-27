@@ -1,0 +1,5 @@
+message User {
+  id Unsigned;
+  name String;
+  surname String;
+}

@@ -27,6 +27,7 @@ struct Z3stuff {
             {{InternedString("Int"), context_.int_sort()},
              {InternedString("Unsigned"), context_.int_sort()},
              {InternedString("Bool"), context_.bool_sort()},
+             {InternedString("Float"), context_.real_sort()},
              {InternedString("String"), context_.string_sort()}}) {}
 
   using NameToSort        = std::unordered_map<InternedString, z3::sort>;        // NameToSort[type_name] = sort

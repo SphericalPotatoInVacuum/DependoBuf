@@ -11,3 +11,14 @@
 build
 .ccache/*
 !.ccache/.gitkeep
+
+# vs code
+.vscode/
+.z3-trace
+
+# vs code python
+__pycache__/
+venv/
+
+# only for dev
+dev_only/

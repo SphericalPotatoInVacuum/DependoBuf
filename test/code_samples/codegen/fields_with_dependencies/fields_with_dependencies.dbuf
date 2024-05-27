@@ -1,0 +1,10 @@
+message Mes1 (n Int) {
+  
+}
+
+message Mes2 {
+  n Int;
+  m1 Mes1 n;
+  m11 Mes1 10;
+}
+

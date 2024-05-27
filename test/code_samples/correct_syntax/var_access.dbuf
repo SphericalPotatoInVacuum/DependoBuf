@@ -1,0 +1,15 @@
+message Zoo (moo Moo) {
+  foo Foo (moo.boo.x + 1u);
+}
+
+message Foo (u Unsigned) {
+
+}
+
+message Moo {
+  boo Boo;
+}
+
+message Boo {
+  x Unsigned;
+}

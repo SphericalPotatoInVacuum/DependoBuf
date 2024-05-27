@@ -1,0 +1,26 @@
+enum X (n Int) (m Int) {
+  0, 0 => {
+    Zero {
+      s String;
+    }
+    Zero2 {
+      
+    }
+  }
+  *, 1 => {
+    One {
+      s String;
+    }
+  }
+  -1, * => {
+    NegativeOne {
+      s String;
+    }
+  }
+  *, * => {
+    Some {
+      s String;
+      s2 String;
+    }
+  }
+}
