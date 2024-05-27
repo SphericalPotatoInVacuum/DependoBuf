@@ -1,5 +1,7 @@
 #include "core/codegen/cpp_gen.h"
 
+#include "glog/logging.h"
+
 #include <fstream>
 #include <sstream>
 #include <unordered_set>
@@ -75,6 +77,7 @@ void CppCodeGenerator::Generate(const ast::AST *tree) {
   };
 
   for (const auto &type : tree->visit_order) {
+    DLOG(INFO) << "Generating cpp struct" << type;
     std::visit(declaration_generator, tree->types.at(type));
     std::visit(*this, tree->types.at(type));
   }
@@ -154,6 +157,7 @@ void CppCodeGenerator::operator()(
           }
         }
         if (std::holds_alternative<ast::Message>(previous_type)) {
+          DLOG(INFO) << "Generating cpp extra message " << new_type_name.str();
           ast::Message new_message;
           new_message.fields            = std::get<ast::Message>(previous_type).fields;
           new_message.type_dependencies = real_dependencies;
@@ -161,6 +165,7 @@ void CppCodeGenerator::operator()(
 
           (*this)(new_message, hidden_dependencies);
         } else if (std::holds_alternative<ast::Enum>(previous_type)) {
+          DLOG(INFO) << "Generating cpp extra enum " << new_type_name.str();
           ast::Enum new_enum;
           new_enum.pattern_mapping   = std::get<ast::Enum>(previous_type).pattern_mapping;
           new_enum.type_dependencies = real_dependencies;
@@ -182,7 +187,7 @@ void CppCodeGenerator::operator()(
     trigger_names.insert(field.name);
   }
 
-  // Generate start (template <...> struct)
+  DLOG(INFO) << "Generating cpp message " << ast_message.identifier.name << " templates";
   if (!ast_message.type_dependencies.empty()) {
     *output_ << "template <";
     PrintVariables(*output_, ast_message.type_dependencies, ", ", true, false, true);
@@ -191,7 +196,7 @@ void CppCodeGenerator::operator()(
 
   *output_ << "struct " << ast_message.identifier.name << " {\n";
 
-  // Generate static class data for constructed values
+  DLOG(INFO) << "Generating cpp message " << ast_message.identifier.name << " static variables";
   for (auto &field : cpp_struct_fields) {
     for (auto &expr : field.type_expression.parameters) {
       if (std::holds_alternative<ast::Value>(*expr)) {
@@ -208,16 +213,16 @@ void CppCodeGenerator::operator()(
       }
     }
   }
-  // Generate meessage fields
+
+  DLOG(INFO) << "Generating cpp message " << ast_message.identifier.name << " fields";
   *output_ << "  ";
   PrintVariables(*output_, cpp_struct_fields, ";\n  ", true, true, false);
 
-  // Generate invariant check
+  DLOG(INFO) << "Generating cpp message " << ast_message.identifier.name << " invariant check";
   *output_ << "bool check(";
   PrintVariables(*output_, checker_input, ", ", true, false, false);
   *output_ << ") const {\n";
 
-  // invariant check body
   *output_ << "    return true";
   for (const auto &[name, expressions] : checker_members) {
     *output_ << " && ";
@@ -232,7 +237,7 @@ void CppCodeGenerator::operator()(
   }
   *output_ << ";\n  }\n";
 
-  // Generate message end
+  DLOG(INFO) << "Generating cpp message " << ast_message.identifier.name << " ending";
   *output_ << "};\n\n";
 }
 
@@ -340,7 +345,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
       }
     }
   };
-  // Generation all his possible cases
+
   for (const auto &rule : ast_enum.pattern_mapping) {
     // As soon as i get *,*,* all following cases will create ill-formed struct
     if (has_all_star_case) {
@@ -361,8 +366,9 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
     }
     has_all_star_case |= all_stars;
 
-    // Generates inner structs realisation
     for (const auto &constructor : rule.outputs) {
+      DLOG(INFO) << "Generating cpp enum " << ast_enum.identifier.name << " constructor "
+                 << constructor.identifier.name;
       ast::Message sub_struct;
 
       sub_struct.type_dependencies = ast_enum.type_dependencies;
@@ -372,20 +378,21 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
       (*this)(sub_struct);
     }
 
-    // Generated Dependencies
+    DLOG(INFO) << "Generating cpp enum " << ast_enum.identifier.name << " dependencies";
     if (!ast_enum.type_dependencies.empty()) {
       *output_ << "template <";
       PrintVariables(*output_, real_dependencies, ", ", true, false, true);
       *output_ << ">\n";
     }
 
-    // Generates name and input pattern
+    DLOG(INFO) << "Generating cpp enum " << ast_enum.identifier.name << " name and input pattern";
     *output_ << "struct " << ast_enum.identifier.name;
     if (!all_stars) {
       print_complex_dependencies(rule);
     }
     *output_ << " {\n";
 
+    DLOG(INFO) << "Generating cpp enum " << ast_enum.identifier.name << " variable";
     *output_ << "  std::variant<";
     bool first = true;
     for (const auto &rule_variant : rule.outputs) {
@@ -399,7 +406,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
     }
     *output_ << "> value;\n";
 
-    // Generates invariant check
+    DLOG(INFO) << "Generating cpp enum " << ast_enum.identifier.name << " invariant check";
     *output_ << "  bool check() const {\n";
     *output_ << "    return false";
     first = true;
@@ -423,7 +430,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum) {
     *output_ << "};\n\n";
   }
 
-  // Add empty specialisation with witch type will be complete
+  DLOG(INFO) << "Generating cpp enum " << ast_enum.identifier.name << " extra empty specialisation";
   if (!has_all_star_case) {
     if (!ast_enum.type_dependencies.empty()) {
       *output_ << "template <";
@@ -446,13 +453,13 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, const std::vector<a
   std::string added_name    = original_name.substr(original_name.find_first_of('_'));
   original_name             = original_name.substr(0, original_name.find_first_of('_'));
 
-  // Generates all the constructors for all the rules
   for (size_t ind = 0; ind < ast_enum.pattern_mapping.size(); ++ind) {
     for (const auto &constructor : ast_enum.pattern_mapping[ind].outputs) {
       ast::Message sub_struct;
 
       std::stringstream struct_name;
       struct_name << constructor.identifier.name << "_" << ind + 1 << added_name;
+      DLOG(INFO) << "Generating cpp extra_enum " << ast_enum.identifier.name << " constructor " << struct_name.str();
 
       sub_struct.type_dependencies = ast_enum.type_dependencies;
       sub_struct.identifier.name   = InternedString(struct_name.str());
@@ -462,6 +469,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, const std::vector<a
     }
   }
 
+  DLOG(INFO) << "Generating cpp extra_enum " << ast_enum.identifier.name << " templates";
   if (!ast_enum.type_dependencies.empty()) {
     *output_ << "template <";
     PrintVariables(*output_, ast_enum.type_dependencies, ", ", true, false, true);
@@ -470,7 +478,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, const std::vector<a
 
   *output_ << "struct " << ast_enum.identifier.name << " {\n";
 
-  // Generates main variable value
+  DLOG(INFO) << "Generating cpp extra_enum " << ast_enum.identifier.name << " variable";
   *output_ << "  std::variant<";
   bool first = true;
   for (size_t ind = 0; ind < ast_enum.pattern_mapping.size(); ++ind) {
@@ -490,7 +498,7 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, const std::vector<a
   }
   *output_ << "> value;\n";
 
-  // Generates invariant check
+  DLOG(INFO) << "Generating cpp extra_enum " << ast_enum.identifier.name << " invariant check";
   *output_ << "  bool check(";
   PrintVariables(*output_, checker_input, ", ", true, false, true);
   *output_ << ") const {\n";
@@ -566,6 +574,8 @@ void CppCodeGenerator::operator()(const ast::Enum &ast_enum, const std::vector<a
   }
   *output_ << "    return false;\n";
   *output_ << "  }\n";
+
+  DLOG(INFO) << "Generating cpp extra_enum " << ast_enum.identifier.name << " ending";
   *output_ << "};\n\n";
 }
 } // namespace dbuf::gen
