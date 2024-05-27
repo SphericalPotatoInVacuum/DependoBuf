@@ -5,12 +5,12 @@ from __future__ import annotations
 
 from annotated_types import Ge
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, TypeAlias
 
 Unsigned = Annotated[int, Ge(0)]
 
 
-class DbufError(TypeError):
+class _DbufError(TypeError):
     pass
 
 
@@ -19,7 +19,7 @@ class Nat:
     class __Zero:
         def check(self) -> None:
             if type(self) not in Nat._possible_types():
-                raise DbufError(
+                raise _DbufError(
                     'Type Nat.__Zero does not match given dependencies.'
                 )
 
@@ -29,11 +29,11 @@ class Nat:
 
         def check(self) -> None:
             if type(self) not in Nat._possible_types():
-                raise DbufError(
+                raise _DbufError(
                     'Type Nat.__Succ does not match given dependencies.'
                 )
 
-    nat_type = __Zero | __Succ
+    nat_type: TypeAlias = __Zero | __Succ
 
     @classmethod
     def _possible_types(cls) -> set[type]:
@@ -42,7 +42,7 @@ class Nat:
         if _is_consistent(actual, expected):
             return {cls.__Zero, cls.__Succ}
 
-        return {}
+        return set()
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -65,7 +65,7 @@ class TreeH:
 
         def check(self, h: int) -> None:
             if type(self) not in TreeH._possible_types(h):
-                raise DbufError(
+                raise _DbufError(
                     'Type TreeH.__Leaf does not match given dependencies.'
                 )
 
@@ -77,7 +77,7 @@ class TreeH:
 
         def check(self, h: int) -> None:
             if type(self) not in TreeH._possible_types(h):
-                raise DbufError(
+                raise _DbufError(
                     'Type TreeH.__TreeNode does not match given dependencies.'
                 )
 
@@ -87,7 +87,7 @@ class TreeH:
             right_deps = (h - 1, )
             self.right.check(*right_deps)
 
-    tree_h_type = __Leaf | __TreeNode
+    tree_h_type: TypeAlias = __Leaf | __TreeNode
 
     @classmethod
     def _possible_types(cls, h: int) -> set[type]:
@@ -96,11 +96,11 @@ class TreeH:
         if _is_consistent(actual, expected):
             return {cls.__Leaf}
 
-        expected = (None, )
+        expected = (None, )  # type: ignore[attr-defined, assignment]
         if _is_consistent(actual, expected):
             return {cls.__TreeNode}
 
-        return {}
+        return set()
 
     def __init__(self, h: int) -> None:
         self.dependencies = (h, )

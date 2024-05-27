@@ -5,12 +5,12 @@ from __future__ import annotations
 
 from annotated_types import Ge
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, TypeAlias
 
 Unsigned = Annotated[int, Ge(0)]
 
 
-class DbufError(TypeError):
+class _DbufError(TypeError):
     pass
 
 
@@ -20,7 +20,7 @@ class Mes1:
         def check(self, n: int) -> None:
             pass
 
-    mes1_type = __Mes1
+    mes1_type: TypeAlias = __Mes1
 
     def __init__(self, n: int) -> None:
         self.dependencies = (n, )
@@ -45,7 +45,7 @@ class Mes2:
             m11_deps = (10, )
             self.m11.check(*m11_deps)
 
-    mes2_type = __Mes2
+    mes2_type: TypeAlias = __Mes2
 
     def __init__(self) -> None:
         self.dependencies = ()

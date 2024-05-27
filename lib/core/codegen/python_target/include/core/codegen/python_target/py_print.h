@@ -115,7 +115,11 @@ private:
 
   void print_var_deps(const std::string &dep_name, const std::string &deps, bool need_ignores, int level);
 
-  void print_consistency_check(const std::string &expected, const std::vector<std::string> &types, bool need_ignores, int level);
+  void print_consistency_check(
+      const std::string &expected,
+      const std::vector<std::string> &types,
+      bool need_ignores,
+      int level);
 
   void print_dbuf_error();
 

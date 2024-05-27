@@ -5,12 +5,12 @@ from __future__ import annotations
 
 from annotated_types import Ge
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, TypeAlias
 
 Unsigned = Annotated[int, Ge(0)]
 
 
-class DbufError(TypeError):
+class _DbufError(TypeError):
     pass
 
 
@@ -25,7 +25,7 @@ class Address:
         def check(self) -> None:
             pass
 
-    address_type = __Address
+    address_type: TypeAlias = __Address
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -46,7 +46,7 @@ class Pet:
         def check(self) -> None:
             pass
 
-    pet_type = __Pet
+    pet_type: TypeAlias = __Pet
 
     def __init__(self) -> None:
         self.dependencies = ()
@@ -69,7 +69,7 @@ class User:
         def check(self) -> None:
             pass
 
-    user_type = __User
+    user_type: TypeAlias = __User
 
     def __init__(self) -> None:
         self.dependencies = ()

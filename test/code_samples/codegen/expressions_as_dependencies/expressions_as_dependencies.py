@@ -5,12 +5,12 @@ from __future__ import annotations
 
 from annotated_types import Ge
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, TypeAlias
 
 Unsigned = Annotated[int, Ge(0)]
 
 
-class DbufError(TypeError):
+class _DbufError(TypeError):
     pass
 
 
@@ -21,7 +21,7 @@ class Discriminated:
 
         def check(self, b: bool) -> None:
             if type(self) not in Discriminated._possible_types(b):
-                raise DbufError(
+                raise _DbufError(
                     'Type Discriminated.__Good does not match given dependencies.'
                 )
 
@@ -29,24 +29,24 @@ class Discriminated:
     class __Bad:
         def check(self, b: bool) -> None:
             if type(self) not in Discriminated._possible_types(b):
-                raise DbufError(
+                raise _DbufError(
                     'Type Discriminated.__Bad does not match given dependencies.'
                 )
 
-    discriminated_type = __Good | __Bad
+    discriminated_type: TypeAlias = __Good | __Bad
 
     @classmethod
     def _possible_types(cls, b: bool) -> set[type]:
         actual = (b, )
-        expected = (True, )  # type: ignore[attr-defined, assignment]
+        expected = (True, )
         if _is_consistent(actual, expected):
             return {cls.__Good}
 
-        expected = (False, )  # type: ignore[attr-defined, assignment]
+        expected = (False, )
         if _is_consistent(actual, expected):
             return {cls.__Bad}
 
-        return {}
+        return set()
 
     def __init__(self, b: bool) -> None:
         self.dependencies = (b, )
@@ -68,7 +68,7 @@ class Status:
         def check(self, n: int) -> None:
             pass
 
-    status_type = __Status
+    status_type: TypeAlias = __Status
 
     def __init__(self, n: int) -> None:
         self.dependencies = (n, )
@@ -92,7 +92,7 @@ class Person:
             status_deps = (age - (3 * 17), )
             self.status.check(*status_deps)
 
-    person_type = __Person
+    person_type: TypeAlias = __Person
 
     def __init__(self, age: int, male: bool, white: bool) -> None:
         self.dependencies = (age, male, white, )

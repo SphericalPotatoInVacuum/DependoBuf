@@ -19,7 +19,7 @@ void PyExpression::clear_field_names_kit() {
   field_names_kit_.clear();
 }
 
-bool PyExpression::does_need_ignores() {
+bool PyExpression::does_need_ignores() const {
   return need_ignores_;
 }
 

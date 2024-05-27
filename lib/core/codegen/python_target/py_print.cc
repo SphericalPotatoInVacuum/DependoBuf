@@ -144,7 +144,8 @@ void PyPrinter::print_type(const std::string &struct_name, const std::vector<std
   print_line();
 
   std::stringstream buf;
-  buf << camel_to_snake(struct_name) << "_type: TypeAlias" << " = ";
+  buf << camel_to_snake(struct_name) << "_type: TypeAlias"
+      << " = ";
   buf << "__" << inner_types[0];
 
   std::string sep = " | ";
@@ -313,7 +314,11 @@ void PyPrinter::print_var_deps(const std::string &dep_name, const std::string &d
   print_line(tokens, level);
 }
 
-void PyPrinter::print_consistency_check(const std::string &expected, const std::vector<std::string> &types, bool need_ignores, int level) {
+void PyPrinter::print_consistency_check(
+    const std::string &expected,
+    const std::vector<std::string> &types,
+    bool need_ignores,
+    int level) {
   std::vector<std::string> return_set = {"return {"};
   std::string sep                     = ", ";
   for (int i = 0; i < types.size(); ++i) {
@@ -330,7 +335,7 @@ void PyPrinter::print_consistency_check(const std::string &expected, const std::
   } else {
     print_line({"expected = ", expected}, level);
   }
-  
+
   print_line({"if _is_consistent(actual, expected):"}, level++);
   print_line(return_set, level);
   print_line();

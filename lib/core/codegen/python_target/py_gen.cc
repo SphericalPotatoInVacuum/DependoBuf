@@ -84,7 +84,7 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
   bool first_inner_class = true;
   for (const auto &rule : ast_enum.pattern_mapping) {
     std::string expected_params = py_exression_.get_instances(rule.inputs);
-    bool need_ignores = py_exression_.does_need_ignores();
+    bool need_ignores           = py_exression_.does_need_ignores();
     std::vector<std::string> possible_types;
     possible_types.reserve(rule.outputs.size());
 
@@ -104,12 +104,24 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
       std::vector<std::string> field_types;
       std::vector<std::string> field_deps;
       std::vector<bool> field_need_ignores;
-      prepare_names_types_deps_for_fields(enum_constructor.fields, field_names, field_types, field_deps, field_need_ignores);
+      prepare_names_types_deps_for_fields(
+          enum_constructor.fields,
+          field_names,
+          field_types,
+          field_deps,
+          field_need_ignores);
 
       if (!field_names.empty()) {
         printer_.print_line();
       }
-      printer_.print_def_check_enum(dep_names, dep_types, field_names, field_deps, field_need_ignores, enum_name, constructor_name);
+      printer_.print_def_check_enum(
+          dep_names,
+          dep_types,
+          field_names,
+          field_deps,
+          field_need_ignores,
+          enum_name,
+          constructor_name);
 
       field_names_map[constructor_name] = std::move(field_names);
       field_types_map[constructor_name] = std::move(field_types);
@@ -122,7 +134,12 @@ void PyCodeGenerator::operator()(const ast::Enum &ast_enum) {
 
   printer_.print_type(enum_name, constructors);
 
-  printer_.print_def_possible_types(dep_names, dep_types, expected_params_matrix, expected_need_ignores, possible_types_matrix);
+  printer_.print_def_possible_types(
+      dep_names,
+      dep_types,
+      expected_params_matrix,
+      expected_need_ignores,
+      possible_types_matrix);
 
   printer_.print_def_init(dep_names, dep_types, dep_deps, dep_need_ignores);
 
@@ -160,7 +177,7 @@ void PyCodeGenerator::prepare_names_types_deps_for_deps(
 
     std::string var_deps = py_exression_.get_instances(typed_vars[i].type_expression.parameters);
     deps[i]              = std::move(var_deps);
-    need_ignores[i]       = py_exression_.does_need_ignores();
+    need_ignores[i]      = py_exression_.does_need_ignores();
   }
 }
 
@@ -188,7 +205,7 @@ void PyCodeGenerator::prepare_names_types_deps_for_fields(
   for (size_t i = 0; i < dep_size; ++i) {
     std::string var_deps = py_exression_.get_instances(typed_vars[i].type_expression.parameters);
     deps[i]              = std::move(var_deps);
-    need_ignores[i] = py_exression_.does_need_ignores();
+    need_ignores[i]      = py_exression_.does_need_ignores();
   }
 }
 

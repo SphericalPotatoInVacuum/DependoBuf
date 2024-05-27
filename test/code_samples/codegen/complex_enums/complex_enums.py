@@ -5,12 +5,12 @@ from __future__ import annotations
 
 from annotated_types import Ge
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, TypeAlias
 
 Unsigned = Annotated[int, Ge(0)]
 
 
-class DbufError(TypeError):
+class _DbufError(TypeError):
     pass
 
 
@@ -21,7 +21,7 @@ class Color:
 
         def check(self, s: str) -> None:
             if type(self) not in Color._possible_types(s):
-                raise DbufError(
+                raise _DbufError(
                     'Type Color.__Red does not match given dependencies.'
                 )
 
@@ -31,11 +31,11 @@ class Color:
 
         def check(self, s: str) -> None:
             if type(self) not in Color._possible_types(s):
-                raise DbufError(
+                raise _DbufError(
                     'Type Color.__Green does not match given dependencies.'
                 )
 
-    color_type = __Red | __Green
+    color_type: TypeAlias = __Red | __Green
 
     @classmethod
     def _possible_types(cls, s: str) -> set[type]:
@@ -48,7 +48,7 @@ class Color:
         if _is_consistent(actual, expected):
             return {cls.__Green}
 
-        return {}
+        return set()
 
     def __init__(self, s: str) -> None:
         self.dependencies = (s, )
@@ -71,7 +71,7 @@ class House:
 
         def check(self, s: str, col: Color.color_type) -> None:
             if type(self) not in House._possible_types(s, col):
-                raise DbufError(
+                raise _DbufError(
                     'Type House.__GreenHouse does not match given dependencies.'
                 )
 
@@ -79,7 +79,7 @@ class House:
     class __DefaultHouse:
         def check(self, s: str, col: Color.color_type) -> None:
             if type(self) not in House._possible_types(s, col):
-                raise DbufError(
+                raise _DbufError(
                     'Type House.__DefaultHouse does not match given dependencies.'
                 )
 
@@ -87,24 +87,24 @@ class House:
     class __DefaultHouse2:
         def check(self, s: str, col: Color.color_type) -> None:
             if type(self) not in House._possible_types(s, col):
-                raise DbufError(
+                raise _DbufError(
                     'Type House.__DefaultHouse2 does not match given dependencies.'
                 )
 
-    house_type = __GreenHouse | __DefaultHouse | __DefaultHouse2
+    house_type: TypeAlias = __GreenHouse | __DefaultHouse | __DefaultHouse2
 
     @classmethod
     def _possible_types(cls, s: str, col: Color.color_type) -> set[type]:
         actual = (s, col, )
-        expected = ('green', Color._Color__Green(12), )
+        expected = ('green', Color._Color__Green(12), )  # type: ignore[attr-defined, assignment]
         if _is_consistent(actual, expected):
             return {cls.__GreenHouse}
 
-        expected = (None, None, )
+        expected = (None, None, )  # type: ignore[attr-defined, assignment]
         if _is_consistent(actual, expected):
             return {cls.__DefaultHouse, cls.__DefaultHouse2}
 
-        return {}
+        return set()
 
     def __init__(self, s: str, col: Color.color_type) -> None:
         col_deps = ('green', )
@@ -133,23 +133,23 @@ class Village:
     class __DefVillage:
         def check(self, n: int, h: House.house_type) -> None:
             if type(self) not in Village._possible_types(n, h):
-                raise DbufError(
+                raise _DbufError(
                     'Type Village.__DefVillage does not match given dependencies.'
                 )
 
-    village_type = __DefVillage
+    village_type: TypeAlias = __DefVillage
 
     @classmethod
     def _possible_types(cls, n: int, h: House.house_type) -> set[type]:
         actual = (n, h, )
-        expected = (None, House._House__DefaultHouse(), )
+        expected = (None, House._House__DefaultHouse(), )  # type: ignore[attr-defined, assignment]
         if _is_consistent(actual, expected):
             return {cls.__DefVillage}
 
-        return {}
+        return set()
 
     def __init__(self, n: int, h: House.house_type) -> None:
-        h_deps = ('my', Color._Color__Green(n + (2 * 4)), )
+        h_deps = ('my', Color._Color__Green(n + (2 * 4)), )  # type: ignore[attr-defined]
         h.check(*h_deps)
 
         self.dependencies = (n, h, )

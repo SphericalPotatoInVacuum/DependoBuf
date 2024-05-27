@@ -16,7 +16,7 @@ public:
 
   void clear_field_names_kit();
 
-  bool does_need_ignores();
+  bool does_need_ignores() const;
 
   std::string get_instances(const std::vector<std::shared_ptr<const ast::Expression>> &expressions);
 
