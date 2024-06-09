@@ -8,4 +8,5 @@ target_include_directories(codegen PUBLIC
 )
 target_link_libraries(codegen PUBLIC
   dbufAst
+  glog
 )

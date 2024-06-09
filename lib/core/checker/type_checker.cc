@@ -283,6 +283,7 @@ void TypeChecker::CheckTypeExpression(const ast::TypeExpression &type_expression
   DLOG(INFO) << "Checking type expression: " << type_expression;
   if (type_expression.identifier.name == InternedString("Int") ||
       type_expression.identifier.name == InternedString("Unsigned") ||
+      type_expression.identifier.name == InternedString("Float") ||
       type_expression.identifier.name == InternedString("Bool") ||
       type_expression.identifier.name == InternedString("String")) {
     return;
