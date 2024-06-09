@@ -46,10 +46,6 @@ bool CppCodeGenerator::CheckForTriggers(
     const auto &value = std::get<ast::Value>(expr);
     if (std::holds_alternative<ast::ConstructedValue>(value)) {
       const auto &constructed_value = std::get<ast::ConstructedValue>(value);
-      if (std::holds_alternative<ast::Enum>(
-              tree_->types.at(tree_->constructor_to_type.at(constructed_value.constructor_identifier.name)))) {
-        return true;
-      }
       for (const auto &[_, field] : constructed_value.fields) {
         result |= CheckForTriggers(trigger_names, *field);
       }
@@ -209,6 +205,23 @@ void CppCodeGenerator::operator()(
           expr_name << "str_" << string_counter_;
           new_expr.var_identifier.name = InternedString(expr_name.str());
           expr                         = std::make_shared<ast::Expression>(new_expr);
+        } else if (std::holds_alternative<ast::ConstructedValue>(value)) {
+          const auto &constructed_value = std::get<ast::ConstructedValue>(value);
+          if (std::holds_alternative<ast::Enum>(
+                  tree_->types.at(tree_->constructor_to_type.at(constructed_value.constructor_identifier.name)))) {
+            //  constexpr static const Dependent<3> enum_1 = Dependent<3>(Second<3>(5));
+            const auto &enum_name = tree_->constructor_to_type.at(constructed_value.constructor_identifier.name);
+            *output_ << "  constexpr static const " << enum_name << " enum_" << ++enum_counter_ << " = " << enum_name;
+            *output_ << "(";
+            (*this)(constructed_value);
+            *output_ << ");\n";
+
+            ast::VarAccess new_expr;
+            std::stringstream expr_name;
+            expr_name << "&enum_" << enum_counter_;
+            new_expr.var_identifier.name = InternedString(expr_name.str());
+            expr                         = std::make_shared<ast::Expression>(new_expr);
+          }
         }
       }
     }

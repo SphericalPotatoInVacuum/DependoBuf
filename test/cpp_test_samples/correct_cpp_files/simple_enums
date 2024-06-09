@@ -3,7 +3,7 @@
 
 namespace dbuf {
 struct First {
-  int a1;
+  bool a1;
   bool b1;
   bool check() const {
     return true;
@@ -11,7 +11,7 @@ struct First {
 };
 
 struct Second {
-  bool a2;
+  int a2;
   int b2;
   bool check() const {
     return true;
@@ -19,8 +19,8 @@ struct Second {
 };
 
 struct Third {
-  std::string a3;
-  std::string b3;
+  unsigned a3;
+  unsigned b3;
   bool check() const {
     return true;
   }
@@ -37,6 +37,14 @@ struct Independent {
 
 template <const Independent *i>
 struct Dependencies {
+  bool check() const {
+    return true;
+  }
+};
+
+struct ConstructedEnums {
+  constexpr static const Independent enum_1 = Independent(Second {3, 5});
+  Dependencies<&enum_1> a;
   bool check() const {
     return true;
   }

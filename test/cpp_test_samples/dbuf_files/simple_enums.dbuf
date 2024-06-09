@@ -1,15 +1,15 @@
 enum Independent {
     First {
-        a1 Int;
+        a1 Bool;
         b1 Bool;
     }
     Second {
-        a2 Bool;
+        a2 Int;
         b2 Int;
     }
     Third {
-        a3 String;
-        b3 String;
+        a3 Unsigned;
+        b3 Unsigned;
     }
 }
 
@@ -35,4 +35,8 @@ message Fields (a Int) {
 }
 
 message Dependencies (i Independent) {
+}
+
+message ConstructedEnums {
+    a Dependencies Second{a2: 3, b2: 5};
 }

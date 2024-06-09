@@ -56,5 +56,6 @@ private:
   std::unordered_set<InternedString> created_hidden_types_;
   const ast::AST *tree_;
   int string_counter_ = 0;
+  int enum_counter_   = 0;
 };
 } // namespace dbuf::gen
