@@ -1,0 +1,8 @@
+message Pair [T] {
+    first T;
+    second T;
+}
+
+message IntPair {
+    value Pair [Int];
+}
