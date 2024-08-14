@@ -1,0 +1,36 @@
+enum Dependent (a Int) (b Int) {
+    5, 3 => {
+        First {
+            a1 Int;
+            b1 Bool;
+        }
+    }
+    *, 1 => {
+        Second {
+            a2 Bool;
+            b2 Int;
+        }
+    }
+    *, * => {
+        Third {
+            a3 String;
+            b3 String;
+        }
+        Fourth {
+            a4 Bool;
+            b4 Float;
+        }
+    }
+    3, 5 => {
+        Fifth {
+            a1 Int;
+            b1 Bool;
+        }
+    }
+}
+
+message Now (a Int) (b Int) {
+    c Int;
+    d1 Dependent (a+b) (c+b);
+    d2 Dependent c (c+c);
+}

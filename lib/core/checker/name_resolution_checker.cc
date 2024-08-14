@@ -185,6 +185,7 @@ void NameResolutionChecker::AddFields(const InternedString &constructor_name, co
 
 void NameResolutionChecker::AddGlobalNames(const ast::AST &ast) {
   AddName(InternedString("Int"), "type", false);
+  AddName(InternedString("Unsigned"), "type", false);
   AddName(InternedString("String"), "type", false);
   AddName(InternedString("Float"), "type", false);
   AddName(InternedString("Bool"), "type", false);
