@@ -1,0 +1,20 @@
+message Address {
+  id Unsigned;
+  street String;
+  floor Int;
+  withIntercom Bool;
+}
+
+message Pet {
+  id Unsigned;
+  kind String;
+  name String;
+}
+
+message User {
+  id Unsigned;
+  name String;
+  address Address;
+  pet Pet;
+  money Float;
+}

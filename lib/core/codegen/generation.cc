@@ -1,6 +1,7 @@
 #include "core/codegen/generation.h"
 
 #include "core/codegen/cpp_gen.h"
+#include "core/codegen/python_target/py_gen.h"
 
 #include <filesystem>
 #include <set>
@@ -32,6 +33,17 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
       } else {
         throw std::string("You can add only one c++ file");
       }
+
+    } else if ((format == "py") || (format == "python")) {
+      if (!added_formats.contains("py")) {
+        std::stringstream full_path;
+        full_path << path << "/" << filename << ".py";
+        targets_.emplace_back(std::make_shared<PyCodeGenerator>(PyCodeGenerator(full_path.str())));
+        added_formats.insert("py");
+      } else {
+        throw std::string("You can add only one python file");
+      }
+
     } else {
       throw "Unsupported foramt: {}" + format;
     }

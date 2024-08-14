@@ -1,0 +1,21 @@
+message Person (age Int) (male Bool) (white Bool) {
+  dis Discriminated (male & white | !!!(male | white));
+  status Status (age - 3 * 17);
+}
+
+enum Discriminated (b Bool) {
+  true => {
+    Good {
+      prize String;
+    }
+  }
+  false => {
+    Bad {
+
+    }
+  }
+}
+
+message Status (n Int) {
+
+}

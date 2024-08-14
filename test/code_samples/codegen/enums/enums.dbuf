@@ -1,0 +1,21 @@
+enum Nat {
+  Zero {}
+  Succ {
+    prev Nat;
+  }
+}
+
+enum TreeH (h Int) {
+  0 => {
+    Leaf {
+      val Int;
+    }
+  }
+  * => {
+    TreeNode {
+      val Int;
+      left TreeH (h - 1);
+      right TreeH (h - 1);
+    }
+  }
+}

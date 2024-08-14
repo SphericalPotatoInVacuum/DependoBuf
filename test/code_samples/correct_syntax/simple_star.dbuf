@@ -1,0 +1,10 @@
+enum E (n Int) {
+  0 => {
+    Nil {}
+  }
+  * => {
+    Some {
+      val String;
+    }
+  }
+}

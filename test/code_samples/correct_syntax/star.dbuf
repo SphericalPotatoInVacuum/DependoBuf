@@ -1,0 +1,27 @@
+enum A {
+  Aconstr {
+    i Int;
+  }
+}
+
+enum B {
+  Bconstr {
+    s String;
+  }
+}
+
+enum C (a A) (b B) {
+  Aconstr {i: 7}, Bconstr {s: "sss"} => {
+    Ternary {
+      x Float;
+      y Float;
+      z Float;
+    }
+  }
+
+  *, * => {
+    Unary {
+      x Float;
+    }
+  }
+}
