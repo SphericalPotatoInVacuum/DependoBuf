@@ -31,16 +31,14 @@ void CodeGenerator::Generate(ast::AST *tree) {
     std::cerr << "  " << a << "\n";
   }
 
-  bool need_skip = false;
-  for (auto &t : tree->visit_order) {
-    if (need_skip) {
-      printer_.NewLine();
-      need_skip = false;
-    }
+  for (const auto &t : tree->visit_order) {
     if (std::holds_alternative<ast::Message>(tree->types[t])) {
-      auto msg = std::get<ast::Message>(tree->types[t]);
-      printer_ << PrintableMessage(msg, tree);
-      need_skip = true;
+      const auto &message = std::get<ast::Message>(tree->types[t]);
+      printer_ << PrintableMessage(message, tree);
+    }
+    if (std::holds_alternative<ast::Enum>(tree->types[t])) {
+      const auto &ast_enum = std::get<ast::Enum>(tree->types[t]);
+      printer_ << PrintableEnum(ast_enum, tree);
     }
   }
 }
