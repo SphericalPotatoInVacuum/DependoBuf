@@ -30,6 +30,9 @@ const std::string_view PrintableEnum::kPropertyName = "inside";
 
 namespace {
 
+/**
+ * @brief Prints `ast::Value` to `printer`
+ */
 void PrintValue(Printer &printer, const ast::Value &value) {
   if (std::holds_alternative<ast::ScalarValue<bool>>(value)) {
     const auto &current_value = std::get<ast::ScalarValue<bool>>(value);
@@ -65,6 +68,10 @@ void PrintValue(Printer &printer, const ast::Value &value) {
   }
 }
 
+/**
+ * @brief Prints type cheks for all fields of `property`
+ *
+ */
 void AddTypeChecks(Printer &printer, const ast::TypedVariable &property, const ast::DependentType &type) {
   const auto &dependency_name = property.name;
   for (size_t i = 0; i < property.type_expression.parameters.size(); ++i) {
@@ -75,6 +82,10 @@ void AddTypeChecks(Printer &printer, const ast::TypedVariable &property, const a
   }
 }
 
+/**
+ * @brief Prints all type checks for all `properties` and their dependent fields
+ *
+ */
 void AddAllTypeChecks(Printer &printer, const std::vector<ast::TypedVariable> &properties, const ast::AST *tree) {
   for (const auto &property : properties) {
     const auto &type = property.type_expression.identifier.name;
@@ -92,6 +103,10 @@ void AddAllTypeChecks(Printer &printer, const std::vector<ast::TypedVariable> &p
   }
 }
 
+/**
+ * @brief Prints init checks for all `properties`
+ *
+ */
 void AddAllInitChecks(Printer &printer, const std::vector<ast::TypedVariable> &properties) {
   for (const auto &property : properties) {
     const auto &type = property.type_expression.identifier.name;
