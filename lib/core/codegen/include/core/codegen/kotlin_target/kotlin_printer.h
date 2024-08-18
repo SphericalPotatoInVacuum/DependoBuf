@@ -57,8 +57,9 @@ public:
   }
 
 private:
-  static constexpr std::string_view kPackageName = "dbuf";
-  static constexpr unsigned int kIndentLength    = 4;
+  static const std::string_view kDontChangeMessage;
+  static const std::string_view kPackageName;
+  static const unsigned int kIndentLength;
 
   std::shared_ptr<std::ostream> output_;
 
