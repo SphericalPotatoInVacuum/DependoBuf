@@ -104,6 +104,17 @@ private:
   const dbuf::InternedString &property_;
 };
 
+class MessageCheck : public PrintableObject {
+public:
+  MessageCheck(const ast::Message &message, const ast::AST *tree);
+  void Print(Printer &printer) const override;
+  ~MessageCheck() override = default;
+
+private:
+  const ast::Message &message_;
+  const ast::AST *tree_;
+};
+
 class PrintableMessage : public PrintableObject {
 public:
   PrintableMessage(const ast::Message &message, const ast::AST *tree);

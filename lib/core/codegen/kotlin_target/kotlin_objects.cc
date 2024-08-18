@@ -227,16 +227,10 @@ void InitCheck::Print(Printer &printer) const {
   printer << "\"}";
 }
 
-PrintableMessage::PrintableMessage(const ast::Message &message, const ast::AST *tree)
+MessageCheck::MessageCheck(const ast::Message &message, const ast::AST *tree)
     : message_(message)
     , tree_(tree) {}
-void PrintableMessage::Print(Printer &printer) const {
-  printer << "class " << message_.identifier.name << Constructor(message_) << " {";
-  printer.NewLine();
-  printer.AddIndent();
-  printer << Properties(message_);
-  printer.NewLine();
-
+void MessageCheck::Print(Printer &printer) const {
   printer << "fun check() {";
   printer.NewLine();
   printer.AddIndent();
@@ -254,6 +248,18 @@ void PrintableMessage::Print(Printer &printer) const {
   printer.RemoveIndent();
   printer << "}";
   printer.NewLine();
+}
+
+PrintableMessage::PrintableMessage(const ast::Message &message, const ast::AST *tree)
+    : message_(message)
+    , tree_(tree) {}
+void PrintableMessage::Print(Printer &printer) const {
+  printer << "class " << message_.identifier.name << Constructor(message_) << " {";
+  printer.NewLine();
+  printer.AddIndent();
+  printer << Properties(message_);
+  printer.NewLine();
+  printer << MessageCheck(message_, tree_);
   printer.RemoveIndent();
   printer << "}";
   printer.NewLine();
