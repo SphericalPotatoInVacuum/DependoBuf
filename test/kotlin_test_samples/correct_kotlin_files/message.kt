@@ -7,11 +7,23 @@ class IntD(val i: Long) {
 
     fun check() {
     }
+
+    internal companion object Factory {
+        fun default() : IntD {
+            var return_object = IntD(0L)
+            return return_object
+        }
+        fun make(x: Boolean): IntD {
+            var return_object = IntD.default()
+            return_object.x = x
+            return return_object
+        }
+    }
 }
 
 class BinaryMathCheck(val a: Long, val b: Long, val v1: IntD, val v2: IntD, val v3: IntD) {
-    var f1: Long = 0
-    var f2: Long = 0
+    var f1: Long = 0L
+    var f2: Long = 0L
     lateinit var f3: IntD
     lateinit var f4: IntD
     lateinit var f5: IntD
@@ -32,6 +44,23 @@ class BinaryMathCheck(val a: Long, val b: Long, val v1: IntD, val v2: IntD, val 
         check(f5.i == (f1 - f2)) {"dependency i of f5 (is ${f5.i}) should be ${(f1 - f2)}"}
         check(f6.i == (f1 * f2)) {"dependency i of f6 (is ${f6.i}) should be ${(f1 * f2)}"}
     }
+
+    internal companion object Factory {
+        fun default() : BinaryMathCheck {
+            var return_object = BinaryMathCheck(0L, 0L, IntD.default(), IntD.default(), IntD.default())
+            return return_object
+        }
+        fun make(f1: Long, f2: Long, f3: IntD, f4: IntD, f5: IntD, f6: IntD): BinaryMathCheck {
+            var return_object = BinaryMathCheck.default()
+            return_object.f1 = f1
+            return_object.f2 = f2
+            return_object.f3 = f3
+            return_object.f4 = f4
+            return_object.f5 = f5
+            return_object.f6 = f6
+            return return_object
+        }
+    }
 }
 
 class BoolD(val b: Boolean) {
@@ -39,12 +68,36 @@ class BoolD(val b: Boolean) {
 
     fun check() {
     }
+
+    internal companion object Factory {
+        fun default() : BoolD {
+            var return_object = BoolD(false)
+            return return_object
+        }
+        fun make(x: String): BoolD {
+            var return_object = BoolD.default()
+            return_object.x = x
+            return return_object
+        }
+    }
 }
 
 class StringD(val s: String) {
-    var x: Long = 0
+    var x: Long = 0L
 
     fun check() {
+    }
+
+    internal companion object Factory {
+        fun default() : StringD {
+            var return_object = StringD("")
+            return return_object
+        }
+        fun make(x: Long): StringD {
+            var return_object = StringD.default()
+            return_object.x = x
+            return return_object
+        }
     }
 }
 
@@ -82,10 +135,39 @@ class ConstantCheck(val v1: IntD, val v2: IntD, val v3: IntD, val v4: BoolD, val
         check(f6.s == "hey") {"dependency s of f6 (is ${f6.s}) should be ${"hey"}"}
         check(f7.s == "") {"dependency s of f7 (is ${f7.s}) should be ${""}"}
     }
+
+    internal companion object Factory {
+        fun default() : ConstantCheck {
+            var return_object = ConstantCheck(IntD.default(), IntD.default(), IntD.default(), BoolD.default(), BoolD.default(), StringD.default(), StringD.default())
+            return return_object
+        }
+        fun make(f1: IntD, f2: IntD, f3: IntD, f4: BoolD, f5: BoolD, f6: StringD, f7: StringD): ConstantCheck {
+            var return_object = ConstantCheck.default()
+            return_object.f1 = f1
+            return_object.f2 = f2
+            return_object.f3 = f3
+            return_object.f4 = f4
+            return_object.f5 = f5
+            return_object.f6 = f6
+            return_object.f7 = f7
+            return return_object
+        }
+    }
 }
 
 class DeepDependency(val a: Long) {
     fun check() {
+    }
+
+    internal companion object Factory {
+        fun default() : DeepDependency {
+            var return_object = DeepDependency(0L)
+            return return_object
+        }
+        fun make(): DeepDependency {
+            var return_object = DeepDependency.default()
+            return return_object
+        }
     }
 }
 
@@ -93,6 +175,17 @@ class DeepDependency2(val a: Long, val b: DeepDependency) {
     fun check() {
         check(b.a == a) {"dependency a of b (is ${b.a}) should be ${a}"}
 
+    }
+
+    internal companion object Factory {
+        fun default() : DeepDependency2 {
+            var return_object = DeepDependency2(0L, DeepDependency.default())
+            return return_object
+        }
+        fun make(): DeepDependency2 {
+            var return_object = DeepDependency2.default()
+            return return_object
+        }
     }
 }
 
@@ -103,19 +196,44 @@ class DeepDependency3(val a: Long, val b: DeepDependency, val c: DeepDependency2
         check(c.b == b) {"dependency b of c (is ${c.b}) should be ${b}"}
 
     }
+
+    internal companion object Factory {
+        fun default() : DeepDependency3 {
+            var return_object = DeepDependency3(0L, DeepDependency.default(), DeepDependency2.default())
+            return return_object
+        }
+        fun make(): DeepDependency3 {
+            var return_object = DeepDependency3.default()
+            return return_object
+        }
+    }
 }
 
 class DefaultFields() {
-    var x: Long = 0
+    var x: Long = 0L
     var b: Boolean = false
     var s: String = ""
 
     fun check() {
     }
+
+    internal companion object Factory {
+        fun default() : DefaultFields {
+            var return_object = DefaultFields()
+            return return_object
+        }
+        fun make(x: Long, b: Boolean, s: String): DefaultFields {
+            var return_object = DefaultFields.default()
+            return_object.x = x
+            return_object.b = b
+            return_object.s = s
+            return return_object
+        }
+    }
 }
 
 class DependCheck(val x: Long, val i: IntD, val b: BoolD, val s: StringD, val i2: IntD) {
-    var f1: Long = 0
+    var f1: Long = 0L
     lateinit var f2: IntD
     lateinit var f3: BoolD
     lateinit var f4: StringD
@@ -137,21 +255,59 @@ class DependCheck(val x: Long, val i: IntD, val b: BoolD, val s: StringD, val i2
         check(f4.s == f3.x) {"dependency s of f4 (is ${f4.s}) should be ${f3.x}"}
         check(f5.i == f4.x) {"dependency i of f5 (is ${f5.i}) should be ${f4.x}"}
     }
+
+    internal companion object Factory {
+        fun default() : DependCheck {
+            var return_object = DependCheck(0L, IntD.default(), BoolD.default(), StringD.default(), IntD.default())
+            return return_object
+        }
+        fun make(f1: Long, f2: IntD, f3: BoolD, f4: StringD, f5: IntD): DependCheck {
+            var return_object = DependCheck.default()
+            return_object.f1 = f1
+            return_object.f2 = f2
+            return_object.f3 = f3
+            return_object.f4 = f4
+            return_object.f5 = f5
+            return return_object
+        }
+    }
 }
 
 class Empty() {
     fun check() {
+    }
+
+    internal companion object Factory {
+        fun default() : Empty {
+            var return_object = Empty()
+            return return_object
+        }
+        fun make(): Empty {
+            var return_object = Empty.default()
+            return return_object
+        }
     }
 }
 
 class ManyDepend(val a: Long, val b: String, val c: Long) {
     fun check() {
     }
+
+    internal companion object Factory {
+        fun default() : ManyDepend {
+            var return_object = ManyDepend(0L, "", 0L)
+            return return_object
+        }
+        fun make(): ManyDepend {
+            var return_object = ManyDepend.default()
+            return return_object
+        }
+    }
 }
 
 class ManyDependCheck(val a: Long, val b: Boolean, val c: BoolD, val many: ManyDepend) {
-    var f1: Long = 0
-    var f2: Long = 0
+    var f1: Long = 0L
+    var f2: Long = 0L
     var f3: Boolean = false
     var f4: String = ""
     lateinit var f5: ManyDepend
@@ -173,16 +329,33 @@ class ManyDependCheck(val a: Long, val b: Boolean, val c: BoolD, val many: ManyD
         check(f6.b == (f4 + c.x)) {"dependency b of f6 (is ${f6.b}) should be ${(f4 + c.x)}"}
         check(f6.c == 12L) {"dependency c of f6 (is ${f6.c}) should be ${12L}"}
     }
+
+    internal companion object Factory {
+        fun default() : ManyDependCheck {
+            var return_object = ManyDependCheck(0L, false, BoolD.default(), ManyDepend.default())
+            return return_object
+        }
+        fun make(f1: Long, f2: Long, f3: Boolean, f4: String, f5: ManyDepend, f6: ManyDepend): ManyDependCheck {
+            var return_object = ManyDependCheck.default()
+            return_object.f1 = f1
+            return_object.f2 = f2
+            return_object.f3 = f3
+            return_object.f4 = f4
+            return_object.f5 = f5
+            return_object.f6 = f6
+            return return_object
+        }
+    }
 }
 
 class OperationOrderCheck(val a: Long, val b: Long, val c: IntD) {
-    var f1: Long = 0
-    var f2: Long = 0
-    var f3: Long = 0
-    var f4: Long = 0
-    var f5: Long = 0
-    var f6: Long = 0
-    var f7: Long = 0
+    var f1: Long = 0L
+    var f2: Long = 0L
+    var f3: Long = 0L
+    var f4: Long = 0L
+    var f5: Long = 0L
+    var f6: Long = 0L
+    var f7: Long = 0L
     lateinit var f8: IntD
 
     fun check() {
@@ -191,6 +364,25 @@ class OperationOrderCheck(val a: Long, val b: Long, val c: IntD) {
         check(this::f8.isInitialized) {"property f8 should be initialized"}
 
         check(f8.i == (((f1 + (f2 * f3)) + f4) - (f5 * (f6 + -(f7))))) {"dependency i of f8 (is ${f8.i}) should be ${(((f1 + (f2 * f3)) + f4) - (f5 * (f6 + -(f7))))}"}
+    }
+
+    internal companion object Factory {
+        fun default() : OperationOrderCheck {
+            var return_object = OperationOrderCheck(0L, 0L, IntD.default())
+            return return_object
+        }
+        fun make(f1: Long, f2: Long, f3: Long, f4: Long, f5: Long, f6: Long, f7: Long, f8: IntD): OperationOrderCheck {
+            var return_object = OperationOrderCheck.default()
+            return_object.f1 = f1
+            return_object.f2 = f2
+            return_object.f3 = f3
+            return_object.f4 = f4
+            return_object.f5 = f5
+            return_object.f6 = f6
+            return_object.f7 = f7
+            return_object.f8 = f8
+            return return_object
+        }
     }
 }
 
@@ -206,10 +398,24 @@ class StringCheck(val a: String, val b: String, val c: StringD) {
 
         check(f3.s == (((a + f1) + f2) + b)) {"dependency s of f3 (is ${f3.s}) should be ${(((a + f1) + f2) + b)}"}
     }
+
+    internal companion object Factory {
+        fun default() : StringCheck {
+            var return_object = StringCheck("", "", StringD.default())
+            return return_object
+        }
+        fun make(f1: String, f2: String, f3: StringD): StringCheck {
+            var return_object = StringCheck.default()
+            return_object.f1 = f1
+            return_object.f2 = f2
+            return_object.f3 = f3
+            return return_object
+        }
+    }
 }
 
 class UnaryCheck(val a: Long, val b: Boolean, val v1: IntD, val v2: IntD, val v3: BoolD, val v4: BoolD) {
-    var f1: Long = 0
+    var f1: Long = 0L
     var f2: Boolean = false
     lateinit var f3: IntD
     lateinit var f4: IntD
@@ -237,6 +443,25 @@ class UnaryCheck(val a: Long, val b: Boolean, val v1: IntD, val v2: IntD, val v3
         check(f6.b == !(b)) {"dependency b of f6 (is ${f6.b}) should be ${!(b)}"}
         check(f7.b == !(f2)) {"dependency b of f7 (is ${f7.b}) should be ${!(f2)}"}
         check(f8.b == !(!(!(f2)))) {"dependency b of f8 (is ${f8.b}) should be ${!(!(!(f2)))}"}
+    }
+
+    internal companion object Factory {
+        fun default() : UnaryCheck {
+            var return_object = UnaryCheck(0L, false, IntD.default(), IntD.default(), BoolD.default(), BoolD.default())
+            return return_object
+        }
+        fun make(f1: Long, f2: Boolean, f3: IntD, f4: IntD, f5: IntD, f6: BoolD, f7: BoolD, f8: BoolD): UnaryCheck {
+            var return_object = UnaryCheck.default()
+            return_object.f1 = f1
+            return_object.f2 = f2
+            return_object.f3 = f3
+            return_object.f4 = f4
+            return_object.f5 = f5
+            return_object.f6 = f6
+            return_object.f7 = f7
+            return_object.f8 = f8
+            return return_object
+        }
     }
 }
 

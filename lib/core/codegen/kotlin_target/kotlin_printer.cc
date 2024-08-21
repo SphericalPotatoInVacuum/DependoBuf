@@ -33,4 +33,15 @@ void Printer::StartPrintedCheck() {
   printed_ = false;
 }
 
+Scope::Scope(Printer &printer)
+    : printer_(printer)
+    , ended_(false) {}
+void Scope::Close() {
+  if (ended_) {
+    return;
+  }
+  End();
+  ended_ = true;
+}
+
 } // namespace dbuf::gen::kotlin

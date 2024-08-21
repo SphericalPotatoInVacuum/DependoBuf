@@ -11,14 +11,38 @@
 namespace dbuf::gen::kotlin {
 
 /**
- * @brief Prints one property of primary constructor, like `val x: Int`
+ * @brief scope, like '(...)'
  *
  */
-class ConstructorParameter : public PrintableObject {
+class ParenthesesScope : public Scope {
 public:
-  explicit ConstructorParameter(const ast::TypedVariable &typed_variable);
+  ParenthesesScope(Printer &printer);
+  void Start() override;
+  void End() override;
+  ~ParenthesesScope() override;
+};
+
+/**
+ * @brief scope, like '{...}'
+ *
+ */
+class BracesScope : public Scope {
+public:
+  BracesScope(Printer &printer);
+  void Start() override;
+  void End() override;
+  ~BracesScope() override;
+};
+
+/**
+ * @brief Prints typed variable, like `x: Int`
+ *
+ */
+class PrintableVariable : public PrintableObject {
+public:
+  explicit PrintableVariable(const ast::TypedVariable &typed_variable);
   void Print(Printer &printer) const override;
-  ~ConstructorParameter() override = default;
+  ~PrintableVariable() override = default;
 
 private:
   const ast::TypedVariable &typed_variable_;
@@ -61,6 +85,20 @@ public:
   explicit CustomTypeProperty(const ast::TypedVariable &typed_variable);
   void Print(Printer &printer) const override;
   ~CustomTypeProperty() override = default;
+
+private:
+  const ast::TypedVariable &typed_variable_;
+};
+
+/**
+ * @brief decides wheter property has custom type or not and prints it
+ *
+ */
+class Property : public PrintableObject {
+public:
+  explicit Property(const ast::TypedVariable &typed_variable);
+  void Print(Printer &printer) const override;
+  ~Property() override = default;
 
 private:
   const ast::TypedVariable &typed_variable_;
@@ -173,6 +211,62 @@ private:
 };
 
 /**
+ * @brief Prints default value of `variable` type
+ *
+ */
+class DefaultValue : public PrintableObject {
+public:
+  explicit DefaultValue(const ast::TypedVariable &variable);
+  void Print(Printer &printer) const override;
+  ~DefaultValue() override = default;
+
+private:
+  const ast::TypedVariable &variable_;
+};
+
+/**
+ * @brief Prints method `fun default()` for companion of message class
+ *
+ */
+class DefaultMessageCompanion : public PrintableObject {
+public:
+  explicit DefaultMessageCompanion(const ast::Message &message);
+  void Print(Printer &printer) const override;
+  ~DefaultMessageCompanion() override = default;
+
+private:
+  const ast::Message &message_;
+};
+
+/**
+ * @brief Prints method `fun make(...)` for companion of message class
+ *
+ */
+class MakeMessageCompanion : public PrintableObject {
+public:
+  explicit MakeMessageCompanion(const ast::Message &message);
+  void Print(Printer &printer) const override;
+  ~MakeMessageCompanion() override = default;
+
+private:
+  const ast::Message &message_;
+};
+
+/**
+ * @brief Prints companion object for message
+ *
+ */
+class MessageCompanion : public PrintableObject {
+public:
+  explicit MessageCompanion(const ast::Message &message);
+  void Print(Printer &printer) const override;
+  ~MessageCompanion() override = default;
+
+private:
+  const ast::Message &message_;
+};
+
+/**
  * @brief Prints class, that represent message
  *
  */
@@ -200,6 +294,54 @@ public:
 private:
   const ast::Constructor &constructor_;
   const ast::AST *tree_;
+};
+
+/**
+ * @brief Prints method `fun default()` for companion of constructor class
+ */
+class DefaultConstructorCompanion : public PrintableObject {
+public:
+  DefaultConstructorCompanion(const ast::Constructor &constructor, const ast::DependentType &dependencies);
+  void Print(Printer &printer) const override;
+  ~DefaultConstructorCompanion() override = default;
+
+private:
+  const ast::Constructor &constructor_;
+  const ast::DependentType &dependencies_;
+};
+
+/**
+ * @brief Prints method `fun make()` for companion of constructor class
+ *
+ */
+class MakeConstructorCompanion : public PrintableObject {
+public:
+  MakeConstructorCompanion(const ast::Constructor &constructor, const dbuf::InternedString &enum_name);
+  void Print(Printer &printer) const override;
+  ~MakeConstructorCompanion() override = default;
+
+private:
+  const ast::Constructor &constructor_;
+  const dbuf::InternedString &enum_name_;
+};
+
+/**
+ * @brief Prints companion object for constructor class
+ *
+ */
+class ConstructorCompanion : public PrintableObject {
+public:
+  ConstructorCompanion(
+      const ast::Constructor &constructor,
+      const ast::DependentType &dependencies,
+      const dbuf::InternedString &enum_name);
+  void Print(Printer &printer) const override;
+  ~ConstructorCompanion() override = default;
+
+private:
+  const ast::Constructor &constructor_;
+  const ast::DependentType &dependencies_;
+  const dbuf::InternedString &enum_name_;
 };
 
 /**
@@ -246,13 +388,13 @@ public:
   void Print(Printer &printer) const override;
   ~EnumRuleCheck() override = default;
 
-private:
   /**
    * @brief Error message pattern
    *
    */
   static const std::string_view kErrorMessage;
 
+private:
   const ast::Enum::Rule &rule_;
   const ast::DependentType &dependent_type_;
 };
@@ -270,6 +412,33 @@ public:
 private:
   const ast::Enum &ast_enum_;
   const ast::AST *tree_;
+};
+
+/**
+ * @brief Prints method `fun default()` for companion of constructor class
+ */
+class DefaultEnumCompanion : public PrintableObject {
+public:
+  explicit DefaultEnumCompanion(const ast::Enum &ast_enum);
+  void Print(Printer &printer) const override;
+  ~DefaultEnumCompanion() override = default;
+
+private:
+  const ast::Enum &ast_enum_;
+};
+
+/**
+ * @brief Prints companion object for enum class
+ *
+ */
+class EnumCompanion : public PrintableObject {
+public:
+  explicit EnumCompanion(const ast::Enum &ast_enum);
+  void Print(Printer &printer) const override;
+  ~EnumCompanion() override = default;
+
+private:
+  const ast::Enum &ast_enum_;
 };
 
 /**

@@ -2,7 +2,7 @@ message Kek (i Int) {
     j Int;
 }
 
-enum Pair (n Int) (m Int) (k Kek (m + m * m)) {
+enum Triple (n Int) (m Int) (k Kek (m + m * m)) {
     1, *, * => {
         Constructor1
     }

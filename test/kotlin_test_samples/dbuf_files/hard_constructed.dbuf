@@ -1,0 +1,48 @@
+message A (i Int) {
+    x Int;
+    y String;
+}
+
+message B {
+    x Int;
+    a A x;
+}
+
+message BD (b B) {
+}
+
+message HardConstructedMessageCheck {
+    bd BD B{x: 5, a: A{x: 2, y: "Yay"}};
+}
+
+enum HardConstructedEnumCheck (b B) {
+    B{x: 1, a: A{x: 2, y: "Yay2"}} => {
+        Cons1
+    }
+}
+
+enum HardEnum (x Int) {
+    1 => {
+        Cons2 {
+            f1 Int;
+            f2 String;
+        }
+        Cons3 {
+            f3 Bool;
+        }
+    }
+    * => {
+        Cons4 {
+            f4 A 2;
+        }
+    }
+}
+
+message HardEnumD (x Int) (e HardEnum x) {
+}
+
+message HardCheck {
+    v1 HardEnumD 1 Cons2{f1: 0, f2: ""};
+    v2 HardEnumD 1 Cons3{f3: true};
+    v3 HardEnumD 2 Cons4{f4: A{x:-1, y: "soo many strings"}};
+}

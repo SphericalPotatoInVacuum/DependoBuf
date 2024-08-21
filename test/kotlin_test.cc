@@ -48,4 +48,7 @@ TEST_P(KotlinCodegenerationTest, CorrectGeneration) {
   ASSERT_EQ(generated.eof(), expect.eof());
 }
 
-INSTANTIATE_TEST_SUITE_P(KotlinTest, KotlinCodegenerationTest, testing::Values("/message", "/enum"));
+INSTANTIATE_TEST_SUITE_P(
+    KotlinTest,
+    KotlinCodegenerationTest,
+    testing::Values("/message", "/enum", "/self_reference", "/simple_constructed", "/hard_constructed"));

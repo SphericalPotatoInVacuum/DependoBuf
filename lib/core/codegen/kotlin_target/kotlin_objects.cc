@@ -17,8 +17,8 @@ const std::unordered_map<std::string_view, std::string_view> kTypeMap = {
 const std::unordered_map<std::string_view, std::string_view> kDefaultValues = {
     {"Bool", "false"},
     {"Float", "0.0"},
-    {"Int", "0"},
-    {"Unsigned", "0"},
+    {"Int", "0L"},
+    {"Unsigned", "0UL"},
     {"String", "\"\""},
 };
 
@@ -32,8 +32,16 @@ const std::string_view PrintableEnum::kPropertyName = "inside";
 
 namespace {
 
+std::string_view GetType(const dbuf::InternedString &type) {
+  if (kTypeMap.find(type.GetString()) != kTypeMap.end()) {
+    return kTypeMap.at(type.GetString());
+  }
+  return type.GetString();
+}
+
 /**
  * @brief Prints `ast::Value` to `printer`
+ *
  */
 void PrintValue(Printer &printer, const ast::Value &value) {
   if (std::holds_alternative<ast::ScalarValue<bool>>(value)) {
@@ -64,7 +72,16 @@ void PrintValue(Printer &printer, const ast::Value &value) {
     }
     printer << "\"";
   } else if (std::holds_alternative<ast::ConstructedValue>(value)) {
-    throw KotlinError("ConstructedValue expression is not implemented");
+    const auto &current_value = std::get<ast::ConstructedValue>(value);
+    printer << current_value.constructor_identifier.name << ".make(";
+    for (size_t i = 0; i < current_value.fields.size(); ++i) {
+      if (i != 0) {
+        printer << ", ";
+      }
+      const auto &[field, expression] = current_value.fields[i];
+      printer << field.name << " = " << PrintableExpression(*expression);
+    }
+    printer << ")";
   } else {
     throw KotlinError("unknow variant of ast::Expression::Value");
   }
@@ -88,12 +105,21 @@ void AddTypeChecks(Printer &printer, const ast::TypedVariable &property, const a
  * @brief Prints all type checks for all `properties` and their dependent fields
  *
  */
-void AddAllTypeChecks(Printer &printer, const std::vector<ast::TypedVariable> &properties, const ast::AST *tree) {
+void AddAllTypeChecks(
+    Printer &printer,
+    const std::vector<ast::TypedVariable> &properties,
+    const ast::AST *tree,
+    bool last = false) {
+  bool printed = false;
   for (const auto &property : properties) {
     const auto &type = property.type_expression.identifier.name;
     if (kTypeMap.find(type.GetString()) != kTypeMap.end()) {
       continue;
     }
+    if (property.type_expression.parameters.empty()) {
+      continue;
+    }
+    printed                         = true;
     const auto &corresponded_object = tree->types.at(type);
     if (std::holds_alternative<ast::Message>(corresponded_object)) {
       AddTypeChecks(printer, property, std::get<ast::Message>(corresponded_object));
@@ -103,82 +129,119 @@ void AddAllTypeChecks(Printer &printer, const std::vector<ast::TypedVariable> &p
       throw KotlinError("unknow variant of ast.types.second");
     }
   }
+  if (printed && !last) {
+    printer.NewLine();
+  }
 }
 
 /**
  * @brief Prints init checks for all `properties`
  *
  */
-void AddAllInitChecks(Printer &printer, const std::vector<ast::TypedVariable> &properties) {
+void AddAllInitChecks(Printer &printer, const std::vector<ast::TypedVariable> &properties, bool last = false) {
+  bool printed = false;
   for (const auto &property : properties) {
     const auto &type = property.type_expression.identifier.name;
     if (kTypeMap.find(type.GetString()) != kTypeMap.end()) {
       continue;
     }
+    printed = true;
     printer << InitCheck(property.name.GetString());
+    printer.NewLine();
+  }
+  if (printed && !last) {
     printer.NewLine();
   }
 }
 
 } // namespace
 
-ConstructorParameter::ConstructorParameter(const ast::TypedVariable &typed_variable)
+ParenthesesScope::ParenthesesScope(Printer &printer)
+    : Scope(printer) {
+  Start();
+}
+void ParenthesesScope::Start() {
+  printer_ << "(";
+}
+void ParenthesesScope::End() {
+  printer_ << ")";
+}
+ParenthesesScope::~ParenthesesScope() {
+  Close();
+}
+
+BracesScope::BracesScope(Printer &printer)
+    : Scope(printer) {
+  Start();
+}
+void BracesScope::Start() {
+  printer_ << "{" << NewLine;
+  printer_.AddIndent();
+}
+void BracesScope::End() {
+  printer_.RemoveIndent();
+  printer_ << "}";
+  printer_ << NewLine;
+}
+BracesScope::~BracesScope() {
+  Close();
+}
+
+PrintableVariable::PrintableVariable(const ast::TypedVariable &typed_variable)
     : typed_variable_(typed_variable) {}
-void ConstructorParameter::Print(Printer &printer) const {
+void PrintableVariable::Print(Printer &printer) const {
   const auto &name = typed_variable_.name;
   const auto &type = typed_variable_.type_expression.identifier.name;
-  printer << "val " << name << ": ";
-  if (kTypeMap.find(type.GetString()) != kTypeMap.end()) {
-    printer << kTypeMap.at(type.GetString());
-  } else {
-    printer << type;
-  }
+  printer << name << ": " << GetType(type);
 }
 
 Constructor::Constructor(const ast::DependentType &dependent_type)
     : dependent_type_(dependent_type) {}
 void Constructor::Print(Printer &printer) const {
-  printer << "(";
-  for (size_t i = 0; i < dependent_type_.type_dependencies.size(); ++i) {
-    if (i != 0) {
-      printer << ", ";
-    }
-    const auto &current = dependent_type_.type_dependencies[i];
-    printer << ConstructorParameter(current);
+  ParenthesesScope scope(printer);
+  SeparatablePrinter sprinter(printer, ", ");
+  for (const auto &type : dependent_type_.type_dependencies) {
+    sprinter << "val " << PrintableVariable(type) << Separate;
   }
-  printer << ")";
 }
 
 DefaultTypeProperty::DefaultTypeProperty(const ast::TypedVariable &typed_variable)
     : typed_variable_(typed_variable) {}
 void DefaultTypeProperty::Print(Printer &printer) const {
-  const auto &name          = typed_variable_.name;
-  const auto &type          = typed_variable_.type_expression.identifier.name.GetString();
-  const auto &print_type    = kTypeMap.at(type);
-  const auto &default_value = kDefaultValues.at(type);
-  printer << "var " << name << ": " << print_type << " = " << default_value;
+  const auto &type          = typed_variable_.type_expression.identifier.name;
+  const auto &default_value = kDefaultValues.at(type.GetString());
+  printer << "var " << PrintableVariable(typed_variable_) << " = " << default_value;
 }
 
 CustomTypeProperty::CustomTypeProperty(const ast::TypedVariable &typed_variable)
     : typed_variable_(typed_variable) {}
 void CustomTypeProperty::Print(Printer &printer) const {
-  const auto &name = typed_variable_.name;
+  printer << "lateinit var " << PrintableVariable(typed_variable_);
+}
+
+Property::Property(const ast::TypedVariable &typed_variable)
+    : typed_variable_(typed_variable) {}
+void Property::Print(Printer &printer) const {
   const auto &type = typed_variable_.type_expression.identifier.name;
-  printer << "lateinit var " << name << ": " << type;
+  if (kTypeMap.find(type.GetString()) != kTypeMap.end()) {
+    printer << DefaultTypeProperty(typed_variable_);
+  } else {
+    printer << CustomTypeProperty(typed_variable_);
+  }
 }
 
 Properties::Properties(const ast::TypeWithFields &type_with_fields)
     : type_with_fields_(type_with_fields) {}
 void Properties::Print(Printer &printer) const {
-  for (const auto &field : type_with_fields_.fields) {
-    const auto &type = field.type_expression.identifier.name.GetString();
-    if (kTypeMap.find(type) != kTypeMap.end()) {
-      printer << DefaultTypeProperty(field);
-    } else {
-      printer << CustomTypeProperty(field);
-    }
-    printer.NewLine();
+  if (type_with_fields_.fields.empty()) {
+    return;
   }
+  SeparatablePrinter sprinter(printer, NewLine);
+  for (const auto &field : type_with_fields_.fields) {
+    sprinter << Property(field) << Separate;
+  }
+  printer.NewLine();
+  printer.NewLine();
 }
 
 PrintableExpression::PrintableExpression(const ast::Expression &expression)
@@ -250,40 +313,85 @@ MessageCheck::MessageCheck(const ast::Message &message, const ast::AST *tree)
     : message_(message)
     , tree_(tree) {}
 void MessageCheck::Print(Printer &printer) const {
-  printer << "fun check() {";
-  printer.NewLine();
-  printer.AddIndent();
-  printer.StartPrintedCheck();
+  printer << "fun check() ";
+  BracesScope scope(printer);
+
   AddAllTypeChecks(printer, message_.type_dependencies, tree_);
-  if (printer.PrintedSomething()) {
-    printer.NewLine();
-  }
-  printer.StartPrintedCheck();
   AddAllInitChecks(printer, message_.fields);
-  if (printer.PrintedSomething()) {
-    printer.NewLine();
+  AddAllTypeChecks(printer, message_.fields, tree_, true);
+}
+
+DefaultValue::DefaultValue(const ast::TypedVariable &variable)
+    : variable_(variable) {}
+void DefaultValue::Print(Printer &printer) const {
+  const auto &type = variable_.type_expression.identifier.name;
+  if (kDefaultValues.find(type.GetString()) != kDefaultValues.end()) {
+    printer << kDefaultValues.at(type.GetString());
+  } else {
+    printer << type << ".default()";
   }
-  AddAllTypeChecks(printer, message_.fields, tree_);
-  printer.RemoveIndent();
-  printer << "}";
+}
+
+DefaultMessageCompanion::DefaultMessageCompanion(const ast::Message &message)
+    : message_(message) {}
+void DefaultMessageCompanion::Print(Printer &printer) const {
+  printer << "fun default() : " << message_.identifier.name << " ";
+  BracesScope bscope(printer);
+
+  printer << "var return_object = ";
+  printer << message_.identifier.name;
+  ParenthesesScope pscope(printer);
+  SeparatablePrinter sprinter(printer, ", ");
+  for (const auto &dependency : message_.type_dependencies) {
+    sprinter << DefaultValue(dependency) << Separate;
+  }
+  pscope.Close();
   printer.NewLine();
+
+  printer << "return return_object" << NewLine;
+}
+
+MakeMessageCompanion::MakeMessageCompanion(const ast::Message &message)
+    : message_(message) {}
+void MakeMessageCompanion::Print(Printer &printer) const {
+  printer << "fun make";
+  ParenthesesScope pscope(printer);
+  SeparatablePrinter sprinter(printer, ", ");
+  for (const auto &field : message_.fields) {
+    sprinter << PrintableVariable(field) << Separate;
+  }
+  pscope.Close();
+  printer << ": " << message_.identifier.name << " ";
+  BracesScope bscope(printer);
+
+  printer << "var return_object = " << message_.identifier.name << ".default()" << NewLine;
+  for (const auto &field : message_.fields) {
+    printer << "return_object." << field.name << " = " << field.name << NewLine;
+  }
+  printer << "return return_object";
+  printer.NewLine();
+}
+
+MessageCompanion::MessageCompanion(const ast::Message &message)
+    : message_(message) {}
+void MessageCompanion::Print(Printer &printer) const {
+  printer << "internal companion object Factory ";
+  BracesScope scope(printer);
+  printer << DefaultMessageCompanion(message_);
+  printer << MakeMessageCompanion(message_);
 }
 
 PrintableMessage::PrintableMessage(const ast::Message &message, const ast::AST *tree)
     : message_(message)
     , tree_(tree) {}
 void PrintableMessage::Print(Printer &printer) const {
-  printer << "class " << message_.identifier.name << Constructor(message_) << " {";
-  printer.NewLine();
-  printer.AddIndent();
-  if (!message_.fields.empty()) {
-    printer << Properties(message_);
-    printer.NewLine();
-  }
+  printer << "class " << message_.identifier.name << Constructor(message_) << " ";
+  BracesScope scope(printer);
+  printer << Properties(message_);
   printer << MessageCheck(message_, tree_);
-  printer.RemoveIndent();
-  printer << "}";
   printer.NewLine();
+  printer << MessageCompanion(message_);
+  scope.Close();
   printer.NewLine();
 }
 
@@ -291,18 +399,71 @@ ConstructorCheck::ConstructorCheck(const ast::Constructor &constructor, const as
     : constructor_(constructor)
     , tree_(tree) {}
 void ConstructorCheck::Print(Printer &printer) const {
-  printer << "fun check() {";
-  printer.NewLine();
-  printer.AddIndent();
-  printer.StartPrintedCheck();
+  printer << "fun check() ";
+  BracesScope scope(printer);
   AddAllInitChecks(printer, constructor_.fields);
-  if (printer.PrintedSomething()) {
-    printer.NewLine();
+  AddAllTypeChecks(printer, constructor_.fields, tree_, true);
+}
+
+DefaultConstructorCompanion::DefaultConstructorCompanion(
+    const ast::Constructor &constructor,
+    const ast::DependentType &dependencies)
+    : constructor_(constructor)
+    , dependencies_(dependencies) {}
+void DefaultConstructorCompanion::Print(Printer &printer) const {
+  printer << "fun default() : " << constructor_.identifier.name << " ";
+  BracesScope bscope(printer);
+
+  printer << "var return_object = ";
+  printer << constructor_.identifier.name;
+  ParenthesesScope pscope(printer);
+  SeparatablePrinter sprinter(printer, ", ");
+  for (const auto &dependency : dependencies_.type_dependencies) {
+    sprinter << DefaultValue(dependency) << Separate;
   }
-  AddAllTypeChecks(printer, constructor_.fields, tree_);
-  printer.RemoveIndent();
-  printer << "}";
+  pscope.Close();
   printer.NewLine();
+
+  printer << "return return_object" << NewLine;
+}
+
+MakeConstructorCompanion::MakeConstructorCompanion(
+    const ast::Constructor &constructor,
+    const dbuf::InternedString &enum_name)
+    : constructor_(constructor)
+    , enum_name_(enum_name) {}
+void MakeConstructorCompanion::Print(Printer &printer) const {
+  printer << "fun make";
+  ParenthesesScope pscope(printer);
+  SeparatablePrinter sprinter(printer, ", ");
+  for (const auto &field : constructor_.fields) {
+    sprinter << PrintableVariable(field) << Separate;
+  }
+  pscope.Close();
+  printer << ": " << enum_name_ << " ";
+  BracesScope bscope(printer);
+
+  printer << "var return_object = " << enum_name_ << ".default()" << NewLine;
+  printer << "var inside_object = " << constructor_.identifier.name << ".default()" << NewLine;
+  for (const auto &field : constructor_.fields) {
+    printer << "inside_object." << field.name << " = " << field.name << NewLine;
+  }
+  printer << "return_object." << PrintableEnum::kPropertyName << " = inside_object" << NewLine;
+  printer << "return return_object" << NewLine;
+}
+
+ConstructorCompanion::ConstructorCompanion(
+    const ast::Constructor &constructor,
+    const ast::DependentType &dependencies,
+    const dbuf::InternedString &enum_name)
+    : constructor_(constructor)
+    , dependencies_(dependencies)
+    , enum_name_(enum_name) {}
+void ConstructorCompanion::Print(Printer &printer) const {
+  printer << "internal companion object Factory ";
+  BracesScope scope(printer);
+  printer << DefaultConstructorCompanion(constructor_, dependencies_);
+  printer << MakeConstructorCompanion(constructor_, enum_name_);
 }
 
 PrintableConstructor::PrintableConstructor(
@@ -313,17 +474,16 @@ PrintableConstructor::PrintableConstructor(
     , constructor_(constructor)
     , tree_(tree) {}
 void PrintableConstructor::Print(Printer &printer) const {
-  printer << "class " << constructor_.identifier.name << Constructor(dependent_type_) << " {";
-  printer.NewLine();
-  printer.AddIndent();
-  if (!constructor_.fields.empty()) {
-    printer << Properties(constructor_);
-    printer.NewLine();
-  }
+  printer << "class " << constructor_.identifier.name << Constructor(dependent_type_) << " ";
+  BracesScope scope(printer);
+  printer << Properties(constructor_);
   printer << ConstructorCheck(constructor_, tree_);
-  printer.RemoveIndent();
-  printer << "}";
   printer.NewLine();
+  printer << ConstructorCompanion(
+      constructor_,
+      dependent_type_,
+      tree_->constructor_to_type.at(constructor_.identifier.name));
+  scope.Close();
   printer.NewLine();
 }
 
@@ -338,7 +498,10 @@ EnumRuleCheck::EnumRuleCheck(const ast::Enum::Rule &rule, const ast::DependentTy
     : rule_(rule)
     , dependent_type_(dependent_type) {}
 void EnumRuleCheck::Print(Printer &printer) const {
-  printer << "if (";
+  printer << "if ";
+  ParenthesesScope pscope(printer);
+  SeparatablePrinter sprinter(printer, " && ");
+
   bool has_statement = false;
   if (dependent_type_.type_dependencies.size() != rule_.inputs.size()) {
     throw KotlinError("bad rule for enum");
@@ -349,10 +512,7 @@ void EnumRuleCheck::Print(Printer &printer) const {
       continue;
     }
     if (std::holds_alternative<ast::Value>(pattern)) {
-      if (has_statement) {
-        printer << " && ";
-      }
-      printer << EnumStatement(dependent_type_.type_dependencies[i], std::get<ast::Value>(pattern));
+      sprinter << EnumStatement(dependent_type_.type_dependencies[i], std::get<ast::Value>(pattern)) << Separate;
       has_statement = true;
     } else {
       throw KotlinError("unknow variant of ast::Enum::InputPattern");
@@ -361,66 +521,71 @@ void EnumRuleCheck::Print(Printer &printer) const {
   if (!has_statement) {
     printer << "true";
   }
-  printer << ") {";
-  printer.NewLine();
-  printer.AddIndent();
+  pscope.Close();
+  printer << " ";
+  BracesScope bscope(printer);
   if (rule_.outputs.empty()) {
     printer << "check(false) {\"" << kErrorMessage << "\"}";
     printer.NewLine();
   } else {
     const auto &property = PrintableEnum::kPropertyName;
-    bool first           = true;
+    SeparatablePrinter sprinter(printer, "else ");
     for (const auto &constructor : rule_.outputs) {
-      if (!first) {
-        printer << "else ";
-      }
-      printer << "if (" << property << " is " << constructor.identifier.name << ") {";
-      printer.NewLine();
-      printer.AddIndent();
-      printer << "(" << property << " as " << constructor.identifier.name << ").check()";
-      printer.NewLine();
-      printer.RemoveIndent();
-      printer << "}";
-      printer.NewLine();
-      first = false;
+      sprinter << "if (" << property << " is " << constructor.identifier.name << ") ";
+      BracesScope bscope(printer);
+      sprinter << "(" << property << " as " << constructor.identifier.name << ").check()" << NewLine;
+      bscope.Close();
+      sprinter << Separate;
     }
-    printer << "else {";
-    printer.NewLine();
-    printer.AddIndent();
-    printer << "check(false) {\"" << kErrorMessage << "\"}";
-    printer.NewLine();
-    printer.RemoveIndent();
-    printer << "}";
-    printer.NewLine();
+    printer << "else ";
+    BracesScope bscope(printer);
+    printer << "check(false) {\"" << kErrorMessage << "\"}" << NewLine;
   }
-  printer << "return";
-  printer.NewLine();
-  printer.RemoveIndent();
-  printer << "}";
-  printer.NewLine();
+  printer << "return" << NewLine;
+  bscope.Close();
 }
 
 EnumCheck::EnumCheck(const ast::Enum &ast_enum, const ast::AST *tree)
     : ast_enum_(ast_enum)
     , tree_(tree) {}
 void EnumCheck::Print(Printer &printer) const {
-  printer << "fun check() {";
-  printer.NewLine();
-  printer.AddIndent();
-  printer.StartPrintedCheck();
+  printer << "fun check() ";
+  BracesScope scope(printer);
   AddAllTypeChecks(printer, ast_enum_.type_dependencies, tree_);
-  if (printer.PrintedSomething()) {
-    printer.NewLine();
-  }
   printer << InitCheck(PrintableEnum::kPropertyName);
   printer.NewLine();
   printer.NewLine();
   for (const auto &rule : ast_enum_.pattern_mapping) {
     printer << EnumRuleCheck(rule, ast_enum_);
   }
-  printer.RemoveIndent();
-  printer << "}";
+  printer << "check(false) {\"" << EnumRuleCheck::kErrorMessage << "\"}" << NewLine;
+}
+
+DefaultEnumCompanion::DefaultEnumCompanion(const ast::Enum &ast_enum)
+    : ast_enum_(ast_enum) {}
+void DefaultEnumCompanion::Print(Printer &printer) const {
+  printer << "fun default() : " << ast_enum_.identifier.name << " ";
+  BracesScope bscope(printer);
+
+  printer << "var return_object = ";
+  printer << ast_enum_.identifier.name;
+  ParenthesesScope pscope(printer);
+  SeparatablePrinter sprinter(printer, ", ");
+  for (const auto &dependency : ast_enum_.type_dependencies) {
+    sprinter << DefaultValue(dependency) << Separate;
+  }
+  pscope.Close();
   printer.NewLine();
+
+  printer << "return return_object" << NewLine;
+}
+
+EnumCompanion::EnumCompanion(const ast::Enum &ast_enum)
+    : ast_enum_(ast_enum) {}
+void EnumCompanion::Print(Printer &printer) const {
+  printer << "internal companion object Factory ";
+  BracesScope scope(printer);
+  printer << DefaultEnumCompanion(ast_enum_);
 }
 
 PrintableEnum::PrintableEnum(const ast::Enum &ast_enum, const ast::AST *tree)
@@ -432,16 +597,13 @@ void PrintableEnum::Print(Printer &printer) const {
       printer << PrintableConstructor(ast_enum_, constructor, tree_);
     }
   }
-  printer << "class " << ast_enum_.identifier.name << Constructor(ast_enum_) << "{";
-  printer.NewLine();
-  printer.AddIndent();
-  printer << "lateinit var " << kPropertyName << ": Any";
-  printer.NewLine();
-  printer.NewLine();
+  printer << "class " << ast_enum_.identifier.name << Constructor(ast_enum_) << " ";
+  BracesScope scope(printer);
+  printer << "lateinit var " << kPropertyName << ": Any" << NewLine << NewLine;
   printer << EnumCheck(ast_enum_, tree_);
-  printer.RemoveIndent();
-  printer << "}";
   printer.NewLine();
+  printer << EnumCompanion(ast_enum_);
+  scope.Close();
   printer.NewLine();
 }
 
