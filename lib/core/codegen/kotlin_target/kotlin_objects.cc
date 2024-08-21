@@ -1,5 +1,7 @@
 #include "core/codegen/kotlin_target/kotlin_objects.h"
 
+#include "core/codegen/kotlin_target/kotlin_error.h"
+
 #include <vector>
 
 namespace dbuf::gen::kotlin {
@@ -62,9 +64,9 @@ void PrintValue(Printer &printer, const ast::Value &value) {
     }
     printer << "\"";
   } else if (std::holds_alternative<ast::ConstructedValue>(value)) {
-    throw std::string("kotlin code generation: ConstructedValue expression is not implemented");
+    throw KotlinError("ConstructedValue expression is not implemented");
   } else {
-    throw std::string("kotlin code generation: unknow variant of ast::Expression::Value");
+    throw KotlinError("unknow variant of ast::Expression::Value");
   }
 }
 
@@ -98,7 +100,7 @@ void AddAllTypeChecks(Printer &printer, const std::vector<ast::TypedVariable> &p
     } else if (std::holds_alternative<ast::Enum>(corresponded_object)) {
       AddTypeChecks(printer, property, std::get<ast::Enum>(corresponded_object));
     } else {
-      throw std::string("kotlin code generation: unknow variant of ast.types.second");
+      throw KotlinError("unknow variant of ast.types.second");
     }
   }
 }
@@ -191,7 +193,7 @@ void PrintableExpression::Print(Printer &printer) const {
     printer << static_cast<char>(current_expression.type) << "(" << PrintableExpression(*current_expression.expression)
             << ")";
   } else if (std::holds_alternative<ast::TypeExpression>(expression_)) {
-    throw std::string("kotlin code generation: TypeExpressions are not supported");
+    throw KotlinError("TypeExpressions are not supported");
   } else if (std::holds_alternative<ast::Value>(expression_)) {
     const auto &value = std::get<ast::Value>(expression_);
     PrintValue(printer, value);
@@ -202,7 +204,7 @@ void PrintableExpression::Print(Printer &printer) const {
       printer << "." << field.name;
     }
   } else {
-    throw std::string("kotlin code generation: unknow variant of ast::Expression");
+    throw KotlinError("unknow variant of ast::Expression");
   }
 }
 
@@ -339,7 +341,7 @@ void EnumRuleCheck::Print(Printer &printer) const {
   printer << "if (";
   bool has_statement = false;
   if (dependent_type_.type_dependencies.size() != rule_.inputs.size()) {
-    throw std::string("kotlin code generation: bad rule for enum");
+    throw KotlinError("bad rule for enum");
   }
   for (size_t i = 0; i < rule_.inputs.size(); ++i) {
     const auto &pattern = rule_.inputs[i];
@@ -353,7 +355,7 @@ void EnumRuleCheck::Print(Printer &printer) const {
       printer << EnumStatement(dependent_type_.type_dependencies[i], std::get<ast::Value>(pattern));
       has_statement = true;
     } else {
-      throw std::string("kotlin code generation: unknow variant of ast::Enum::InputPattern");
+      throw KotlinError("unknow variant of ast::Enum::InputPattern");
     }
   }
   if (!has_statement) {

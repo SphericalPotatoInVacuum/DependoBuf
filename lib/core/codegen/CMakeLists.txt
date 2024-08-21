@@ -1,6 +1,7 @@
 add_library(codegen STATIC
   generation.cc
   cpp_gen.cc
+  kotlin_target/kotlin_error.cc
   kotlin_target/kotlin_gen.cc
   kotlin_target/kotlin_printer.cc
   kotlin_target/kotlin_objects.cc
