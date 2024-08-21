@@ -16,7 +16,7 @@ namespace dbuf::gen::kotlin {
  */
 class ParenthesesScope : public Scope {
 public:
-  ParenthesesScope(Printer &printer);
+  explicit ParenthesesScope(Printer &printer);
   void Start() override;
   void End() override;
   ~ParenthesesScope() override;
@@ -28,7 +28,7 @@ public:
  */
 class BracesScope : public Scope {
 public:
-  BracesScope(Printer &printer);
+  explicit BracesScope(Printer &printer);
   void Start() override;
   void End() override;
   ~BracesScope() override;
@@ -451,7 +451,6 @@ public:
   void Print(Printer &printer) const override;
   ~PrintableEnum() override = default;
 
-public:
   /**
    * @brief name of property inside enum class. By default it is `lateinit var inside: Any`
    *

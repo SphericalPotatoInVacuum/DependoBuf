@@ -6,8 +6,8 @@
 namespace dbuf::gen::kotlin {
 
 struct KotlinError : std::exception {
-  KotlinError(std::string message);
-  const char *what() const noexcept;
+  explicit KotlinError(std::string message);
+  [[nodiscard]] const char *what() const noexcept override;
 
 private:
   std::string message_;

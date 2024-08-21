@@ -26,13 +26,6 @@ void Printer::NewLine() {
   need_indent_ = true;
 }
 
-bool Printer::PrintedSomething() const {
-  return printed_;
-}
-void Printer::StartPrintedCheck() {
-  printed_ = false;
-}
-
 Scope::Scope(Printer &printer)
     : printer_(printer)
     , ended_(false) {}

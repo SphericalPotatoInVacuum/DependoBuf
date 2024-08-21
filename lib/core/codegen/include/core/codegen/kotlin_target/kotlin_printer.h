@@ -30,12 +30,8 @@ public:
   void RemoveIndent();
   void NewLine();
 
-  bool PrintedSomething() const;
-  void StartPrintedCheck();
-
   template <typename T>
   void Print(const T &message) {
-    printed_ = true;
     if (need_indent_) {
       for (unsigned int i = 0; i < indent_count_ * kIndentLength; ++i) {
         *output_ << " ";
@@ -48,7 +44,6 @@ public:
   template <typename T>
     requires std::is_base_of_v<PrintableObject, T>
   void Print(const T &printable) {
-    printed_ = true;
     if (need_indent_) {
       for (unsigned int i = 0; i < indent_count_ * kIndentLength; ++i) {
         *output_ << " ";
@@ -59,12 +54,12 @@ public:
   }
 
   template <>
-  void Print(const ControlSymbol &symbol) {
-    if (symbol == ControlSymbol::NewLine) {
+  void Print(const ControlSymbol &message) {
+    if (message == ControlSymbol::NewLine) {
       NewLine();
       return;
     }
-    if (symbol == ControlSymbol::Separate) {
+    if (message == ControlSymbol::Separate) {
       throw KotlinError("how did u pass here?!");
     }
     throw KotlinError("printer don't support that ControlSymbol");
@@ -76,10 +71,6 @@ public:
     return *this;
   }
 
-  unsigned int GetIndent() {
-    return indent_count_;
-  }
-
 private:
   static const std::string_view kDontChangeMessage;
   static const std::string_view kPackageName;
@@ -89,12 +80,11 @@ private:
 
   unsigned int indent_count_ = 0;
   bool need_indent_          = false;
-  bool printed_              = false;
 };
 
 class Scope {
 public:
-  Scope(Printer &printer);
+  explicit Scope(Printer &printer);
   void Close();
   virtual ~Scope() = default;
 
@@ -113,8 +103,7 @@ class SeparatablePrinter {
 public:
   SeparatablePrinter(Printer &printer, SeparatorType separator)
       : printer_(printer)
-      , separator_(std::move(separator))
-      , need_separator_(false) {}
+      , separator_(std::move(separator)) {}
 
   template <typename T>
   SeparatablePrinter &operator<<(const T &other) {
@@ -127,19 +116,19 @@ public:
   }
 
   template <>
-  SeparatablePrinter &operator<<(const ControlSymbol &symbol) {
-    if (symbol == ControlSymbol::Separate) {
+  SeparatablePrinter &operator<<(const ControlSymbol &other) {
+    if (other == ControlSymbol::Separate) {
       need_separator_ = true;
       return *this;
     }
-    printer_ << symbol;
+    printer_ << other;
     return *this;
   }
 
 private:
   Printer &printer_;
   SeparatorType separator_;
-  bool need_separator_;
+  bool need_separator_ = false;
 };
 
 } // namespace dbuf::gen::kotlin
