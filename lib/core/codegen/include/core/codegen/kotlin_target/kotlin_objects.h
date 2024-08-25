@@ -121,10 +121,6 @@ private:
 /**
  * @brief Prints `ast::Expression` object
  *
- * @warning do not support `ast::ConstructedValue`
- *
- * @todo support `ast::ConstructedValue`
- *
  */
 class PrintableExpression : public PrintableObject {
 public:
@@ -137,11 +133,45 @@ private:
 };
 
 /**
+ * @brief Prints secondary constructor for messages and constructors
+ *
+ */
+class SecondaryConstructor : public PrintableObject {
+public:
+  SecondaryConstructor(const ast::TypeWithFields &fields, const ast::DependentType &dependency);
+  void Print(Printer &printer) const override;
+  ~SecondaryConstructor() override = default;
+
+private:
+  const ast::TypeWithFields &fields_;
+  const ast::DependentType &dependency_;
+};
+
+/**
+ * @brief calls `fun equals()` for default types and `fun sameFields()` for dbuf types
+ *
+ * @param not_expression defines whether should use == or != (default is ==).
+ *
+ */
+class SmartEqual : public PrintableObject {
+public:
+  explicit SmartEqual(const ast::Identifier &indentifiable, bool not_expression = false);
+  void Print(Printer &printer) const override;
+  ~SmartEqual() override = default;
+
+private:
+  const ast::Identifier &indentifiable_;
+  bool not_expression_;
+};
+
+/**
  * @brief Prints all checks for dependency
  *
  * @param dependency_name name of property witch type has dependencies
  *
  * @param dependency_propery field of `dependency_name`
+ *
+ * @param dependency_type type of `dependency_name.dependency_property`
  *
  * @param expression expected expression for `dependency_name.dependency_property`
  *
@@ -151,6 +181,7 @@ public:
   DependencyCheck(
       const dbuf::InternedString &dependency_name,
       const dbuf::InternedString &dependency_property,
+      const ast::Identifier &dependency_type,
       const ast::Expression &expression);
   void Print(Printer &printer) const override;
   ~DependencyCheck() override = default;
@@ -170,6 +201,7 @@ private:
 
   const dbuf::InternedString &dependency_name_;
   const dbuf::InternedString &dependency_property_;
+  const ast::Identifier &dependency_type_;
   const ast::Expression &expression_;
 };
 
@@ -208,6 +240,81 @@ public:
 private:
   const ast::Message &message_;
   const ast::AST *tree_;
+};
+
+/**
+ * @brief Prints method `fun equals()` for message and constructor
+ *
+ */
+class ClassEquals : public PrintableObject {
+public:
+  ClassEquals(const ast::Identifiable &target, const ast::TypeWithFields &fields, const ast::DependentType &dependency);
+  void Print(Printer &printer) const override;
+  ~ClassEquals() override = default;
+
+private:
+  const ast::Identifiable &target_;
+  const ast::TypeWithFields &fields_;
+  const ast::DependentType &dependency_;
+};
+
+/**
+ * @brief Prints method `infix internal fun sameFields()` for message and constructor
+ *
+ */
+class ClassSameFields : public PrintableObject {
+public:
+  ClassSameFields(const ast::Identifiable &target, const ast::TypeWithFields &fields);
+  void Print(Printer &printer) const override;
+  ~ClassSameFields() override = default;
+
+private:
+  const ast::Identifiable &target_;
+  const ast::TypeWithFields &fields_;
+};
+
+/**
+ * @brief Prints method `infix internal fun notSameFields()` for all classes
+ *
+ */
+class ClassNotSameFields : public PrintableObject {
+public:
+  ClassNotSameFields() = default;
+  void Print(Printer &printer) const override;
+  ~ClassNotSameFields() override = default;
+};
+
+/**
+ * @brief Prints method `override fun toString()` for all classes
+ *
+ */
+class ClassToString : public PrintableObject {
+public:
+  ClassToString() = default;
+  void Print(Printer &printer) const override;
+  ~ClassToString() override = default;
+};
+
+/**
+ * @brief Prints method `fun toString(depth: UInt())` for message and constructor
+ * (implementation of `override fun toString()`)
+ *
+ */
+class ClassToStringImpl : public PrintableObject {
+public:
+  ClassToStringImpl(
+      const ast::Identifiable &target,
+      const ast::TypeWithFields &fields,
+      const ast::DependentType &dependency);
+  void Print(Printer &printer) const override;
+  ~ClassToStringImpl() override = default;
+
+private:
+  static void PrintValue(SeparatablePrinter<const char *> &sprinter, const ast::TypedVariable &variable);
+
+  const ast::Identifiable &target_;
+  const ast::TypeWithFields &fields_;
+  const ast::DependentType &dependency_;
 };
 
 /**
@@ -298,6 +405,7 @@ private:
 
 /**
  * @brief Prints method `fun default()` for companion of constructor class
+ *
  */
 class DefaultConstructorCompanion : public PrintableObject {
 public:
@@ -415,7 +523,65 @@ private:
 };
 
 /**
- * @brief Prints method `fun default()` for companion of constructor class
+ * @brief Prints secondary constructor for enum
+ *
+ */
+class EnumSecondaryConstructor : public PrintableObject {
+public:
+  explicit EnumSecondaryConstructor(const ast::DependentType &dependency);
+  void Print(Printer &printer) const override;
+  ~EnumSecondaryConstructor() override = default;
+
+private:
+  const ast::DependentType &dependency_;
+};
+
+/**
+ * @brief Prints `fun equals()` for enum
+ *
+ */
+class EnumEquals : public PrintableObject {
+public:
+  explicit EnumEquals(const ast::Enum &ast_enum);
+  void Print(Printer &printer) const override;
+  ~EnumEquals() override = default;
+
+private:
+  const ast::Enum &ast_enum_;
+};
+
+/**
+ * @brief Prints method `fun toString(depth: UInt())` for enum
+ * (implementation of `override fun toString()`)
+ *
+ */
+class EnumToStringImpl : public PrintableObject {
+public:
+  explicit EnumToStringImpl(const ast::Enum &ast_enum);
+  void Print(Printer &printer) const override;
+  ~EnumToStringImpl() override = default;
+
+private:
+  const ast::Enum &ast_enum_;
+};
+
+/**
+ * @brief Prints method `infix internal fun sameFields()` for enum
+ *
+ */
+class EnumSameFields : public PrintableObject {
+public:
+  explicit EnumSameFields(const ast::Enum &ast_enum);
+  void Print(Printer &printer) const override;
+  ~EnumSameFields() override = default;
+
+private:
+  const ast::Enum &ast_enum_;
+};
+
+/**
+ * @brief Prints method `fun default()` for companion of enum class
+ *
  */
 class DefaultEnumCompanion : public PrintableObject {
 public:
@@ -452,7 +618,7 @@ public:
   ~PrintableEnum() override = default;
 
   /**
-   * @brief name of property inside enum class. By default it is `lateinit var inside: Any`
+   * @brief name of property inside enum class. By default it is `inside`
    *
    */
   static const std::string_view kPropertyName;

@@ -71,9 +71,10 @@ public:
     return *this;
   }
 
+  static const std::string_view kPackageName;
+
 private:
   static const std::string_view kDontChangeMessage;
-  static const std::string_view kPackageName;
   static const unsigned int kIndentLength;
 
   std::shared_ptr<std::ostream> output_;
@@ -123,6 +124,10 @@ public:
     }
     printer_ << other;
     return *this;
+  }
+
+  bool NeedSeparator() const {
+    return need_separator_;
   }
 
 private:
