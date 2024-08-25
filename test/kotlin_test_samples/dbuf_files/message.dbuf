@@ -1,0 +1,97 @@
+message Empty {
+}
+
+message DefaultFields {
+    x Int;
+    b Bool;
+    s String;
+}
+
+message IntD (i Int) {
+    x Bool;
+}
+
+message BoolD (b Bool) {
+    x String;
+}
+
+message StringD (s String) {
+    x Int;
+}
+
+message ConstantCheck (v1 IntD 12) (v2 IntD -12) (v3 IntD 0) (v4 BoolD true) (v5 BoolD false) (v6 StringD "hi there!") (v7 StringD "") {
+    f1 IntD 13;
+    f2 IntD -13;
+    f3 IntD 0;
+    f4 BoolD true;
+    f5 BoolD false;
+    f6 StringD "hey";
+    f7 StringD "";
+}
+
+message DependCheck (x Int) (i IntD x) (b BoolD i.x) (s StringD b.x) (i2 IntD s.x) {
+    f1 Int;
+    f2 IntD f1;
+    f3 BoolD f2.x;
+    f4 StringD f3.x;
+    f5 IntD f4.x;
+} 
+
+message BinaryMathCheck (a Int) (b Int) (v1 IntD (a + b)) (v2 IntD (a - b)) (v3 IntD (a * b)) {
+    f1 Int;
+    f2 Int;
+    f3 IntD (f1 + a);
+    f4 IntD (f1 + f2);
+    f5 IntD (f1 - f2);
+    f6 IntD (f1 * f2);
+}
+
+message UnaryCheck (a Int) (b Bool) (v1 IntD (-a)) (v2 IntD (-----a)) (v3 BoolD (!b)) (v4 BoolD (!!!!!b)) {
+    f1 Int;
+    f2 Bool;
+    f3 IntD (-a);
+    f4 IntD (-f1);
+    f5 IntD (---f1);
+    f6 BoolD (!b);
+    f7 BoolD (!f2);
+    f8 BoolD (!!!f2);
+}
+
+message OperationOrderCheck (a Int) (b Int) (c IntD (a + b * -a + b + a * (5 + 1) * b - a + 12 - -3)) {
+    f1 Int;
+    f2 Int;
+    f3 Int;
+    f4 Int;
+    f5 Int;
+    f6 Int;
+    f7 Int;
+    f8 IntD (f1 + f2 * f3 + f4 - f5 * (f6 + -f7));
+}
+
+message StringCheck (a String) (b String) (c StringD (a + b + b + a)) {
+    f1 String;
+    f2 String;
+    f3 StringD (a + f1 + f2 + b);
+}
+
+message ManyDepend (a Int) (b String) (c Int) {
+}
+
+message ManyDependCheck (a Int) (b Bool) (c BoolD b) (many ManyDepend a c.x a) {
+    f1 Int;
+    f2 Int;
+    f3 Bool;
+    f4 String;
+
+    f5 ManyDepend a c.x a;
+    f6 ManyDepend (a + f1) (f4 + c.x) 12;
+}
+
+message DeepDependency (a Int) {
+}
+
+message DeepDependency2 (a Int) (b DeepDependency a) {
+}
+
+message DeepDependency3 (a Int) (b DeepDependency a) (c DeepDependency2 a b) {
+}

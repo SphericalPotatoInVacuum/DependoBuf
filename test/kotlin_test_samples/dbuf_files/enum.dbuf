@@ -1,0 +1,31 @@
+message Kek (i Int) {
+    j Int;
+}
+
+enum Triple (n Int) (m Int) (k Kek (m + m * m)) {
+    1, *, * => {
+        Constructor1
+    }
+    2, 2, * => {
+        Constructor2 {
+            x Int;
+        }
+        Constructor3 {
+            y Int;
+            k1 Kek (y + n);
+            k2 Kek (k.j + k1.j + m);
+        }
+    }
+    *, 3, * => {
+        Constructor4
+        Constructor5
+    }
+    4, -4, * => {
+    }
+    *, *, * => {
+        Constructor7
+    }
+    4, *, * => {
+        Constructor8
+    }
+}

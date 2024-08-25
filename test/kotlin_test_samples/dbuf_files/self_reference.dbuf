@@ -1,0 +1,20 @@
+enum Tree (height Int) {
+    0 => {
+        Leaf {
+        }
+    } 
+    * => {
+        Node {
+            l Tree (height - 1);
+            r Tree (height - 1);
+            value Int;
+        }
+    }
+}
+
+message TreeD (x Int) (t Tree x) {
+}
+
+message IWantedBiggerTree {
+    tree TreeD 0 Leaf{};
+}

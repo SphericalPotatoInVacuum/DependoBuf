@@ -13,6 +13,7 @@ the Free Software Foundation, either version 3 of the License, or
 #include "core/ast/ast.h"
 #include "core/checker/checker.h"
 #include "core/codegen/generation.h"
+#include "core/codegen/kotlin_target/kotlin_error.h"
 #include "core/parser/parse_helper.h"
 #include "dbuf.tab.hpp"
 
@@ -64,6 +65,9 @@ int Driver::Run(const std::string &input_filename, const std::string &path, std:
 
   try {
     generators.Process(&ast);
+  } catch (const gen::kotlin::KotlinError &err) {
+    std::cerr << err.what() << std::endl;
+    return EXIT_FAILURE;
   } catch (const char *err) {
     std::cerr << err << std::endl;
     return EXIT_FAILURE;
