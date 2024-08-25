@@ -126,7 +126,7 @@ public:
     return *this;
   }
 
-  bool NeedSeparator() const {
+  [[nodiscard]] bool NeedSeparator() const {
     return need_separator_;
   }
 
