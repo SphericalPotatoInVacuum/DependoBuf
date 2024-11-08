@@ -1,6 +1,7 @@
 #include "core/codegen/generation.h"
 
 #include "core/codegen/cpp_gen.h"
+#include "core/codegen/kotlin_target/kotlin_gen.h"
 
 #include <filesystem>
 #include <set>
@@ -31,6 +32,15 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
         added_formats.insert("cpp");
       } else {
         throw std::string("You can add only one c++ file");
+      }
+    } else if (format == "kt") {
+      if (!added_formats.contains("kt")) {
+        std::stringstream full_path;
+        full_path << path << "/" << filename << ".kt";
+        targets_.emplace_back(std::make_shared<kotlin::CodeGenerator>(kotlin::CodeGenerator(full_path.str())));
+        added_formats.insert("kt");
+      } else {
+        throw std::string("You can add only one kt file");
       }
     } else {
       throw "Unsupported foramt: {}" + format;
