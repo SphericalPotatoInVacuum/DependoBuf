@@ -1,6 +1,7 @@
 #include "core/codegen/generation.h"
 
 #include "core/codegen/cpp_gen.h"
+#include "core/codegen/go/go_gen.h"
 
 #include <filesystem>
 #include <set>
@@ -22,7 +23,7 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
   std::set<std::string> added_formats;
   targets_.reserve(formats.size());
 
-  for (std::string &format : formats) {
+  for (const std::string &format : formats) {
     if ((format == "cpp") || (format == "c++")) {
       if (!added_formats.contains("cpp")) {
         std::stringstream full_path;
@@ -32,8 +33,17 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
       } else {
         throw std::string("You can add only one c++ file");
       }
+    } else if (format == "go") {
+      if (!added_formats.contains("go")) {
+        std::stringstream full_path;
+        full_path << path << "/" << filename << ".go";
+        targets_.emplace_back(std::make_shared<GoCodeGenerator>(GoCodeGenerator(full_path.str())));
+        added_formats.insert("go");
+      } else {
+        throw std::string("You can add only one go file");
+      }
     } else {
-      throw "Unsupported foramt: {}" + format;
+      throw "Unsupported format: {}" + format;
     }
   }
 }
