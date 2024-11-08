@@ -14,6 +14,7 @@ add_library(checker STATIC
   type_checker.cc
   type_comparator.cc
   expression_comparator.cc
+  generic_resolver.cc
 )
 
 target_include_directories(checker PUBLIC

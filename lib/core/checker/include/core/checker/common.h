@@ -16,7 +16,9 @@ the Free Software Foundation, either version 3 of the License, or
 #include "glog/logging.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <deque>
+#include <functional>
 #include <map>
 #include <ostream>
 #include <ranges>
@@ -86,6 +88,24 @@ public:
 private:
   std::unordered_map<InternedString, ast::TypeExpression> vars_;
   std::deque<Scope *> &ctx_;
+};
+
+class Defer {
+public:
+  explicit Defer(const std::function<void()> &other)
+      : callback_(other) {}
+
+  // TODO(gmusya): improve
+  ~Defer() noexcept {
+    try {
+      callback_();
+    } catch (...) {
+      std::abort();
+    }
+  }
+
+private:
+  std::function<void()> callback_;
 };
 
 // Find type of foo.bar.buzz
