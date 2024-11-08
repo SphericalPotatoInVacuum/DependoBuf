@@ -1,5 +1,5 @@
 #include "core/codegen/generation.h"
-
+#include "core/codegen/dart_gen.h"
 #include "core/codegen/cpp_gen.h"
 
 #include <filesystem>
@@ -32,8 +32,13 @@ void ListGenerators::Fill(std::vector<std::string> &formats, const std::string &
       } else {
         throw std::string("You can add only one c++ file");
       }
+    } else if (format == "dart") {
+      std::stringstream full_path;
+      full_path << path << "/" << filename << ".dart";
+      targets_.emplace_back(std::make_shared<DartCodeGenerator>(DartCodeGenerator(full_path.str())));
+      added_formats.insert("dart");
     } else {
-      throw "Unsupported foramt: {}" + format;
+      throw "Unsupported format: {}" + format;
     }
   }
 }
