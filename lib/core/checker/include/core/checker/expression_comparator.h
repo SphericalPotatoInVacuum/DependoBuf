@@ -26,6 +26,7 @@ struct Z3stuff {
       , sorts_(
             {{InternedString("Int"), context_.int_sort()},
              {InternedString("Unsigned"), context_.int_sort()},
+             {InternedString("Float"), context_.real_sort()},
              {InternedString("Bool"), context_.bool_sort()},
              {InternedString("Float"), context_.real_sort()},
              {InternedString("String"), context_.string_sort()}}) {}

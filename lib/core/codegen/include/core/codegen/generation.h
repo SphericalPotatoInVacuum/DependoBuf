@@ -8,7 +8,7 @@ namespace dbuf::gen {
 
 class ITargetCodeGenerator {
 public:
-  virtual void Generate(ast::AST *tree) = 0;
+  virtual void Generate(const ast::AST *tree) = 0;
 
   virtual ~ITargetCodeGenerator() = default;
 
