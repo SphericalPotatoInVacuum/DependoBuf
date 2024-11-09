@@ -9,7 +9,7 @@ namespace dbuf::gen::kotlin {
 class CodeGenerator : public ITargetCodeGenerator {
 public:
   explicit CodeGenerator(const std::string &out_file);
-  void Generate(ast::AST *tree) override;
+  void Generate(const ast::AST *tree) override;
 
 private:
   Printer printer_;
