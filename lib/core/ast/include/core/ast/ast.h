@@ -46,7 +46,9 @@ struct Constructor
 struct Message
     : Identifiable
     , DependentType
-    , TypeWithFields {};
+    , TypeWithFields {
+  std::vector<ast::Identifier> type_identifiers;
+};
 
 struct Enum
     : Identifiable
@@ -59,6 +61,7 @@ struct Enum
   };
 
   std::vector<Rule> pattern_mapping = {};
+  std::vector<ast::Identifier> type_identifiers;
 };
 
 inline std::ostream &operator<<(std::ostream &os, const Enum::Rule::InputPattern &pattern) {
@@ -83,5 +86,9 @@ struct AST {
   std::unordered_map<InternedString, InternedString> constructor_to_type = {};
   std::vector<InternedString> visit_order;
 };
+
+namespace debug {
+std::string ToString(const AST &ast);
+}
 
 } // namespace dbuf::ast

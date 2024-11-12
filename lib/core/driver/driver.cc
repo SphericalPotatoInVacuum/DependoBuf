@@ -29,6 +29,7 @@ namespace dbuf {
 int Driver::Run(const std::string &input_filename, const std::string &path, std::vector<std::string> &output_formats) {
   std::ifstream in_file(input_filename);
   if (!in_file.good()) {
+    std::cerr << "File is bad: " << input_filename << std::endl;
     return EXIT_FAILURE;
   }
   auto name_start            = input_filename.find_last_of('/');

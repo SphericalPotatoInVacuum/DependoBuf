@@ -1,11 +1,12 @@
 add_library(dbufAst
-  INTERFACE
+  STATIC
+  ast.cpp
 )
-target_include_directories(dbufAst INTERFACE
+target_include_directories(dbufAst PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}
   include
 )
-target_link_libraries(dbufAst INTERFACE
+target_link_libraries(dbufAst PUBLIC
   interning
   parser
 )

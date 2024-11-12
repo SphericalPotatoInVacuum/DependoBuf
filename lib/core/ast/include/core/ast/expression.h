@@ -86,10 +86,17 @@ struct TypeExpression : ASTNode {
   std::vector<std::shared_ptr<const Expression>> parameters = {};
 };
 inline std::ostream &operator<<(std::ostream &os, const TypeExpression &expr) {
-  os << expr.identifier.name;
+  os << expr.identifier.name << " [";
+  bool first = true;
   for (const auto &param : expr.parameters) {
-    os << " " << *param;
+    if (!first) {
+      os << ", ";
+    } else {
+      first = false;
+    }
+    os << *param;
   }
+  os << "]";
   return os;
 }
 

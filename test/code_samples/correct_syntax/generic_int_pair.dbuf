@@ -1,0 +1,16 @@
+message Value [T] {
+    value T;
+}
+
+message Pair [U] [V] {
+    first Value [U];
+    second Value [V];
+}
+
+message SamePair [T] {
+    pair Pair [T] [T];
+}
+
+message IntPair {
+    result SamePair [Int];
+}

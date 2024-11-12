@@ -100,6 +100,8 @@ namespace dbuf::parser {
 %token
   LEFT_PAREN "("
   RIGHT_PAREN ")"
+  LEFT_SQ_PAREN "["
+  RIGHT_SQ_PAREN "]"
   LEFT_BRACE "{"
   RIGHT_BRACE "}"
 ;
@@ -153,11 +155,11 @@ definition
 
 %nterm <ast::Message> message_definition;
 message_definition
-  : MESSAGE type_identifier type_dependencies fields_block {
-    $$ = ast::Message{{$2}, {std::move($3)}, {std::move($4)}};
+  : MESSAGE type_identifier generic_dependencies type_dependencies fields_block {
+    $$ = ast::Message{{$2}, {std::move($4)}, {std::move($5)}, {std::move($3)}};
   }
-  | MESSAGE type_identifier fields_block {
-    $$ = ast::Message{{$2}, {}, {std::move($3)}};
+  | MESSAGE type_identifier generic_dependencies fields_block {
+    $$ = ast::Message{{$2}, {}, {std::move($4)}, {std::move($3)}};
   }
   ;
 
@@ -169,20 +171,30 @@ enum_definition
 
 %nterm <ast::Enum> dependent_enum;
 dependent_enum
-  : ENUM type_identifier type_dependencies "{" mapping_rules "}" {
-    $$ = ast::Enum{{$2}, {std::move($3)}, {std::move($5)}};
+  : ENUM type_identifier generic_dependencies type_dependencies "{" mapping_rules "}" {
+    $$ = ast::Enum{{$2}, {std::move($4)}, {std::move($6)}, {std::move($3)}};
   }
   ;
 
 %nterm <ast::Enum> independent_enum;
 independent_enum
-  : ENUM type_identifier constructors_block {
+  : ENUM type_identifier generic_dependencies constructors_block {
     std::vector<ast::Enum::Rule> one_rule;
-    one_rule.emplace_back(ast::Enum::Rule{.outputs = std::move($3)});
+    one_rule.emplace_back(ast::Enum::Rule{.outputs = std::move($4)});
 
-    $$ = ast::Enum{{$2}, {}, {std::move(one_rule)}};
+    $$ = ast::Enum{{$2}, {}, {std::move(one_rule)}, {std::move($3)}};
   }
   ;
+
+%nterm <std::vector<ast::Identifier>> generic_dependencies;
+generic_dependencies
+  : %empty {
+    $$ = std::vector<ast::Identifier>();
+  }
+  | generic_dependencies "[" type_identifier "]" {
+    $$ = std::move($1);
+    $$.emplace_back(std::move($3));
+  }
 
 %nterm <std::vector<ast::TypedVariable>> type_dependencies;
 type_dependencies
@@ -337,11 +349,14 @@ expression
       std::move($2)
     });
   }
-  | type_expr {
+  | value {
     $$ = std::make_shared<const ast::Expression>(std::move($1));
   }
-  | primary {
-    $$ = std::move($1);
+  | var_access {
+    $$ = std::make_shared<const ast::Expression>(std::move($1));
+  }
+  | "(" expression ")" {
+    $$ = std::move($2);
   }
   ;
 
@@ -355,6 +370,9 @@ primary
   }
   | "(" expression ")" {
     $$ = std::move($2);
+  }
+  | "[" type_expr "]" {
+    $$ = std::make_shared<const ast::Expression>(std::move($2));
   }
   ;
 
